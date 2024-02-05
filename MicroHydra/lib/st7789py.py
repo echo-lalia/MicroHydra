@@ -26,6 +26,8 @@ SOFTWARE.
 The driver is based on devbis' st7789py_mpy module from
 https://github.com/devbis/st7789py_mpy.
 
+This driver has been modified somewhat for use with MicroHydra Launcher.
+
 This driver supports:
 
 - 320x240, 240x240, 135x240 and 128x128 pixel displays
@@ -806,6 +808,52 @@ class ST7789:
             for _ in range(bpp):
                 color_index = (color_index << 1) | (
                     (bitmap.BITMAP[bs_bit >> 3] >> (7 - (bs_bit & 7))) & 1
+                )
+                bs_bit += 1
+
+            color = palette[color_index]
+            if needs_swap:
+                buffer[i] = color & 0xFF
+                buffer[i + 1] = color >> 8
+            else:
+                buffer[i] = color >> 8
+                buffer[i + 1] = color & 0xFF
+
+        self._set_window(x, y, to_col, to_row)
+        self._write(None, buffer)
+
+    def bitmap_icons(self, bitmap_module, bitmap, palette, x, y):
+        """
+        Draw a bitmap on display at the specified column and row, using given pallete and memoryview object.
+        This function was designed for use with MicroHydra Launcher.
+
+        Args:
+            (bitmap_module): The module containing the bitmap to draw
+            bitmap: The actual bitmap to draw
+            palette: actual colors to use for the icon
+            x (int): column to start drawing at
+            y (int): row to start drawing at
+            
+        """
+        width = bitmap_module.WIDTH
+        height = bitmap_module.HEIGHT
+        to_col = x + width - 1
+        to_row = y + height - 1
+        if self.width <= to_col or self.height <= to_row:
+            return
+
+        bitmap_size = height * width
+        buffer_len = bitmap_size * 2
+        bpp = bitmap_module.BPP
+        bs_bit = 0
+        needs_swap = self.needs_swap
+        buffer = bytearray(buffer_len)
+
+        for i in range(0, buffer_len, 2):
+            color_index = 0
+            for _ in range(bpp):
+                color_index = (color_index << 1) | (
+                    (bitmap[bs_bit >> 3] >> (7 - (bs_bit & 7))) & 1
                 )
                 bs_bit += 1
 

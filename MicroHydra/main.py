@@ -34,3 +34,9 @@ except ImportError:
         __import__("/launcher/launcher.py")
     except ImportError:
         print("App launcher couldn't be imported!")
+except ValueError:
+    print(f"Tried to launch {app_path}, but failed!")
+    try:
+        __import__("/launcher/launcher.py")
+    except ImportError:
+        print("App launcher couldn't be imported!")

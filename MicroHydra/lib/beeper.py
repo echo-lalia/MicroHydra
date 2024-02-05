@@ -129,7 +129,6 @@ class Beeper:
         '''
         if not 0 <= volume <= 10:
             raise ValueError(f"beep.play got a volume of {volume}, but it should be an int between 0 and 10.")
-        
         notes = notes.split()
         for note in notes:
             self.fast_sin_gen(
@@ -157,5 +156,6 @@ if __name__ == "__main__":
     # I imported a greensleeves string I made for another project, and it sounds pretty rough, haha.
     # The timing needs to be fixed, but worse is that the notes are super out of tune. Sounds better out of PWM.
     #beep.play(geensleeves, length_seconds=0.2, volume=1)
+    beep = Beeper()
     beep.play('C4 B4 C5 C5',0.14,2)
     del beep
