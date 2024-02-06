@@ -6,7 +6,6 @@ from lib import st7789py as st7789
 from launcher.icons import icons
 from font import vga1_8x16 as fontsmall
 from font import vga2_16x32 as font
-import sys
 
 
 """
