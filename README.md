@@ -44,8 +44,11 @@ It also means more complicated apps can place a startup file in the apps directo
 Flash Micropython to your Cardputer, and copy the contents of the "MicroHydra" folder over to the flash. 
 
 <br />
+<br />
 
-Here's a detailed walkthrough:
+**Here's a detailed walkthrough:**
+
+<br />
 
 Download this repository as a zip file, and extract it somewhere on your computer. 
 
