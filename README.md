@@ -29,7 +29,7 @@ This approach was chosen to help to prevent issues with memory managment or impo
 
 
 # Installing Apps:
-Apps are designed to work very simply in this launcher. Any Python file placed in the "apps" folder on the flash, or the SD card, will be found and can be launched as apps. 
+Apps are designed to work very simply in this launcher. Any Python file placed in the "apps" folder on the flash, or the SD card, will be found and can be launched as an app. This works with .mpy files too, meaning machine code written in other languages can also be linked and run as an app (though I have not tested this yet)
 
 This means that a simple app can be contained as one script, which will be executed when the app is selected from the launcher.   
 It also means more complicated apps can place a startup file in the apps directory, which imports anything it needs from another folder in the filesystem. 
