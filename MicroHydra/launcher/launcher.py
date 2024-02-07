@@ -1,5 +1,5 @@
 from machine import Pin, SDCard, SPI, RTC
-import time, os, json
+import time, os, json, math
 from lib import keyboard, beeper
 import machine
 from lib import st7789py as st7789
@@ -15,7 +15,7 @@ from font import vga2_16x32 as font
 
 VERSION: 0.3
 
-CHANGES: added .mpy support
+CHANGES: added .mpy support, improved scrolling animation.
 
 
 This program is designed to be used in conjunction with the "apploader.py" program, to select and launch MPy apps for the Cardputer.
@@ -186,9 +186,11 @@ def center_text_x(text, char_width = 16):
     return start_coord, str_width
 
 
+def easeInCubic(x):
+    return x * x * x
 
-
-
+def easeOutCubic(x):
+    return 1 - ((1 - x) ** 3)
 
 
 #--------------------------------------------------------------------------------------------------
@@ -263,14 +265,16 @@ def main_loop():
         
 
     
-    force_redraw_display = True 
+    force_redraw_display = True
     
+    #this is used as a flag to tell a future loop to redraw the frame mid-scroll animation
+    delayed_redraw = False
     
     launching = False
     current_vscsad = 40
     
-    
-    
+    scroll_direction = 0 #1 for right, -1 for left, 0 for center
+    refresh_timer = 0
     
     #init the beeper!
     beep = beeper.Beeper()
@@ -294,11 +298,9 @@ def main_loop():
                 app_selector_index += 1
                 
                 #animation:
-                current_vscsad -= 40
-                tft.vscsad(80)
-                if current_vscsad < 0:
-                    current_vscsad = 0
-                    
+
+                scroll_direction = 1
+                current_vscsad = target_vscsad
                 if ui_sound:
                     beep.play("D6 C5", 0.1, volume)
 
@@ -306,10 +308,12 @@ def main_loop():
             elif "," in pressed_keys and "," not in prev_pressed_keys: # left arrow
                 app_selector_index -= 1
                 
-                current_vscsad += 40
-                tft.vscsad(0)
-                if current_vscsad > 80:
-                    current_vscsad = 80
+                #animation:
+                
+                scroll_direction = -1
+                
+                #this prevents multiple scrolls from messing up the animation
+                current_vscsad = target_vscsad
                 
                 if ui_sound:
                     beep.play("D6 C5", 0.1, volume)
@@ -374,7 +378,7 @@ def main_loop():
         app_selector_index = app_selector_index % len(app_names)
     
     
-        time.sleep_ms(10) #this loop runs about 3000 times a second without sleeps. The sleeps actually help things feel smoother.
+        time.sleep_ms(4) #this loop runs about 3000 times a second without sleeps. The sleeps actually help things feel smoother.
         
         
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -383,8 +387,8 @@ def main_loop():
 
         #decide now if we will be redrawing the text.
         # we are capturing this so that we can black out and redraw the screen in two parts
-        redraw = ((app_selector_index != prev_selector_index) or force_redraw_display)
-        
+        if (app_selector_index != prev_selector_index):
+            delayed_redraw = True
         
         
         prev_app_text = app_names[prev_selector_index]
@@ -393,56 +397,73 @@ def main_loop():
         
         
         
-        if redraw: #blackout that text
-            time.sleep_ms(1)
-            if len(prev_app_text) > 15:
-                prev_app_text = prev_app_text[:12] + "..."
-            if len(current_app_text) > 15:
-                current_app_text = current_app_text[:12] + "..."
-            
-            #blackout the old text
-            prev_txt_start, prev_txt_width = center_text_x(prev_app_text)
-            tft.fill_rect(prev_txt_start, 50, prev_txt_width, appname_y, bg_color)
-            tft.fill_rect(96, 30, 48, 32, bg_color)
-            time.sleep_ms(1)
-        
-        
-        
+        # if scrolling animation, move in the direction specified!
+        if scroll_direction != 0:
+            tft.vscsad(current_vscsad % 240)
+            if scroll_direction == 1:
+                current_vscsad += math.floor(easeOutCubic((current_vscsad - 40) / 120) * 10) + 5
+                if current_vscsad >= 160:
+                    current_vscsad = -80
+                    scroll_direction = 0
+            else:
+                current_vscsad -= math.floor(easeOutCubic((current_vscsad - 40) / -120) * 10) + 5
+                if current_vscsad <= -80:
+                    current_vscsad = 160
+                    scroll_direction = 0
+
+                
         # if vscsad/scrolling is not centered, move it toward center!
-        if current_vscsad != target_vscsad:
-            tft.vscsad(current_vscsad)
+        if scroll_direction == 0 and current_vscsad != target_vscsad:
+            tft.vscsad(current_vscsad % 240)
             if current_vscsad < target_vscsad:
-                current_vscsad += 1 + (abs(current_vscsad - target_vscsad) // 8)
+
+                current_vscsad += (abs(current_vscsad - target_vscsad) // 8)
             elif current_vscsad > target_vscsad:
-                current_vscsad -= 1 + (abs(current_vscsad - target_vscsad) // 8)
+                current_vscsad -= (abs(current_vscsad - target_vscsad) // 8)
 
             
         
-        
-        
-        
-        # only update the text on the display when we need to!
-        if redraw:
+        #refresh the text mid-scroll, or when forced
+        if (delayed_redraw and scroll_direction == 0 ) or force_redraw_display:
+            #delayed_redraw = False
+            refresh_timer += 1
             
-            #draw new text
-            tft.text(font, current_app_text, center_text_x(current_app_text)[0], appname_y, ui_color, bg_color)
+            if refresh_timer == 1 or force_redraw_display: # redraw text
+                #crop text for display
+                if len(prev_app_text) > 15:
+                    prev_app_text = prev_app_text[:12] + "..."
+                if len(current_app_text) > 15:
+                    current_app_text = current_app_text[:12] + "..."
+                
+                #blackout the old text
+                tft.fill_rect(-40, appname_y, 280, 32, bg_color)
             
-            #special menu options for settings
-            if current_app_text == "UI Sound":
-                if ui_sound:
-                    tft.text(font, "On", center_text_x("On")[0], 30, white, bg_color)
+                #draw new text
+                tft.text(font, current_app_text, center_text_x(current_app_text)[0], appname_y, ui_color, bg_color)
+            
+            if refresh_timer == 2 or force_redraw_display: # redraw icon
+                refresh_timer = 0
+                delayed_redraw = False
+                
+                #blackout old icon #TODO: delete this step when all text is replaced by icons
+                tft.fill_rect(96, 30, 48, 32, bg_color)
+                
+                #special menu options for settings
+                if current_app_text == "UI Sound":
+                    if ui_sound:
+                        tft.text(font, "On", center_text_x("On")[0], 30, white, bg_color)
+                    else:
+                        tft.text(font, "Off", center_text_x("Off")[0], 30, white, bg_color)
+                elif current_app_text == "Reload Apps":
+                    tft.bitmap_icons(icons, icons.RELOAD, (bg_color,ui_color),104, 30)
+                elif app_paths[app_names[app_selector_index]][:3] == "/sd":
+                    tft.bitmap_icons(icons, icons.SDCARD, (bg_color,ui_color),104, 30)
                 else:
-                    tft.text(font, "Off", center_text_x("Off")[0], 30, white, bg_color)
-            elif current_app_text == "Reload Apps":
-                tft.bitmap_icons(icons, icons.RELOAD, (bg_color,ui_color),104, 30)
-            elif app_paths[app_names[app_selector_index]][:3] == "/sd":
-                tft.bitmap_icons(icons, icons.SDCARD, (bg_color,ui_color),104, 30)
-            else:
-                tft.bitmap_icons(icons, icons.FLASH, (bg_color,ui_color),104, 30)
-            time.sleep_ms(10)
+                    tft.bitmap_icons(icons, icons.FLASH, (bg_color,ui_color),104, 30)
             
+
         
-        
+            
         
         #reset vars for next loop
         force_redraw_display = False
@@ -454,5 +475,7 @@ def main_loop():
         
 # run the main loop!
 main_loop()
+
+
 
 
