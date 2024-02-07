@@ -13,7 +13,9 @@ from font import vga2_16x32 as font
 
 """
 
-VERSION: 0.1
+VERSION: 0.3
+
+CHANGES: added .mpy support
 
 
 This program is designed to be used in conjunction with the "apploader.py" program, to select and launch MPy apps for the Cardputer.
@@ -55,16 +57,6 @@ target_vscsad = const(40) # scrolling display "center"
 
 display_width = const(240)
 display_height = const(135)
-
-
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Launching Second Thread ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-
-
 
 
 
@@ -125,7 +117,7 @@ def scan_apps():
     app_paths = {}
 
     for entry in main_app_list:
-        if entry.endswith(".py"): #TODO: consider adding support for .mpy files too
+        if entry.endswith(".py"):
             this_name = entry[:-3]
             
             # the purpose of this check is to prevent dealing with duplicated apps.
@@ -134,6 +126,13 @@ def scan_apps():
                 app_names.append( this_name ) # for pretty display
             
             app_paths[f"{this_name}"] = f"/apps/{entry}"
+
+        elif entry.endswith(".mpy"):
+            this_name = entry[:-4]
+            if this_name not in app_names:
+                app_names.append( this_name )
+            app_paths[f"{this_name}"] = f"/apps/{entry}"
+            
             
     for entry in sd_app_list:
         if entry.endswith(".py"): #repeat for sdcard
@@ -258,6 +257,9 @@ def main_loop():
         bg_color = default_bg_color
         ui_sound = default_ui_sound
         volume = default_volume
+        with open("config.json", "w") as conf:
+            config = {"ui_color":ui_color, "bg_color":bg_color, "ui_sound":ui_sound, "volume":volume}
+            conf.write(json.dumps(config))
         
 
     
@@ -321,13 +323,11 @@ def main_loop():
                 if app_names[app_selector_index] == "UI Sound":
                     
                     if ui_sound == 0: # currently muted, then unmute
-                        nvs.set_i32("sound", 1)
                         ui_sound = True
                         force_redraw_display = True
                         beep.play("C4 G4 G4", 0.2, volume)
                         config_modified = True
                     else: # currently unmuted, then mute
-                        nvs.set_i32("sound", 0)
                         ui_sound = False
                         force_redraw_display = True
                         config_modified = True
@@ -454,4 +454,5 @@ def main_loop():
         
 # run the main loop!
 main_loop()
+
 
