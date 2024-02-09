@@ -2,6 +2,9 @@ import os
 import machine
 from machine import RTC
 
+
+
+
 #default app path is the path to the launcher
 app_path = "/launcher/launcher.py"
 

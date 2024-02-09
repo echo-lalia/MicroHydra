@@ -1,6 +1,7 @@
 from machine import Pin, SDCard, SPI, RTC
 import time, os, json, math
 from lib import keyboard, beeper
+from lib import microhydra as mh
 import machine
 from lib import st7789py as st7789
 from launcher.icons import icons
@@ -13,9 +14,9 @@ from font import vga2_16x32 as font
 
 """
 
-VERSION: 0.3
+VERSION: 0.4
 
-CHANGES: added .mpy support, improved scrolling animation.
+CHANGES: added settings app, added wifi settings, fixed display not centering properly on scoll, added scroll bar.
 
 
 This program is designed to be used in conjunction with the "apploader.py" program, to select and launch MPy apps for the Cardputer.
@@ -145,10 +146,14 @@ def scan_apps():
     
     app_names.sort()
     
-    #add an appname to control the beeps
-    app_names.append("UI Sound")
     #add an appname to refresh the app list
     app_names.append("Reload Apps")
+    #add an appname to control the beeps
+    app_names.append("UI Sound")
+    #add an appname to open settings app
+    app_names.append("Settings")
+    app_paths["Settings"] = "/launcher/settings.py"
+    
     
     return app_names, app_paths
 
@@ -191,6 +196,10 @@ def easeInCubic(x):
 
 def easeOutCubic(x):
     return 1 - ((1 - x) ** 3)
+
+
+
+
 
 
 #--------------------------------------------------------------------------------------------------
@@ -252,6 +261,8 @@ def main_loop():
             bg_color = config["bg_color"]
             ui_sound = config["ui_sound"]
             volume = config["volume"]
+            wifi_ssid = config["wifi_ssid"]
+            wifi_pass = config["wifi_pass"]
     except:
         print("could not load settings from config.json. reloading default values.")
         config_modified = True
@@ -259,11 +270,15 @@ def main_loop():
         bg_color = default_bg_color
         ui_sound = default_ui_sound
         volume = default_volume
+        wifi_ssid = ''
+        wifi_pass = ''
         with open("config.json", "w") as conf:
-            config = {"ui_color":ui_color, "bg_color":bg_color, "ui_sound":ui_sound, "volume":volume}
+            config = {"ui_color":ui_color, "bg_color":bg_color, "ui_sound":ui_sound, "volume":volume, "wifi_ssid":'', "wifi_pass":''}
             conf.write(json.dumps(config))
         
-
+    mid_color = mh.mix_color565(bg_color, ui_color)
+        
+    nonscroll_elements_displayed = False
     
     force_redraw_display = True
     
@@ -339,9 +354,9 @@ def main_loop():
                 elif app_names[app_selector_index] == "Reload Apps":
                     app_names, app_paths = scan_apps()
                     app_selector_index = 0
+                    current_vscsad = 42 # forces scroll animation triggers
                     if ui_sound:
                         beep.play('D4 C4 D4',0.08,volume)
-                        
                         
                 else: # ~~~~~~~~~~~~~~~~~~~ LAUNCH THE APP! ~~~~~~~~~~~~~~~~~~~~
                     
@@ -352,7 +367,9 @@ def main_loop():
                             "ui_color":ui_color,
                             "bg_color":bg_color,
                             "ui_sound":ui_sound,
-                            "volume":volume}
+                            "volume":volume,
+                            "wifi_ssid":wifi_ssid,
+                            "wifi_pass":wifi_pass}
                             conf.write(json.dumps(config))
                         
                     # shut off the display
@@ -417,10 +434,23 @@ def main_loop():
             tft.vscsad(current_vscsad % 240)
             if current_vscsad < target_vscsad:
 
-                current_vscsad += (abs(current_vscsad - target_vscsad) // 8)
+                current_vscsad += (abs(current_vscsad - target_vscsad) // 8) + 1
             elif current_vscsad > target_vscsad:
-                current_vscsad -= (abs(current_vscsad - target_vscsad) // 8)
+                current_vscsad -= (abs(current_vscsad - target_vscsad) // 8) + 1
 
+        
+        
+        # if we are scrolling, we should change some UI elements until we finish
+        if nonscroll_elements_displayed and (current_vscsad != target_vscsad):
+            tft.fill_rect(0,133,240,2,bg_color) # erase scrollbar
+            nonscroll_elements_displayed = False
+            
+            
+        elif nonscroll_elements_displayed == False and (current_vscsad == target_vscsad):
+            #scroll bar
+            scrollbar_width = 240 // len(app_names)
+            tft.fill_rect((scrollbar_width * app_selector_index),133,scrollbar_width,2,mid_color)
+            nonscroll_elements_displayed = True
             
         
         #refresh the text mid-scroll, or when forced
@@ -454,8 +484,13 @@ def main_loop():
                         tft.text(font, "On", center_text_x("On")[0], 30, white, bg_color)
                     else:
                         tft.text(font, "Off", center_text_x("Off")[0], 30, white, bg_color)
+                        
                 elif current_app_text == "Reload Apps":
                     tft.bitmap_icons(icons, icons.RELOAD, (bg_color,ui_color),104, 30)
+                    
+                elif current_app_text == "Settings":
+                    tft.bitmap_icons(icons, icons.GEAR, (bg_color,ui_color),104, 30)
+                    
                 elif app_paths[app_names[app_selector_index]][:3] == "/sd":
                     tft.bitmap_icons(icons, icons.SDCARD, (bg_color,ui_color),104, 30)
                 else:
