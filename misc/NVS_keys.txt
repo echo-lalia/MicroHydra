@@ -1,7 +1,0 @@
-# this is just a note of NVS keys used by the launcher.
-# I specifically using these NVS keys for "built in" apps, but any other apps are free to access them as well
-
-NVS("settings"):
-    "sound":i32 #bool
-    "ui_color":i32 #565 coded rgb value
-    "bg_color":i32 #565 coded rgb value
