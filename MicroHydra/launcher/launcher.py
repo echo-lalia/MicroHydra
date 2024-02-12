@@ -1,10 +1,10 @@
-from machine import Pin, SDCard, SPI, RTC
-import time, os, json, math
+from machine import Pin, SDCard, SPI, RTC, ADC
+import time, os, json, math, ntptime, network
 from lib import keyboard, beeper
 from lib import microhydra as mh
 import machine
 from lib import st7789py as st7789
-from launcher.icons import icons
+from launcher.icons import icons, battery
 from font import vga1_8x16 as fontsmall
 from font import vga2_16x32 as font
 
@@ -14,10 +14,13 @@ from font import vga2_16x32 as font
 
 """
 
-VERSION: 0.4
+VERSION: 0.5
 
-CHANGES: added settings app, added wifi settings, fixed display not centering properly on scoll, added scroll bar.
-
+CHANGES:
+    Added battery indicator and time display in top bar, added sync_time and timezone settings, fixed settings app not turning off display
+    Fixed crash when hitting "reload apps" after removing an SDCard,
+    Reworked entire Beeper module
+    TODO: Find what is causing random hangs with no error messages. Maybe the beeper module is getting stuck? I should try reproducing the glitch with sound disabled.
 
 This program is designed to be used in conjunction with the "apploader.py" program, to select and launch MPy apps for the Cardputer.
 
@@ -59,7 +62,8 @@ target_vscsad = const(40) # scrolling display "center"
 display_width = const(240)
 display_height = const(135)
 
-
+max_wifi_attemps = const(1000)
+max_ntp_attemps = const(10)
 
 
 
@@ -70,19 +74,32 @@ display_height = const(135)
 
 
 
-def scan_apps():
+def scan_apps(sd):
     # first we need a list of apps located on the flash or SDCard
 
     main_directory = os.listdir("/")
-
+    
+    
     # if the sd card is not mounted, we need to mount it.
     if "sd" not in main_directory:
-        sd = SDCard(slot=2, sck=Pin(40), miso=Pin(39), mosi=Pin(14), cs=Pin(12))
-        
+        try:
+            sd = SDCard(slot=2, sck=Pin(40), miso=Pin(39), mosi=Pin(14), cs=Pin(12))
+        except OSError as e:
+            print(e)
+            print("SDCard couldn't be initialized. This might be because it was already initialized and not properly deinitialized.")
+            try:
+                sd.deinit()
+            except:
+                print("Couldn't deinitialize SDCard")
+                
         try:
             os.mount(sd, '/sd')
-        except OSError:
-            print("Could not mount SDCard!")
+        except OSError as e:
+            print(e)
+            print("Could not mount SDCard.")
+        except NameError as e:
+            print(e)
+            print("SDCard not mounted")
             
         main_directory = os.listdir("/")
 
@@ -107,8 +124,12 @@ def scan_apps():
     sd_app_list = []
 
     if "sd" in main_directory:
-        sd_app_list = os.listdir("/sd/apps")
-
+        try:
+            sd_app_list = os.listdir("/sd/apps")
+        except OSError as e:
+            print(e)
+            print("SDCard mounted but cant be opened; assuming it's been removed. Unmounting /sd.")
+            os.umount('/sd')
 
 
 
@@ -143,6 +164,13 @@ def scan_apps():
                 app_names.append( this_name )
             
             app_paths[f"{this_name}"] = f"/sd/apps/{entry}"
+            
+        elif entry.endswith(".mpy"):
+            this_name = entry[:-4]
+            if this_name not in app_names:
+                app_names.append( this_name )
+            app_paths[f"{this_name}"] = f"/sd/apps/{entry}"
+            
     
     app_names.sort()
     
@@ -154,8 +182,9 @@ def scan_apps():
     app_names.append("Settings")
     app_paths["Settings"] = "/launcher/settings.py"
     
+
     
-    return app_names, app_paths
+    return app_names, app_paths, sd
 
 
 
@@ -174,6 +203,7 @@ def launch_app(app_path):
     #print(f'launching {app_path}')
     rtc = machine.RTC()
     rtc.memory(app_path)
+    print(f"Launching '{app_path}...'")
     time.sleep_ms(10)
     machine.reset()
     
@@ -196,7 +226,35 @@ def easeInCubic(x):
 
 def easeOutCubic(x):
     return 1 - ((1 - x) ** 3)
+        
+        
 
+def time_24_to_12(hour_24,minute):
+    ampm = 'am'
+    if hour_24 >= 12:
+        ampm = 'pm'
+        
+    hour_12 = hour_24 % 12
+    if hour_12 == 0:
+        hour_12 = 12
+        
+    time_string = f"{hour_12}:{'{:02d}'.format(minute)}"
+    return time_string, ampm
+
+
+def read_battery_level(adc):
+    """
+    read approx battery level on the adc and return as int range 0 (low) to 3 (high)
+    """
+    raw_value = adc.read_uv() # vbat has a voltage divider of 1/2
+
+    if raw_value < 525000: # 1.05v
+        return 0
+    if raw_value < 1050000: # 2.1v
+        return 1
+    if raw_value < 1575000: # 3.15v
+        return 2
+    return 3 # 4.2v or higher
 
 
 
@@ -216,8 +274,72 @@ def main_loop():
     #bump up our clock speed so the UI feels smoother (240mhz is the max officially supported, but the default is 160mhz)
     machine.freq(240_000_000)
     
+    
+    # load our config asap to support other processes
+    config_modified = False
+    #load config
+    try:
+        with open("config.json", "r") as conf:
+            config = json.loads(conf.read())
+            ui_color = config["ui_color"]
+            bg_color = config["bg_color"]
+            ui_sound = config["ui_sound"]
+            volume = config["volume"]
+            wifi_ssid = config["wifi_ssid"]
+            wifi_pass = config["wifi_pass"]
+            sync_clock = config["sync_clock"]
+            timezone = config["timezone"]
+    except:
+        print("could not load settings from config.json. reloading default values.")
+        config_modified = True
+        ui_color = default_ui_color
+        bg_color = default_bg_color
+        ui_sound = default_ui_sound
+        volume = default_volume
+        wifi_ssid = ''
+        wifi_pass = ''
+        sync_clock = True
+        timezone = 0
+        with open("config.json", "w") as conf:
+            config = {"ui_color":ui_color, "bg_color":bg_color, "ui_sound":ui_sound, "volume":volume, "wifi_ssid":'', "wifi_pass":'', 'sync_clock':True, 'timezone':0}
+            conf.write(json.dumps(config))
+        
+    # sync our RTC on boot, if set in settings
+    syncing_clock = sync_clock
+    sync_ntp_attemps = 0
+    connect_wifi_attemps = 0
+    rtc = machine.RTC()
+    
+    #wifi loves to give unknown runtime errors, just try it twice:
+    nic = None
+    try:
+        nic = network.WLAN(network.STA_IF)
+    except RuntimeError as e:
+        print(e)
+        try:
+            nic = network.WLAN(network.STA_IF)
+        except RuntimeError as e:
+            print("Wifi WLAN object couldnt be created. Gave this error:",e)
+            import micropython
+            print(micropython.mem_info(),micropython.qstr_info())
+        
+    if wifi_ssid == '':
+        syncing_clock = False # no point in wasting resources if wifi hasn't been setup
+    elif rtc.datetime()[0] != 2000: #clock wasn't reset, assume that time has already been set
+        syncing_clock = False
+        
+    if syncing_clock: #enable wifi if we are syncing the clock
+        if not nic.active(): # turn on wifi if it isn't already
+            nic.active(True)
+        if not nic.isconnected(): # try connecting
+            try:
+                nic.connect(wifi_ssid, wifi_pass)
+            except OSError as e:
+                print("wifi_sync_rtc had this error when connecting:",e)
+    
     #before anything else, we should scan for apps
-    app_names, app_paths = scan_apps()
+    sd = None #dummy var for when we cant mount SDCard
+    app_names, app_paths, sd = scan_apps(sd)
     app_selector_index = 0
     prev_selector_index = 0
     
@@ -227,8 +349,9 @@ def main_loop():
     pressed_keys = []
     prev_pressed_keys = []
     
-    
-    
+    #init the ADC for the battery
+    batt = ADC(10)
+    batt.atten(ADC.ATTN_11DB)
     
     #init driver for the graphics
     spi = SPI(1, baudrate=40000000, sck=Pin(36), mosi=Pin(35), miso=None)
@@ -246,38 +369,11 @@ def main_loop():
     
     tft.vscrdef(40,display_width,40)
     tft.vscsad(target_vscsad)
-    
-    
-    
-    
-    
-    # variables:
-    config_modified = False
-    #load config
-    try:
-        with open("config.json", "r") as conf:
-            config = json.loads(conf.read())
-            ui_color = config["ui_color"]
-            bg_color = config["bg_color"]
-            ui_sound = config["ui_sound"]
-            volume = config["volume"]
-            wifi_ssid = config["wifi_ssid"]
-            wifi_pass = config["wifi_pass"]
-    except:
-        print("could not load settings from config.json. reloading default values.")
-        config_modified = True
-        ui_color = default_ui_color
-        bg_color = default_bg_color
-        ui_sound = default_ui_sound
-        volume = default_volume
-        wifi_ssid = ''
-        wifi_pass = ''
-        with open("config.json", "w") as conf:
-            config = {"ui_color":ui_color, "bg_color":bg_color, "ui_sound":ui_sound, "volume":volume, "wifi_ssid":'', "wifi_pass":''}
-            conf.write(json.dumps(config))
         
     mid_color = mh.mix_color565(bg_color, ui_color)
-        
+    red_color = mh.color565_shiftred(ui_color)
+    green_color = mh.color565_shiftgreen(ui_color,0.4)
+    
     nonscroll_elements_displayed = False
     
     force_redraw_display = True
@@ -296,9 +392,16 @@ def main_loop():
     
     #starupp sound
     if ui_sound:
-        beep.play('C4 D4 D4',0.12,volume)
+        beep.play(('C3',
+                   ('F3'),
+                   ('A3'),
+                   ('F3','A3','C3'),
+                   ('F3','A3','C3')),130,volume)
+        
+        
     #init diplsay
     tft.fill_rect(-40,0,280, display_height, bg_color)
+    tft.fill_rect(-40,0,280, 18, mid_color)
     
     
     while True:
@@ -317,7 +420,7 @@ def main_loop():
                 scroll_direction = 1
                 current_vscsad = target_vscsad
                 if ui_sound:
-                    beep.play("D6 C5", 0.1, volume)
+                    beep.play((("C5","D4"),"A4"), 80, volume)
 
                 
             elif "," in pressed_keys and "," not in prev_pressed_keys: # left arrow
@@ -331,7 +434,7 @@ def main_loop():
                 current_vscsad = target_vscsad
                 
                 if ui_sound:
-                    beep.play("D6 C5", 0.1, volume)
+                    beep.play((("B3","C5"),"A4"), 80, volume)
                 
             
         
@@ -344,7 +447,7 @@ def main_loop():
                     if ui_sound == 0: # currently muted, then unmute
                         ui_sound = True
                         force_redraw_display = True
-                        beep.play("C4 G4 G4", 0.2, volume)
+                        beep.play(("C4","G4","G4"), 100, volume)
                         config_modified = True
                     else: # currently unmuted, then mute
                         ui_sound = False
@@ -352,11 +455,11 @@ def main_loop():
                         config_modified = True
                 
                 elif app_names[app_selector_index] == "Reload Apps":
-                    app_names, app_paths = scan_apps()
+                    app_names, app_paths, sd = scan_apps(sd)
                     app_selector_index = 0
                     current_vscsad = 42 # forces scroll animation triggers
                     if ui_sound:
-                        beep.play('D4 C4 D4',0.08,volume)
+                        beep.play(('F3','A3','C3'),100,volume)
                         
                 else: # ~~~~~~~~~~~~~~~~~~~ LAUNCH THE APP! ~~~~~~~~~~~~~~~~~~~~
                     
@@ -369,7 +472,9 @@ def main_loop():
                             "ui_sound":ui_sound,
                             "volume":volume,
                             "wifi_ssid":wifi_ssid,
-                            "wifi_pass":wifi_pass}
+                            "wifi_pass":wifi_pass,
+                            "sync_clock":sync_clock,
+                            "timezone":timezone}
                             conf.write(json.dumps(config))
                         
                     # shut off the display
@@ -378,8 +483,14 @@ def main_loop():
                     Pin(38, Pin.OUT).value(0) #backlight off
                     spi.deinit()
                     
+                    if sd != None:
+                        try:
+                            sd.deinit()
+                        except:
+                            print("Tried to deinit SDCard, but failed.")
+                            
                     if ui_sound:
-                        beep.play('C4 B4 C5 C5',0.14,volume)
+                        beep.play(('C4','B4','C5','C5'),100,volume)
                         
                     launch_app(app_paths[app_names[app_selector_index]])
                 
@@ -443,6 +554,8 @@ def main_loop():
         # if we are scrolling, we should change some UI elements until we finish
         if nonscroll_elements_displayed and (current_vscsad != target_vscsad):
             tft.fill_rect(0,133,240,2,bg_color) # erase scrollbar
+            tft.fill_rect(6,2,58,16,mid_color) # erase clock
+            tft.fill_rect(212,4,20,10,mid_color) # erase battery
             nonscroll_elements_displayed = False
             
             
@@ -450,6 +563,24 @@ def main_loop():
             #scroll bar
             scrollbar_width = 240 // len(app_names)
             tft.fill_rect((scrollbar_width * app_selector_index),133,scrollbar_width,2,mid_color)
+            
+            #clock
+            _,_,_, hour_24, minute, _,_,_ = time.localtime()
+            formatted_time, ampm = time_24_to_12(hour_24, minute)
+            tft.text(fontsmall, formatted_time, 6,2,ui_color, mid_color)
+            tft.text(fontsmall, ampm, 8 + (len(formatted_time) * 8),2,bg_color, mid_color)
+            
+            #battery
+            battlevel = read_battery_level(batt)
+            if battlevel == 3:
+                tft.bitmap_icons(battery, battery.FULL, (mid_color,green_color),212, 4)
+            elif battlevel == 2:
+                tft.bitmap_icons(battery, battery.HIGH, (mid_color,ui_color),212, 4)
+            elif battlevel == 1:
+                tft.bitmap_icons(battery, battery.LOW, (mid_color,ui_color),212, 4)
+            else:
+                tft.bitmap_icons(battery, battery.EMPTY, (mid_color,red_color),212, 4)
+            
             nonscroll_elements_displayed = True
             
         
@@ -476,25 +607,25 @@ def main_loop():
                 delayed_redraw = False
                 
                 #blackout old icon #TODO: delete this step when all text is replaced by icons
-                tft.fill_rect(96, 30, 48, 32, bg_color)
+                tft.fill_rect(96, 30, 48, 36, bg_color)
                 
                 #special menu options for settings
                 if current_app_text == "UI Sound":
                     if ui_sound:
-                        tft.text(font, "On", center_text_x("On")[0], 30, white, bg_color)
+                        tft.text(font, "On", center_text_x("On")[0], 36, ui_color, bg_color)
                     else:
-                        tft.text(font, "Off", center_text_x("Off")[0], 30, white, bg_color)
+                        tft.text(font, "Off", center_text_x("Off")[0], 36, mid_color, bg_color)
                         
                 elif current_app_text == "Reload Apps":
-                    tft.bitmap_icons(icons, icons.RELOAD, (bg_color,ui_color),104, 30)
+                    tft.bitmap_icons(icons, icons.RELOAD, (bg_color,ui_color),104, 36)
                     
                 elif current_app_text == "Settings":
-                    tft.bitmap_icons(icons, icons.GEAR, (bg_color,ui_color),104, 30)
+                    tft.bitmap_icons(icons, icons.GEAR, (bg_color,ui_color),104, 36)
                     
                 elif app_paths[app_names[app_selector_index]][:3] == "/sd":
-                    tft.bitmap_icons(icons, icons.SDCARD, (bg_color,ui_color),104, 30)
+                    tft.bitmap_icons(icons, icons.SDCARD, (bg_color,ui_color),104, 36)
                 else:
-                    tft.bitmap_icons(icons, icons.FLASH, (bg_color,ui_color),104, 30)
+                    tft.bitmap_icons(icons, icons.FLASH, (bg_color,ui_color),104, 36)
             
 
         
@@ -506,7 +637,40 @@ def main_loop():
         #update prev app selector index to current one for next cycle
         prev_selector_index = app_selector_index
             
+        #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ WIFI and RTC: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         
+        if syncing_clock:
+            if nic.isconnected():
+                try:
+                    ntptime.settime()
+                except OSError:
+                    sync_ntp_attemps += 1
+                    
+                if rtc.datetime()[0] != 2000:
+                    nic.disconnect()
+                    nic.active(False) #shut off wifi
+                    syncing_clock = False
+                    #apply our timezone offset
+                    time_list = list(rtc.datetime())
+                    time_list[4] = time_list[4] + timezone
+                    rtc.datetime(tuple(time_list))
+                    print(f'RTC successfully synced to {rtc.datetime()} with {sync_ntp_attemps} attemps.')
+                    
+                elif sync_ntp_attemps >= max_ntp_attemps:
+                    nic.disconnect()
+                    nic.active(False) #shut off wifi
+                    syncing_clock = False
+                    print(f"Syncing RTC aborted after {sync_ntp_attemps} attemps")
+                
+            elif connect_wifi_attemps >= max_wifi_attemps:
+                nic.disconnect()
+                nic.active(False) #shut off wifi
+                syncing_clock = False
+                print(f"Connecting to wifi aborted after {connect_wifi_attemps} loops")
+            else:
+                connect_wifi_attemps += 1
         
 # run the main loop!
 main_loop()

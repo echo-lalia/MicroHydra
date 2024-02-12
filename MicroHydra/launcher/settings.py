@@ -33,6 +33,8 @@ setting_names = [
     'bg_color',
     'wifi_ssid',
     'wifi_pass',
+    'sync_clock',
+    'timezone',
     'confirm'
     ]
 
@@ -82,14 +84,14 @@ def get_color(tft, font, kb, beep, setting_name, previous_color, ui_color, bg_co
                 rgb_select_index -= 1
                 rgb_select_index %= 3
                 if ui_sound:
-                    beep.play("D3 CS5", 0.1, volume)
+                    beep.play(("C3","A3"), 80, volume)
                 redraw = True
 
                 refresh_display = True
             elif "/" in pressed_keys and "/" not in prev_pressed_keys: # right arrow
                 rgb_select_index += 1
                 if ui_sound:
-                    beep.play("D3 CS5", 0.1, volume)
+                    beep.play(("C3","A3"), 80, volume)
                 rgb_select_index %= 3
                 redraw = True
             elif ";" in pressed_keys: # up arrow
@@ -104,7 +106,7 @@ def get_color(tft, font, kb, beep, setting_name, previous_color, ui_color, bg_co
                         b += 1
                         b %= 32
                     if ui_sound:
-                        beep.play("D4", 0.1, volume)
+                        beep.play("D4", 100, volume)
                     redraw = True
                     up_hold_timer = 0
                     
@@ -123,7 +125,7 @@ def get_color(tft, font, kb, beep, setting_name, previous_color, ui_color, bg_co
                             b += 1
                             b %= 32
                         if ui_sound:
-                            beep.play("D4", 0.1, volume)
+                            beep.play("D4", 100, volume)
                         redraw = True
                         
                 
@@ -139,7 +141,7 @@ def get_color(tft, font, kb, beep, setting_name, previous_color, ui_color, bg_co
                         b -= 1
                         b %= 32
                     if ui_sound:
-                        beep.play("D4", 0.1, volume)
+                        beep.play("D4", 100, volume)
                     redraw = True
                     down_hold_timer = 0
                     
@@ -157,14 +159,14 @@ def get_color(tft, font, kb, beep, setting_name, previous_color, ui_color, bg_co
                             b -= 1
                             b %= 32
                         if ui_sound:
-                            beep.play("D4", 0.1, volume)
+                            beep.play("D4", 100, volume)
                         redraw = True
                 
                 
                 
             elif ("GO" in pressed_keys and "GO" not in prev_pressed_keys) or ("ENT" in pressed_keys and "ENT" not in prev_pressed_keys): # confirm settings
                 if ui_sound:
-                    beep.play("C4 C5 C6", 0.1, volume)
+                    beep.play(("C4","D4","E4"), 50, volume)
                 return mh.combine_color565(r,g,b)
                 
             
@@ -182,9 +184,6 @@ def get_color(tft, font, kb, beep, setting_name, previous_color, ui_color, bg_co
                     tft.text(font, str(clr), 62 + (44*idx), 60, white, black)
                 else:
                     tft.text(font, str(clr), 62 + (44*idx), 60, ui_color, bg_color)
-            #tft.text(font, str(r), 62, 60, white, black)
-            #tft.text(font, str(g), 104, 60, white, black)
-            #tft.text(font, str(b), 146, 60, white, black)
             
             # pointer!
             tft.fill_rect(62, 94, 120, 24, bg_color)
@@ -206,7 +205,7 @@ def get_color(tft, font, kb, beep, setting_name, previous_color, ui_color, bg_co
             
             
             
-def get_volume(tft, font, kb, beep, setting_name, previous_vol, ui_color, bg_color, ui_sound): # ~~~~~~~~~~~~~~~~~~~~~~~ get_int ~~~~~~~~~~~~~~~~~~~~~~~~~
+def get_volume(tft, font, kb, beep, setting_name, previous_vol, ui_color, bg_color, ui_sound): # ~~~~~~~~~~~~~~~~~~~~~~~ get_volume ~~~~~~~~~~~~~~~~~~~~~~~~~
     
     current_value = previous_vol
     
@@ -249,17 +248,17 @@ def get_volume(tft, font, kb, beep, setting_name, previous_vol, ui_color, bg_col
                 current_value += 1
                 current_value %= 11
                 if ui_sound:
-                    beep.play("D3", 0.14, current_value)
+                    beep.play("D3", 140, current_value)
                 redraw = True
             elif "." in pressed_keys and "." not in prev_pressed_keys: # down arrow
                 current_value -= 1
                 current_value %= 11
                 if ui_sound:
-                    beep.play("D3", 0.14, current_value)
+                    beep.play("D3", 140, current_value)
                 redraw = True
             elif ("GO" in pressed_keys and "GO" not in prev_pressed_keys) or ("ENT" in pressed_keys and "ENT" not in prev_pressed_keys): # confirm settings
                 if ui_sound:
-                    beep.play("C4 C5 C6", 0.14, current_value)
+                    beep.play(("C4","D4","E4"), 50, current_value)
                 return current_value
         
         # graphics!
@@ -275,7 +274,9 @@ def get_volume(tft, font, kb, beep, setting_name, previous_vol, ui_color, bg_col
 
         prev_pressed_keys = pressed_keys
         
-def get_text(tft, font, kb, beep, setting_name, previous_value, ui_color, bg_color, ui_sound, volume): # ~~~~~~~~~~~~~~~~~~~~~~~ get_int ~~~~~~~~~~~~~~~~~~~~~~~~~
+        
+        
+def get_text(tft, font, kb, beep, setting_name, previous_value, ui_color, bg_color, ui_sound, volume): # ~~~~~~~~~~~~~~~~~~~~~~~ get_text ~~~~~~~~~~~~~~~~~~~~~~~~~
     
     current_value = previous_value
     
@@ -305,7 +306,7 @@ def get_text(tft, font, kb, beep, setting_name, previous_value, ui_color, bg_col
         if pressed_keys != prev_pressed_keys:
             if ("GO" in pressed_keys and "GO" not in prev_pressed_keys) or ("ENT" in pressed_keys and "ENT" not in prev_pressed_keys): # confirm settings
                 if ui_sound:
-                    beep.play("C4 C5 C6", 0.14, volume)
+                    beep.play(("C4","D4","E4"), 50, volume)
                 return current_value
             
             elif 'BSPC' in pressed_keys and 'BSPC' not in prev_pressed_keys:
@@ -319,13 +320,9 @@ def get_text(tft, font, kb, beep, setting_name, previous_value, ui_color, bg_col
                     if len(key) == 1 and key not in prev_pressed_keys:
                         current_value += key
                     redraw = True
-        # graphics!
         
+        # graphics!
         if redraw:
-            
-            
-            
-            
             tft.fill_rect(12, 59, 216, 64, bg_color)
             if len(current_value) <= 12:
                 tft.text(font, current_value, 120 - (len(current_value) * 8), 75, ui_color, bg_color)
@@ -339,7 +336,146 @@ def get_text(tft, font, kb, beep, setting_name, previous_value, ui_color, bg_col
 
         prev_pressed_keys = pressed_keys
         
+        
+        
+        
+        
             
+def get_bool(tft, font, kb, beep, setting_name, previous_val, ui_color, bg_color, ui_sound, volume): # ~~~~~~~~~~~~~~~~~~~~~~~ get_bool ~~~~~~~~~~~~~~~~~~~~~~~~~
+    
+    current_value = previous_val
+    
+    # draw pop-up menu box
+    tft.fill_rect(10,10,220,115,bg_color)
+    tft.rect(9,9,222,117,ui_color)
+    tft.hline(10,126,222,black)
+    tft.hline(11,127,222,black)
+    tft.hline(12,128,222,black)
+    tft.hline(13,129,222,black)
+    tft.vline(231,10,117,black)
+    tft.vline(232,11,117,black)
+    tft.vline(233,12,117,black)
+    tft.vline(234,13,117,black)
+    
+    # arrows
+    for i in range(0,8):
+        tft.hline(
+            x = (119 - i),
+            y = 60 + i,
+            length = 2 + (i*2),
+            color = ui_color)
+        tft.hline(
+            x = (119 - i),
+            y = 116 - i,
+            length = 2 + (i*2),
+            color = ui_color)
+    
+    tft.text(font, setting_name, 120 - ((len(setting_name)* 16) // 2), 20, ui_color, bg_color)
+    
+    pressed_keys = []
+    prev_pressed_keys = kb.get_pressed_keys()
+    
+    redraw = True
+    
+    while True:
+        pressed_keys = kb.get_pressed_keys()
+        if pressed_keys != prev_pressed_keys:
+            if ";" in pressed_keys and ";" not in prev_pressed_keys: # up arrow
+                current_value = not current_value
+                if ui_sound:
+                    beep.play("D3", 140, volume)
+                redraw = True
+            elif "." in pressed_keys and "." not in prev_pressed_keys: # down arrow
+                current_value = not current_value
+                if ui_sound:
+                    beep.play("D3", 140, volume)
+                redraw = True
+            elif ("GO" in pressed_keys and "GO" not in prev_pressed_keys) or ("ENT" in pressed_keys and "ENT" not in prev_pressed_keys): # confirm settings
+                if ui_sound:
+                    beep.play(("C4","D4","E4"), 50, volume)
+                return current_value
+        
+        # graphics!
+        if redraw:
+            tft.fill_rect(62, 75, 128, 32, bg_color)
+            if current_value:
+                tft.text(font, 'ON', 104, 75, ui_color, bg_color)
+            else:
+                tft.text(font, 'OFF', 96, 75, ui_color, bg_color)
+
+            redraw = False
+
+        prev_pressed_keys = pressed_keys
+        
+
+def get_int(tft, font, kb, beep, setting_name, previous_val, minimum, maximum, ui_color, bg_color, ui_sound, volume): # ~~~~~~~~~~~~~~~~~~~~~~~ get_int ~~~~~~~~~~~~~~~~~~~~~~~~~
+    
+    current_value = previous_val
+    
+    # draw pop-up menu box
+    tft.fill_rect(10,10,220,115,bg_color)
+    tft.rect(9,9,222,117,ui_color)
+    tft.hline(10,126,222,black)
+    tft.hline(11,127,222,black)
+    tft.hline(12,128,222,black)
+    tft.hline(13,129,222,black)
+    tft.vline(231,10,117,black)
+    tft.vline(232,11,117,black)
+    tft.vline(233,12,117,black)
+    tft.vline(234,13,117,black)
+    
+    # arrows
+    for i in range(0,8):
+        tft.hline(
+            x = (119 - i),
+            y = 60 + i,
+            length = 2 + (i*2),
+            color = ui_color)
+        tft.hline(
+            x = (119 - i),
+            y = 116 - i,
+            length = 2 + (i*2),
+            color = ui_color)
+    
+    tft.text(font, setting_name, 120 - ((len(setting_name)* 16) // 2), 20, ui_color, bg_color)
+    
+    pressed_keys = []
+    prev_pressed_keys = kb.get_pressed_keys()
+    
+    redraw = True
+    
+    while True:
+        pressed_keys = kb.get_pressed_keys()
+        if pressed_keys != prev_pressed_keys:
+            if ";" in pressed_keys and ";" not in prev_pressed_keys: # up arrow
+                current_value += 1
+                if current_value > maximum:
+                    current_value = minimum
+                if ui_sound:
+                    beep.play("D3", 140, volume)
+                redraw = True
+            elif "." in pressed_keys and "." not in prev_pressed_keys: # down arrow
+                current_value -= 1
+                if current_value < minimum:
+                    current_value = maximum
+                if ui_sound:
+                    beep.play("D3", 140, volume)
+                redraw = True
+            elif ("GO" in pressed_keys and "GO" not in prev_pressed_keys) or ("ENT" in pressed_keys and "ENT" not in prev_pressed_keys): # confirm settings
+                if ui_sound:
+                    beep.play(("C4","D4","E4"), 50, volume)
+                return current_value
+        
+        # graphics!
+        if redraw:
+            tft.fill_rect(62, 75, 128, 32, bg_color)
+            tft.text(font, str(current_value), 120 - (len(str(current_value)) * 8), 75, ui_color, bg_color)
+
+            redraw = False
+
+        prev_pressed_keys = pressed_keys
+        
+
 #--------------------------------------------------------------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main Loop: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -389,6 +525,8 @@ def main_loop():
             volume = config["volume"]
             wifi_ssid = config["wifi_ssid"]
             wifi_pass = config["wifi_pass"]
+            sync_clock = config["sync_clock"]
+            timezone = config["timezone"]
     except:
         print("could not load settings from config.json. reloading default values.")
         config_modified = True
@@ -398,8 +536,10 @@ def main_loop():
         volume = default_volume
         wifi_ssid = ''
         wifi_pass = ''
+        sync_clock = True
+        timezone = 0
         with open("config.json", "w") as conf:
-            config = {"ui_color":default_ui_color, "bg_color":default_bg_color, "ui_sound":default_ui_sound, "volume":default_volume, "wifi_ssid":'', "wifi_pass":''}
+            config = {"ui_color":default_ui_color, "bg_color":default_bg_color, "ui_sound":default_ui_sound, "volume":default_volume, "wifi_ssid":'', "wifi_pass":'', "sync_clock":True, 'timezone':0}
             conf.write(json.dumps(config))
         
     
@@ -430,14 +570,14 @@ def main_loop():
             if ";" in pressed_keys and ";" not in prev_pressed_keys: # up arrow
                 cursor_index -= 1
                 if ui_sound:
-                    beep.play("D3 CS5", 0.1, volume)
+                    beep.play(("E3","C3"), 100, volume)
                 if cursor_index < 0:
                     cursor_index = 0
                 refresh_display = True
             elif "." in pressed_keys and "." not in prev_pressed_keys: # down arrow
                 cursor_index += 1
                 if ui_sound:
-                    beep.play("D3 CS5", 0.1, volume)
+                    beep.play(("D3","C3"), 100, volume)
                 if cursor_index >= len(setting_names):
                     cursor_index = len(setting_names) - 1
                 refresh_display = True
@@ -470,11 +610,26 @@ def main_loop():
                     wifi_pass = get_text(tft, font, kb, beep, 'wifi_pass:', wifi_pass, ui_color, bg_color, ui_sound, volume)
                     config["wifi_pass"] = wifi_pass
                     force_redraw_display = True
+                elif setting_names[cursor_index] == 'sync_clock':
+                    sync_clock = get_bool(tft, font, kb, beep, 'sync_clock:', sync_clock, ui_color, bg_color, ui_sound, volume)
+                    config["sync_clock"] = sync_clock
+                    force_redraw_display = True
+                elif setting_names[cursor_index] == 'timezone':
+                    timezone = get_int(tft, font, kb, beep, 'timezone:', timezone, -13,13, ui_color, bg_color, ui_sound, volume)
+                    config["timezone"] = timezone
+                    force_redraw_display = True
                     
                 elif setting_names[cursor_index] == 'confirm': 
                     with open("config.json", "w") as conf: #save changes
                         conf.write(json.dumps(config))
-                    
+                    if ui_sound:
+                        beep.play(("C4","D4",("C3","E3","D3")), 100, volume)
+                    del beep
+                    # shut off the display
+                    tft.fill(black)
+                    tft.sleep_mode(True)
+                    Pin(38, Pin.OUT).value(0) #backlight off
+                    spi.deinit()
                     # return home
                     time.sleep_ms(10)
                     machine.reset()
@@ -499,18 +654,17 @@ def main_loop():
         #write out all text
         if refresh_display or force_redraw_display:
             
-
-            
-            
             #blackout previous text
-            if force_redraw_display:
-                tft.fill(bg_color)
-            else:
+            if not force_redraw_display:
                 tft.fill_rect(x=0, y=(32 * (prev_cursor_index - setting_screen_index)) + 4, width=display_width, height=32, color=bg_color)
             
             # draw text
             for i in range(setting_screen_index, setting_screen_index + 4):
                 
+                #blackout previous text 
+                if force_redraw_display:
+                    tft.fill_rect(0,4 + ((i - setting_screen_index) * 32),240,32,bg_color) 
+                    
                 if setting_names[i] != 'confirm' and setting_names[i] != 'wifi_pass':
                     # display value:
                     tft.text(fontsmall,

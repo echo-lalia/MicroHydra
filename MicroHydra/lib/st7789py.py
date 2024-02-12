@@ -911,7 +911,10 @@ class ST7789:
             if self.width > to_col and self.height > to_row:
                 self._set_window(x, y + row, to_col, to_row)
                 self._write(None, buffer)
+                
+                
 
+            
     def write(self, font, string, x, y, fg=WHITE, bg=BLACK):
         """
         Write a string using a converted true-type font on the display starting

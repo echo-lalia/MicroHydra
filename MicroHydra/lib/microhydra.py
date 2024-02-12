@@ -11,7 +11,7 @@ and to provide easy access to any other scripts or apps who want to use these sa
 '''
 
 
-@micropython.native
+
 def separate_color565(color):
     """
     Separate a 16-bit 565 encoding into red, green, and blue components.
@@ -21,7 +21,7 @@ def separate_color565(color):
     blue = color & 0x1F
     return red, green, blue
 
-@micropython.native
+
 def combine_color565(red, green, blue):
     """
     Combine red, green, and blue components into a 16-bit 565 encoding.
@@ -35,7 +35,7 @@ def combine_color565(red, green, blue):
     return (red << 11) | (green << 5) | blue
 
 
-@micropython.native # I have no clue why, but using this decorator prevents a bizzare speaker issue
+
 def avg_color565(color1, color2):
     """
     Combine two colors in color565 format, 50/50.
@@ -52,13 +52,13 @@ def avg_color565(color1, color2):
     
     return combine_color565(r,g,b)
 
-@micropython.native
+
 def mix(val2, val1, fac=0.5):
     """Mix two values to the weight of fac"""
     output = (val1 * fac) + (val2 * (1.0 - fac))
     return output
 
-@micropython.native
+
 def mix_angle_float(angle1, angle2, factor=0.5):
     """take two angles as floats (range 0.0 to 1.0) and average them to the weight of factor.
     Mainly for blending hue angles."""
@@ -93,7 +93,7 @@ def ping_pong(value,maximum):
         return mod
 
 
-@micropython.native
+
 def rgb_to_hsv(r, g, b):
     '''
     Convert an RGB float to an HSV float.
@@ -119,7 +119,7 @@ def rgb_to_hsv(r, g, b):
     return h, s, v
 
 
-@micropython.native
+
 def hsv_to_rgb(h, s, v):
     '''
     Convert an RGB float to an HSV float.
@@ -147,7 +147,7 @@ def hsv_to_rgb(h, s, v):
         return v, p, q
     # Cannot get here
     
-@micropython.native
+
 def mix_color565(color1, color2, mix_factor=0.5):
     """
     High quality mixing of two rgb565 colors, by converting through HSV color space.
@@ -179,8 +179,23 @@ def mix_color565(color1, color2, mix_factor=0.5):
     
     return combine_color565(red,green,blue)
     
+
+def color565_shiftred(color, mix_factor=0.5):
+    """
+    Simple convenience function which shifts a color toward red.
+    This was made for displaying 'negative' ui elements, while sticking to the central color theme.
+    """
+    red = const(63488)
+    return mix_color565(color, red, mix_factor)
     
-    
+
+def color565_shiftgreen(color, mix_factor=0.5):
+    """
+    Simple convenience function which shifts a color toward green.
+    This was made for displaying 'positive' ui elements, while sticking to the central color theme.
+    """
+    green = const(2016)
+    return mix_color565(color, green, mix_factor)
     
     
     
