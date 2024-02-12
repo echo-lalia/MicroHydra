@@ -5,7 +5,14 @@ This program is still in early development, but it seems to be working so far.
 This code was built with MicroPython v1.22.1, for a Generic ESP32-S3 controller.
 
 The main function of MicroHydra is to provide an interface to easily switch between MicroPython apps.   
-Python scripts can be placed in the /apps folder on the flash, or in a /apps folder on a micro sd card. The launcher scans these two locations on startup. 
+And to help lower the barriers to entry for anyone wanting to develop apps for their Cardputer. 
+Python scripts can be placed in the /apps folder on the flash, or in a /apps folder on a micro sd card. The launcher scans these two locations on startup.   
+
+<br />
+
+Take a look at the [wiki](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki) for some basic guides to get you started with a MicroPython app.
+
+
 
 <br /><br /><br />
 
@@ -77,12 +84,10 @@ click "install or update micropython", and you should see another window:
 <br />
 <br />
 
-Now you neet to plug your Cardputer into the computer with USB. You'll probably have to put it into bootloader mode. 
-To do that, press and hold the button on the M5Stamp while plugging it into the computer.   
-The button is located here, under the sticker:
-![image](https://github.com/echo-lalia/Cardputer-MicroHydra/assets/108598670/2d65ae77-eb1a-4316-b342-690c7b051d25)   
-It is not a clicky button. So it may be a little tricky to find it at first. You can take the sticker off if you want, but you don't have to. 
-**UPDATE:** I have just learned that this button is actually wired up to G0, so the button on top of the cardputer should do the same thing, and might be easier to hit. 
+Now you need to plug your Cardputer into the computer with USB. You'll probably have to put it into bootloader mode. 
+To do that, press and hold the G0 button on the Cardputer while you plug it into your PC.
+
+The G0 button is on the back edge of the Cardputer, and there's another G0 button on the [Stamp](https://github.com/echo-lalia/Cardputer-MicroHydra/assets/108598670/2d65ae77-eb1a-4316-b342-690c7b051d25)   
 
 
 <br />
