@@ -25,7 +25,7 @@ This program can be thought of as two main components; the launcher and the appl
 The apploader is the "main.py" file in the root directory, and it's the first thing to run when the device is powered on.   
 The apploader reads the RTC memory to determine if it should load an app, otherwise, it loads the launcher.
 
-The launcher is the main UI for the app switching functionality. Its primary responsibility is choosing an app, then storing it's path in the RTC.memory. 
+The launcher is the main UI for the app switching functionality. Its primary responsibility is choosing an app, then storing its path in the RTC.memory. 
 Once the app path is in the memory, it calls machine.reset() to refresh the system and return to the apploader, after which the apploader loads the target app. 
 
 This approach was chosen to help to prevent issues with memory managment or import conflicts between apps. Resetting the entire device means that the only thing thing loaded before the custom app, is the lightweight apploader.
