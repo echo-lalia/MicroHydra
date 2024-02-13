@@ -41,6 +41,8 @@ Apps are designed to work very simply in this launcher. Any Python file placed i
 This means that a simple app can be contained as one script, which will be executed when the app is selected from the launcher.   
 It also means more complicated apps can place a startup file in the apps directory, which imports anything it needs from another folder in the filesystem. 
 
+*Quick note about apps on the SD card: The apps wont be able to use SPI slot 2 for the display (or anything else) because it will be occupied by the SD card. Thankfully, the display works fine in slot 1.*
+
 <br /><br /><br />
 
 
