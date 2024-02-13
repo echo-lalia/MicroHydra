@@ -12,7 +12,7 @@ Python scripts can be placed in the /apps folder on the flash, or in a /apps fol
 
 Take a look at the [wiki](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki) for some basic guides to get you started with a MicroPython app.
 
-
+If you're looking for the compiled firmware, that lives over [here](https://github.com/echo-lalia/microhydra-frozen).
 
 <br /><br /><br />
 
