@@ -8,7 +8,17 @@ from font import vga2_16x32 as font
 from font import vga1_8x16 as fontsmall
 
 
+"""
 
+MicroHydra settings!
+
+Updated for version 0.6:
+Distinguished Confirm button from other menu options, added scroll bar, added wrap-around for settings scrolling.
+Fixed issue with double-input when returning from menu option.
+Added ESC to exit without saving for settings menus
+Improved RGB hinting for color submenus
+
+"""
 
 
 
@@ -65,7 +75,12 @@ def get_color(tft, font, kb, beep, setting_name, previous_color, ui_color, bg_co
     tft.vline(233,12,117,black)
     tft.vline(234,13,117,black)
     
-    tft.text(font, setting_name, 120 - ((len(setting_name)* 16) // 2), 20, ui_color, bg_color)
+    tft.text(fontsmall, setting_name, 120 - ((len(setting_name)* 8) // 2), 20, ui_color, bg_color)
+    tft.text(fontsmall, "R/31", 62, 40, 63488, bg_color)
+    tft.text(fontsmall, "G/63", 106, 40, 2016, bg_color)
+    tft.text(fontsmall, "B/31", 150, 40, 31, bg_color)
+
+    
     
     rgb_select_index = 0
     
@@ -168,7 +183,10 @@ def get_color(tft, font, kb, beep, setting_name, previous_color, ui_color, bg_co
                 if ui_sound:
                     beep.play(("C4","D4","E4"), 50, volume)
                 return mh.combine_color565(r,g,b)
-                
+            elif "`" in pressed_keys and "`" not in prev_pressed_keys:
+                if ui_sound:
+                    beep.play(("E4","D4","C4"), 50, volume)
+                return previous_color
             
 
                     
@@ -186,14 +204,14 @@ def get_color(tft, font, kb, beep, setting_name, previous_color, ui_color, bg_co
                     tft.text(font, str(clr), 62 + (44*idx), 60, ui_color, bg_color)
             
             # pointer!
-            tft.fill_rect(62, 94, 120, 24, bg_color)
+            tft.fill_rect(62, 94, 134, 24, bg_color)
             for i in range(0,16):
                 tft.hline(
-                    x = (78 - i) + (42 * rgb_select_index),
+                    x = (78 - i) + (44 * rgb_select_index),
                     y = 94 + i,
                     length = 2 + (i*2),
                     color = mh.combine_color565(r,g,b))
-            tft.fill_rect(62 + (42 * rgb_select_index), 110, 34, 8, mh.combine_color565(r,g,b))
+            tft.fill_rect(62 + (44 * rgb_select_index), 110, 34, 8, mh.combine_color565(r,g,b))
 
             
             
@@ -260,7 +278,11 @@ def get_volume(tft, font, kb, beep, setting_name, previous_vol, ui_color, bg_col
                 if ui_sound:
                     beep.play(("C4","D4","E4"), 50, current_value)
                 return current_value
-        
+            elif "`" in pressed_keys and "`" not in prev_pressed_keys:
+                if ui_sound:
+                    beep.play(("E4","D4","C4"), 50, previous_vol)
+                return previous_vol
+            
         # graphics!
         
         if redraw:
@@ -315,6 +337,10 @@ def get_text(tft, font, kb, beep, setting_name, previous_value, ui_color, bg_col
             elif 'SPC' in pressed_keys and 'SPC' not in prev_pressed_keys:
                 current_value = current_value + ' '
                 redraw = True
+            elif "ESC" in pressed_keys and "ESC" not in prev_pressed_keys:
+                if ui_sound:
+                    beep.play(("E4","D4","C4"), 50, volume)
+                return previous_value
             else:
                 for key in pressed_keys:
                     if len(key) == 1 and key not in prev_pressed_keys:
@@ -394,7 +420,11 @@ def get_bool(tft, font, kb, beep, setting_name, previous_val, ui_color, bg_color
                 if ui_sound:
                     beep.play(("C4","D4","E4"), 50, volume)
                 return current_value
-        
+            elif "`" in pressed_keys and "`" not in prev_pressed_keys:
+                if ui_sound:
+                    beep.play(("E4","D4","C4"), 50, volume)
+                return previous_val
+            
         # graphics!
         if redraw:
             tft.fill_rect(62, 75, 128, 32, bg_color)
@@ -465,7 +495,11 @@ def get_int(tft, font, kb, beep, setting_name, previous_val, minimum, maximum, u
                 if ui_sound:
                     beep.play(("C4","D4","E4"), 50, volume)
                 return current_value
-        
+            elif "`" in pressed_keys and "`" not in prev_pressed_keys:
+                if ui_sound:
+                    beep.play(("E4","D4","C4"), 50, volume)
+                return previous_val
+                
         # graphics!
         if redraw:
             tft.fill_rect(62, 75, 128, 32, bg_color)
@@ -475,6 +509,14 @@ def get_int(tft, font, kb, beep, setting_name, previous_val, minimum, maximum, u
 
         prev_pressed_keys = pressed_keys
         
+
+
+
+
+
+
+
+
 
 #--------------------------------------------------------------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -486,6 +528,9 @@ def get_int(tft, font, kb, beep, setting_name, previous_val, minimum, maximum, u
 
 
 def main_loop():
+    
+    #bump up our clock speed so the UI feels smoother (240mhz is the max officially supported, but the default is 160mhz)
+    machine.freq(240_000_000)
     
     #init the keyboard
     kb = keyboard.KeyBoard()
@@ -572,14 +617,14 @@ def main_loop():
                 if ui_sound:
                     beep.play(("E3","C3"), 100, volume)
                 if cursor_index < 0:
-                    cursor_index = 0
+                    cursor_index = len(setting_names) - 1
                 refresh_display = True
             elif "." in pressed_keys and "." not in prev_pressed_keys: # down arrow
                 cursor_index += 1
                 if ui_sound:
                     beep.play(("D3","C3"), 100, volume)
                 if cursor_index >= len(setting_names):
-                    cursor_index = len(setting_names) - 1
+                    cursor_index = 0
                 refresh_display = True
             
             if "GO" in pressed_keys or "ENT" in pressed_keys:
@@ -590,34 +635,44 @@ def main_loop():
                     config["ui_color"] = ui_color
                     mid_color = mh.mix_color565(ui_color, bg_color)
                     force_redraw_display = True
+                    pressed_keys = kb.get_pressed_keys()
                     
                 elif setting_names[cursor_index] == 'bg_color':
                     bg_color = get_color(tft, font, kb, beep, 'bg_color:', bg_color, ui_color, bg_color, ui_sound, volume)
                     config["bg_color"] = bg_color
                     mid_color = mh.mix_color565(ui_color, bg_color)
                     force_redraw_display = True
-                
+                    pressed_keys = kb.get_pressed_keys()
+                    
                 elif setting_names[cursor_index] == 'volume':
                     volume = get_volume(tft, font, kb, beep, 'volume:', volume, ui_color, bg_color, ui_sound)
                     config["volume"] = volume
                     force_redraw_display = True
+                    pressed_keys = kb.get_pressed_keys()
                     
                 elif setting_names[cursor_index] == 'wifi_ssid':
                     wifi_ssid = get_text(tft, font, kb, beep, 'wifi_ssid:', wifi_ssid, ui_color, bg_color, ui_sound, volume)
                     config["wifi_ssid"] = wifi_ssid
                     force_redraw_display = True
+                    pressed_keys = kb.get_pressed_keys()
+                    
                 elif setting_names[cursor_index] == 'wifi_pass':
                     wifi_pass = get_text(tft, font, kb, beep, 'wifi_pass:', wifi_pass, ui_color, bg_color, ui_sound, volume)
                     config["wifi_pass"] = wifi_pass
                     force_redraw_display = True
+                    pressed_keys = kb.get_pressed_keys()
+                    
                 elif setting_names[cursor_index] == 'sync_clock':
                     sync_clock = get_bool(tft, font, kb, beep, 'sync_clock:', sync_clock, ui_color, bg_color, ui_sound, volume)
                     config["sync_clock"] = sync_clock
                     force_redraw_display = True
+                    pressed_keys = kb.get_pressed_keys()
+                    
                 elif setting_names[cursor_index] == 'timezone':
                     timezone = get_int(tft, font, kb, beep, 'timezone:', timezone, -13,13, ui_color, bg_color, ui_sound, volume)
                     config["timezone"] = timezone
                     force_redraw_display = True
+                    pressed_keys = kb.get_pressed_keys()
                     
                 elif setting_names[cursor_index] == 'confirm': 
                     with open("config.json", "w") as conf: #save changes
@@ -631,6 +686,20 @@ def main_loop():
                     Pin(38, Pin.OUT).value(0) #backlight off
                     spi.deinit()
                     # return home
+                    machine.freq(160_000_000)
+                    time.sleep_ms(10)
+                    machine.reset()
+            elif "`" in pressed_keys and "`" not in prev_pressed_keys:
+                    if ui_sound:
+                        beep.play((("C3","E3","D3"),"D4","C4"), 100, volume)
+                    del beep
+                    # shut off the display
+                    tft.fill(black)
+                    tft.sleep_mode(True)
+                    Pin(38, Pin.OUT).value(0) #backlight off
+                    spi.deinit()
+                    # return home
+                    machine.freq(160_000_000)
                     time.sleep_ms(10)
                     machine.reset()
                     
@@ -640,10 +709,11 @@ def main_loop():
             
         #scroll up and down logic
         if cursor_index >= setting_screen_index + 4:
-            setting_screen_index += 1
+            setting_screen_index += cursor_index - (setting_screen_index + 3)
             force_redraw_display = True
         elif cursor_index < setting_screen_index:
-            setting_screen_index -= 1
+            #setting_screen_index -= 1
+            setting_screen_index -= setting_screen_index - cursor_index
             force_redraw_display = True
             
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -656,14 +726,23 @@ def main_loop():
             
             #blackout previous text
             if not force_redraw_display:
-                tft.fill_rect(x=0, y=(32 * (prev_cursor_index - setting_screen_index)) + 4, width=display_width, height=32, color=bg_color)
+                tft.fill_rect(x=0, y=(32 * (prev_cursor_index - setting_screen_index)) + 4, width=238, height=32, color=bg_color)
             
             # draw text
             for i in range(setting_screen_index, setting_screen_index + 4):
                 
                 #blackout previous text 
                 if force_redraw_display:
-                    tft.fill_rect(0,4 + ((i - setting_screen_index) * 32),240,32,bg_color) 
+                    tft.fill_rect(0,4 + ((i - setting_screen_index) * 32),238,32,bg_color)
+                    
+                    #scroll bar
+                    max_screen_index = len(setting_names) - 4
+                    scrollbar_height = 135 // max_screen_index
+                    scrollbar_position = math.floor((135 - scrollbar_height) * (setting_screen_index / max_screen_index))
+                    
+                    tft.fill_rect(238, 0, 2, 135, bg_color)
+                    tft.fill_rect(238, scrollbar_position, 2, scrollbar_height, mid_color)
+                    
                     
                 if setting_names[i] != 'confirm' and setting_names[i] != 'wifi_pass':
                     # display value:
@@ -672,20 +751,33 @@ def main_loop():
                                  ((240 - (8 * len( str(config[setting_names[i]]) ))) + (16 * len(setting_names[i]) ) ) // 2, # centered in the empty space
                                  (32 * (i - setting_screen_index)) + 18,
                                  mid_color,bg_color)
-                 
-                if cursor_index == i: # the currently selected text
-                    tft.text(font,'>' + setting_names[i] + '',-2, (32 * (i - setting_screen_index)) + 4,white,mid_color)
-                    
-                elif prev_cursor_index == i or force_redraw_display: # unselected text
-                    tft.text(font,setting_names[i],6, (32 * (i - setting_screen_index)) + 4,ui_color,bg_color)
-   
+                
+                #custom style for the confirm button
+                if setting_names[i] == "confirm":
+                    if cursor_index == i: # the currently selected text
+                        tft.text(font,"< Confirm >",32, (32 * (i - setting_screen_index)) + 4,white,mid_color)
+                        
+                    elif prev_cursor_index == i or force_redraw_display: # unselected text
+                        tft.text(font,"Confirm",64, (32 * (i - setting_screen_index)) + 4,ui_color,bg_color)
+                        
+                else:
+                    if cursor_index == i: # the currently selected text
+                        tft.text(font,'>' + setting_names[i] + '',-2, (32 * (i - setting_screen_index)) + 4,white,mid_color)
+                        
+                    elif prev_cursor_index == i or force_redraw_display: # unselected text
+                        tft.text(font,setting_names[i],6, (32 * (i - setting_screen_index)) + 4,ui_color,bg_color)
+            
             #dividing lines
-            tft.hline(0,36,display_width,mid_color)
-            tft.hline(0,68,display_width,mid_color)
-            tft.hline(0,100,display_width,mid_color)
+            tft.hline(0,36,234,mid_color)
+            tft.hline(0,68,234,mid_color)
+            tft.hline(0,100,234,mid_color)
+            
+            
 
             refresh_display = False 
-        
+            
+
+            
         #update prev app selector index to current one for next cycle
         prev_cursor_index = cursor_index
         force_redraw_display = False

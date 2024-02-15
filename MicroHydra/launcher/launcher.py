@@ -14,13 +14,10 @@ from font import vga2_16x32 as font
 
 """
 
-VERSION: 0.5
+VERSION: 0.6
 
 CHANGES:
-    Added battery indicator and time display in top bar, added sync_time and timezone settings, fixed settings app not turning off display
-    Fixed crash when hitting "reload apps" after removing an SDCard,
-    Reworked entire Beeper module
-    TODO: Find what is causing random hangs with no error messages. Maybe the beeper module is getting stuck? I should try reproducing the glitch with sound disabled.
+    Improved Settings app UI
 
 This program is designed to be used in conjunction with the "apploader.py" program, to select and launch MPy apps for the Cardputer.
 
@@ -204,6 +201,8 @@ def launch_app(app_path):
     rtc = machine.RTC()
     rtc.memory(app_path)
     print(f"Launching '{app_path}...'")
+    # reset clock speed to default. 
+    machine.freq(160_000_000)
     time.sleep_ms(10)
     machine.reset()
     
