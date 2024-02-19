@@ -1,6 +1,9 @@
 # Cardputer-MicroHydra
 MicroHydra is a simple MicroPython based app launcher designed for the M5Stack Cardputer.
 
+![ezgif-2-c755779e82](https://github.com/echo-lalia/Cardputer-MicroHydra/assets/108598670/a0782c5d-5633-489a-a5eb-f6b4e83803ef)
+
+
 This program is still in early development, but it seems to be working so far. 
 This code was built with MicroPython v1.22.1, for a Generic ESP32-S3 controller.
 
