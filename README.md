@@ -14,6 +14,8 @@ Take a look at the [wiki](https://github.com/echo-lalia/Cardputer-MicroHydra/wik
 
 If you're looking for the compiled firmware, that lives over [here](https://github.com/echo-lalia/microhydra-frozen).
 
+And for a work-in-progress repository of MicroHydra apps, see [here](https://github.com/echo-lalia/MicroHydra-Apps)
+
 <br /><br /><br />
 
 
