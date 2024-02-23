@@ -1,3 +1,0 @@
-Display driver and font support | MIT License: https://github.com/russhughes/st7789py_mpy/tree/master
-
-RGB-HSV conversions: | PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2 : https://github.com/python/cpython/tree/3.12?tab=License-1-ov-file
