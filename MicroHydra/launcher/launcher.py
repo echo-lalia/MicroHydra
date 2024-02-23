@@ -14,10 +14,13 @@ from font import vga2_16x32 as font
 
 """
 
-VERSION: 0.6
+VERSION: 0.7
 
 CHANGES:
-    Improved Settings app UI
+    Adjusted battery level detection, improved launcher sort method,
+    added apps folders to import path,
+    added ability to jump to alphabetical location in apps list,
+    added new fbuf-based display driver to lib
 
 This program is designed to be used in conjunction with the "apploader.py" program, to select and launch MPy apps for the Cardputer.
 
@@ -168,8 +171,8 @@ def scan_apps(sd):
                 app_names.append( this_name )
             app_paths[f"{this_name}"] = f"/sd/apps/{entry}"
             
-    
-    app_names.sort()
+    #sort alphabetically without uppercase/lowercase discrimination:
+    app_names.sort(key=lambda element: element.lower())
     
     #add an appname to refresh the app list
     app_names.append("Reload Apps")
@@ -246,14 +249,22 @@ def read_battery_level(adc):
     read approx battery level on the adc and return as int range 0 (low) to 3 (high)
     """
     raw_value = adc.read_uv() # vbat has a voltage divider of 1/2
-
-    if raw_value < 525000: # 1.05v
+    
+    # more real-world data is needed to dial in battery level.
+    # the original values were low, so they will be adjusted based on feedback.
+    
+    #originally 525000 (1.05v)
+    if raw_value < 1575000: #3.15v
         return 0
-    if raw_value < 1050000: # 2.1v
+    #originally 1050000 (2.1v)
+    if raw_value < 1750000: #3.5v
         return 1
-    if raw_value < 1575000: # 3.15v
+    #originally 1575000 (3.15v)
+    if raw_value < 1925000: #3.85v
         return 2
+    # 2100000 (4.2v)
     return 3 # 4.2v or higher
+
 
 
 
@@ -492,8 +503,27 @@ def main_loop():
                         beep.play(('C4','B4','C5','C5'),100,volume)
                         
                     launch_app(app_paths[app_names[app_selector_index]])
-                
-                
+
+            else: # keyboard shortcuts!
+                for key in pressed_keys:
+                    # jump to letter:
+                    if key not in prev_pressed_keys and len(key) == 1: # filter special keys and repeated presses
+                        if key in 'abcdefghijklmnopqrstuvwxyz1234567890':
+                            #search for that letter in the app list
+                            for idx, name in enumerate(app_names):
+                                if name.lower().startswith(key):
+                                    #animation:
+                                    if app_selector_index > idx:
+                                        scroll_direction = -1
+                                    elif app_selector_index < idx:
+                                        scroll_direction = 1
+                                    current_vscsad = target_vscsad
+                                    # go there!
+                                    app_selector_index = idx
+                                    if ui_sound:
+                                        beep.play(("G3"), 100, volume)
+                                    found_key = True
+                                    break
                 
             # once we parse the keypresses for this loop, we need to store them for next loop
             prev_pressed_keys = pressed_keys
@@ -673,6 +703,7 @@ def main_loop():
         
 # run the main loop!
 main_loop()
+
 
 
 
