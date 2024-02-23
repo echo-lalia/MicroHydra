@@ -178,7 +178,58 @@ def mix_color565(color1, color2, mix_factor=0.5):
     blue = math.floor(blue * 31)
     
     return combine_color565(red,green,blue)
+
+
+
+def darker_color565(color,mix_factor=0.5):
+    """
+    Get the darker version of a 565 color.
+    """
+    #separate to components
+    r,g,b = separate_color565(color)
+    #convert to float 0.0 to 1.0
+    r /= 31; g /= 63; b /= 31
+    #convert to hsv 0.0 to 1.0
+    h,s,v = rgb_to_hsv(r,g,b)
     
+    #higher sat value is percieved as darker
+    s *= 1 + mix_factor
+    v *= 1 - mix_factor
+    
+    #convert back to rgb floats
+    r,g,b = hsv_to_rgb(h,s,v)
+    #convert back to 565 range
+    r = math.floor(r * 31)
+    g = math.floor(g * 63)
+    b = math.floor(b * 31)
+    
+    return combine_color565(r,g,b)
+
+
+def lighter_color565(color,mix_factor=0.5):
+    """
+    Get the lighter version of a 565 color.
+    """
+    #separate to components
+    r,g,b = separate_color565(color)
+    #convert to float 0.0 to 1.0
+    r /= 31; g /= 63; b /= 31
+    #convert to hsv 0.0 to 1.0
+    h,s,v = rgb_to_hsv(r,g,b)
+    
+    #higher sat value is percieved as darker
+    s *= 1 - mix_factor
+    v *= 1 + mix_factor
+    
+    #convert back to rgb floats
+    r,g,b = hsv_to_rgb(h,s,v)
+    #convert back to 565 range
+    r = math.floor(r * 31)
+    g = math.floor(g * 63)
+    b = math.floor(b * 31)
+    
+    return combine_color565(r,g,b)
+
 
 def color565_shiftred(color, mix_factor=0.5):
     """
