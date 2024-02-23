@@ -1,7 +1,7 @@
 import os
 import machine
 from machine import RTC
-
+from sys import path
 
 
 
@@ -16,6 +16,9 @@ if machine.reset_cause() != machine.PWRON_RESET: #if this was not a power reset,
     rtc.memory("/launcher/launcher.py") # just in case we reset again
 
 
+#add apps directory to PATH
+path.append('/apps')
+
 # only mount the sd card if the app is on the sd card.
 if len(app_path) >= 4: # if the string is too short it cant possibly be on sd.
     if app_path[:3] == "/sd":
@@ -23,6 +26,7 @@ if len(app_path) >= 4: # if the string is too short it cant possibly be on sd.
         sd = SDCard(slot=2, sck=Pin(40), miso=Pin(39), mosi=Pin(14), cs=Pin(12))
         try:
             os.mount(sd, '/sd')
+            path.append('/sd/apps')
         except OSError:
             print("Could not mount SDCard!")
 
