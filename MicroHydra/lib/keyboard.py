@@ -1,6 +1,13 @@
 from machine import Pin
-import time
 
+
+
+"""
+lib.keyboard version: 1.1
+changes:
+    Cleaned unused code.
+    Added KeyBoard.get_new_keys()
+"""
 
 #lookup values for our keyboard
 kc_shift = const(61)
@@ -43,37 +50,8 @@ class KeyBoard():
         
         #setup the "Go" button!
         self.go = Pin(0, Pin.IN, Pin.PULL_UP)
-        
-#         #setup column pins. These are read as inputs.
-#         c0 = Pin(13, Pin.IN, Pin.PULL_UP)
-#         c1 = Pin(15, Pin.IN, Pin.PULL_UP)
-#         c2 = Pin(3, Pin.IN, Pin.PULL_UP)
-#         c3 = Pin(4, Pin.IN, Pin.PULL_UP)
-#         c4 = Pin(5, Pin.IN, Pin.PULL_UP)
-#         c5 = Pin(6, Pin.IN, Pin.PULL_UP)
-#         c6 = Pin(7, Pin.IN, Pin.PULL_UP)
-#         
-#         #setup row pins. These are given to a 74hc138 "demultiplexer", which lets us turn 3 output pins into 8 outputs (8 rows) 
-#         a0 = Pin(8, Pin.OUT)
-#         a1 = Pin(9, Pin.OUT)
-#         a2 = Pin(11, Pin.OUT)
-#         
-#         self.pinMap = {
-#             'C0': c0,
-#             'C1': c1,
-#             'C2': c2,
-#             'C3': c3,
-#             'C4': c4,
-#             'C5': c5,
-#             'C6': c6,
-#             'A0': a0,
-#             'A1': a1,
-#             'A2': a2,
-#         }
-#         
-#         self.key_state = []
-        #setup column pins. These are read as inputs.
 
+        #setup column pins. These are read as inputs.
         self.c0 = Pin(13, Pin.IN, Pin.PULL_UP)
         self.c1 = Pin(15, Pin.IN, Pin.PULL_UP)
         self.c2 = Pin(3, Pin.IN, Pin.PULL_UP)
@@ -88,7 +66,7 @@ class KeyBoard():
         self.a2 = Pin(11, Pin.OUT)
         
         self.key_state = []
-        
+        self.prev_key_state = []
         
     def scan(self):
         """scan through the matrix to see what keys are pressed."""
@@ -101,14 +79,11 @@ class KeyBoard():
             self.a1.value( ( row & 0b010 ) >> 1)
             self.a2.value( ( row & 0b100 ) >> 2)
         
-        
-
             #for i, col in enumerate(self.columns):
             #for i in range(0,7):
             #    if not self.columns[i].value(): # button pressed
             #        key_address = (i * 10) + row
             #        self._key_list_buffer.append(key_address)
-                    
             # I know this is ugly, it should be a loop.
             # but this scan can be slow, and doing  this instead of a loop runs much faster:
             if not self.c6.value():
@@ -134,7 +109,6 @@ class KeyBoard():
         
         #update our scan results
         self.scan()
-        
         self.key_state = []
         
         if self.go.value() == 0:
@@ -143,10 +117,7 @@ class KeyBoard():
         if not self._key_list_buffer and not self.key_state: # if nothing is pressed, we can return an empty list
             return self.key_state
         
-        
-        
         if kc_fn in self._key_list_buffer:
-            
             #remove modifier keys which are already accounted for
             self._key_list_buffer.remove(kc_fn)
             if kc_shift in self._key_list_buffer:
@@ -156,7 +127,6 @@ class KeyBoard():
                 self.key_state.append(keymap_fn[keycode])
                 
         elif kc_shift in self._key_list_buffer:
-            
             #remove modifier keys which are already accounted for
             self._key_list_buffer.remove(kc_shift)
             
@@ -168,13 +138,23 @@ class KeyBoard():
                 self.key_state.append(keymap[keycode])
         
         return self.key_state
-            
-        
+    
+    def get_new_keys(self):
+        """
+        Return a list of keys which are newly pressed.
+        """
+        self.prev_key_state = self.key_state
+        self.get_pressed_keys()
+        # Originally I wanted to use a set() for this, but with testing, this is apparantly faster. 
+        return [key for key in self.key_state if key not in self.prev_key_state]
         
 
 
 if __name__ == "__main__":
+    import time
     kb = KeyBoard()
-    print(kb.get_pressed_keys())
+    for _ in range(0,400):
+        print(kb.get_new_keys())
+        time.sleep_ms(10)
                 
         
