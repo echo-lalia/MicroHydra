@@ -60,6 +60,7 @@ This driver supports:
 
 from math import sin, cos, floor, pi, sqrt, pow
 import framebuf, struct, array
+from machine import PWM
 
 #
 # This allows sphinx to build the docs
@@ -87,7 +88,8 @@ except ImportError:
 # here and the comment above except for the "from time import sleep_ms" line.
 #
 
-
+_MAX_BRIGHT = const(65535)
+_MIN_BRIGHT = const(22000)
 
 # ST7789 commands
 _ST7789_SWRESET = b"\x01"
@@ -365,6 +367,7 @@ class ST7789:
         dc (pin): dc pin **Required**
         cs (pin): cs pin
         backlight(pin): backlight pin
+        brightness (int): display brightness (0-10)
         rotation (int):
 
           - 0-Portrait
@@ -400,6 +403,7 @@ class ST7789:
         color_order=BGR,
         custom_init=None,
         custom_rotations=None,
+        brightness=10,
     ):
         """
         Initialize display.
@@ -430,7 +434,6 @@ class ST7789:
         self.reset = reset
         self.dc = dc
         self.cs = cs
-        self.backlight = backlight
         self._rotation = rotation % 4
         self.color_order = color_order
         self.init_cmds = custom_init or _ST7789_INIT_CMDS
@@ -443,7 +446,26 @@ class ST7789:
         self.fill(0x0)
 
         if backlight is not None:
-            backlight.value(1)
+            self.backlight = PWM(backlight)
+            self.backlight.freq(1000)
+        self.brightness(brightness)
+
+    def brightness(self, brightness_value:int):
+        """
+        Set display brightness.
+        Args:
+            brightness_value (int):
+                A value from 0-10 (inclusive) representing display brightness.
+        """
+        if brightness_value <= 0:
+            self.backlight.duty_u16(_MIN_BRIGHT)
+        elif brightness_value >= 10:
+            self.backlight.duty_u16(_MAX_BRIGHT)
+        else:
+            print(_MIN_BRIGHT + ((_MAX_BRIGHT - _MIN_BRIGHT) // 10) * brightness_value)
+            self.backlight.duty_u16(
+                _MIN_BRIGHT + ((_MAX_BRIGHT - _MIN_BRIGHT) // 10) * brightness_value
+                )
 
     @staticmethod
     def _find_rotations(width, height):
@@ -1230,4 +1252,3 @@ class ST7789:
                 warp_points(points, warp)
             
             self.fbuf.poly(x,y,points,color,fill)
-
