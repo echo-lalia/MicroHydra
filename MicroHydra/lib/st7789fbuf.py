@@ -369,6 +369,7 @@ class ST7789:
         backlight(pin): backlight pin
         brightness (int): display brightness (0-10)
         rotation (int):
+    brightness=8,
 
           - 0-Portrait
           - 1-Landscape
@@ -403,6 +404,7 @@ class ST7789:
         color_order=BGR,
         custom_init=None,
         custom_rotations=None,
+        custom_framebufs=None,
         brightness=10,
     ):
         """
@@ -421,10 +423,29 @@ class ST7789:
             raise ValueError("dc pin is required.")
         
         #init the fbuf
-        if rotation == 1 or rotation == 3:
-            self.fbuf = framebuf.FrameBuffer(bytearray(height*width*2), height, width, framebuf.RGB565)
+        if custom_framebufs != None and type(custom_framebufs) not in (tuple, list):
+            raise ValueError("'custom_framebufs' should be a list or tuple.")
+        
+        if custom_framebufs:
+            self.fbufs = []
+            self.fbuf_pos = []
+            self.fbuf_shape = []
+            for buf_x,buf_y,buf_width,buf_height in custom_framebufs:
+                # unpack framebuffer specs into framebuffers / position data / size data
+                self.fbufs.append(
+                    framebuf.FrameBuffer(bytearray(buf_width*buf_height*2), buf_width, buf_height, framebuf.RGB565)
+                    )
+                self.fbuf_pos.append((buf_x,buf_y))
+                self.fbuf_shape.append((buf_width, buf_height))
+
+        elif rotation == 1 or rotation == 3:
+            self.fbufs = [framebuf.FrameBuffer(bytearray(height*width*2), height, width, framebuf.RGB565)]
+            self.fbuf_pos = [(0,0)]
+            self.fbuf_shape = [(height, width)]
         else:
-            self.fbuf = framebuf.FrameBuffer(bytearray(height*width*2), width, height, framebuf.RGB565)
+            self.fbufs = [framebuf.FrameBuffer(bytearray(height*width*2), width, height, framebuf.RGB565)]
+            self.fbuf_pos = [(0,0)]
+            self.fbuf_shape = [(width, height)]
         
         self.physical_width = self.width = width
         self.physical_height = self.height = height
@@ -450,7 +471,7 @@ class ST7789:
             self.backlight.freq(1000)
         self.brightness(brightness)
 
-    def brightness(self, brightness_value:int):
+    def brightness(self, brightness_value:int|float):
         """
         Set display brightness.
         Args:
@@ -462,9 +483,10 @@ class ST7789:
         elif brightness_value >= 10:
             self.backlight.duty_u16(_MAX_BRIGHT)
         else:
-            print(_MIN_BRIGHT + ((_MAX_BRIGHT - _MIN_BRIGHT) // 10) * brightness_value)
             self.backlight.duty_u16(
-                _MIN_BRIGHT + ((_MAX_BRIGHT - _MIN_BRIGHT) // 10) * brightness_value
+                _MIN_BRIGHT + floor(
+                    ((_MAX_BRIGHT - _MIN_BRIGHT) // 10) * brightness_value
+                    )
                 )
 
     @staticmethod
@@ -598,7 +620,7 @@ class ST7789:
             )
             self._write(_ST7789_RAMWR)
 
-    def vline(self, x, y, length, color):
+    def vline(self, x, y, length, color, buf_idx=0):
         """
         Draw vertical line at the given location and color.
 
@@ -610,9 +632,13 @@ class ST7789:
         """
         if self.needs_swap:
             color = swap_bytes(color)
-        self.fbuf.vline(x, y, length, color)
+        
+        # convert global coordinate to fbuf-specific coordinate
+        x -= self.fbuf_pos[buf_idx][0]
+        y -= self.fbuf_pos[buf_idx][1]
+        self.fbufs[buf_idx].vline(x, y, length, color)
 
-    def hline(self, x, y, length, color):
+    def hline(self, x, y, length, color, buf_idx=0):
         """
         Draw horizontal line at the given location and color.
 
@@ -624,9 +650,12 @@ class ST7789:
         """
         if self.needs_swap:
             color = swap_bytes(color)
-        self.fbuf.hline(x, y, length, color)
+        # convert global coordinate to fbuf-specific coordinate
+        x -= self.fbuf_pos[buf_idx][0]
+        y -= self.fbuf_pos[buf_idx][1]
+        self.fbufs[buf_idx].hline(x, y, length, color)
 
-    def pixel(self, x, y, color):
+    def pixel(self, x, y, color, buf_idx=0):
         """
         Draw a pixel at the given location and color.
 
@@ -637,18 +666,26 @@ class ST7789:
         """
         if self.needs_swap:
             color = swap_bytes(color)
-        self.fbuf.pixel(x,y,color)
+        # convert global coordinate to fbuf-specific coordinate
+        x -= self.fbuf_pos[buf_idx][0]
+        y -= self.fbuf_pos[buf_idx][1]
+        self.fbufs[buf_idx].pixel(x,y,color)
         
         
-    def show(self):
+    def show(self, buf_idx=0):
         """
         Write the current framebuf to the display
         """
-        self._set_window(0, 0, self.width - 1, self.height - 1)
-        self._write(None, self.fbuf)
+        self._set_window(
+            self.fbuf_pos[buf_idx][0],
+            self.fbuf_pos[buf_idx][1],
+            self.fbuf_pos[buf_idx][0] + self.fbuf_shape[buf_idx][0] - 1,
+            self.fbuf_pos[buf_idx][1] + self.fbuf_shape[buf_idx][1] - 1
+            )
+        self._write(None, self.fbufs[buf_idx])
         
         
-    def blit_buffer(self, buffer, x, y, width, height, key=-1, palette=None):
+    def blit_buffer(self, buffer, x, y, width, height, key=-1, palette=None, buf_idx=0):
         """
         Copy buffer to display framebuf at the given location.
 
@@ -661,9 +698,12 @@ class ST7789:
             key (int): color to be considered transparent
             palette (framebuf): the color pallete to use for the buffer
         """
-        self.fbuf.blit(framebuf.FrameBuffer(buffer,width, height, framebuf.RGB565), x,y,key,palette)
+        # convert global coordinate to fbuf-specific coordinate
+        x -= self.fbuf_pos[buf_idx][0]
+        y -= self.fbuf_pos[buf_idx][1]
+        self.fbufs[buf_idx].blit(framebuf.FrameBuffer(buffer,width, height, framebuf.RGB565), x,y,key,palette)
         
-    def blit_framebuf(self, fbuf, x, y, key=-1, palette=None):
+    def blit_framebuf(self, fbuf, x, y, key=-1, palette=None, buf_idx=0):
         """
         Copy FrameBuffer to internal FrameBuffer at the given location.
         
@@ -681,9 +721,12 @@ class ST7789:
             key (int): color to be considered transparent
             palette (framebuf): the color pallete to use for the buffer
         """
-        self.fbuf.blit(fbuf, x,y,key,palette)
+        # convert global coordinate to fbuf-specific coordinate
+        x -= self.fbuf_pos[buf_idx][0]
+        y -= self.fbuf_pos[buf_idx][1]
+        self.fbufs[buf_idx].blit(fbuf, x,y,key,palette)
 
-    def rect(self, x, y, w, h, color, fill=False):
+    def rect(self, x, y, w, h, color, fill=False, buf_idx=0):
         """
         Draw a rectangle at the given location, size and color.
 
@@ -696,9 +739,12 @@ class ST7789:
         """
         if self.needs_swap:
             color = swap_bytes(color)
-        self.fbuf.rect(x,y,w,h,color,fill)
+        # convert global coordinate to fbuf-specific coordinate
+        x -= self.fbuf_pos[buf_idx][0]
+        y -= self.fbuf_pos[buf_idx][1]
+        self.fbufs[buf_idx].rect(x,y,w,h,color,fill)
         
-    def ellipse(self, x, y, xr, yr, color, fill=False):
+    def ellipse(self, x, y, xr, yr, color, fill=False, buf_idx=0):
         """
         Draw an ellipse at the given location, radius and color.
 
@@ -712,9 +758,12 @@ class ST7789:
         """
         if self.needs_swap:
             color = swap_bytes(color)
-        self.fbuf.ellipse(x,y,xr,yr,color,fill)
-
-    def fill_rect(self, x, y, width, height, color):
+        # convert global coordinate to fbuf-specific coordinate
+        x -= self.fbuf_pos[buf_idx][0]
+        y -= self.fbuf_pos[buf_idx][1]
+        self.fbufs[buf_idx].ellipse(x,y,xr,yr,color,fill)
+    
+    def fill_rect(self, x, y, width, height, color, buf_idx=0):
         """
         Draw a rectangle at the given location, size and filled with color.
         
@@ -728,20 +777,24 @@ class ST7789:
             height (int): Height in pixels
             color (int): 565 encoded color
         """
-        self.rect(x, y, width, height, color, fill=True)
+        # convert global coordinate to fbuf-specific coordinate
+        x -= self.fbuf_pos[buf_idx][0]
+        y -= self.fbuf_pos[buf_idx][1]
+        self.rect(x, y, width, height, color, fill=True, buf_idx=buf_idx)
 
-    def fill(self, color):
+    def fill(self, color, buf_idx=0):
         """
         Fill the entire FrameBuffer with the specified color.
 
         Args:
             color (int): 565 encoded color
+            buf_idx (int): index of framebuffer to use
         """
         if self.needs_swap:
             color = swap_bytes(color)
-        self.fbuf.fill(color)
+        self.fbufs[buf_idx].fill(color)
 
-    def line(self, x0, y0, x1, y1, color):
+    def line(self, x0, y0, x1, y1, color, buf_idx=0):
         """
         Draw a single pixel wide line starting at x0, y0 and ending at x1, y1.
 
@@ -752,7 +805,11 @@ class ST7789:
             y1 (int): End point y coordinate
             color (int): 565 encoded color
         """
-        self.fbuf.line(x0, y0, x1, y1, color)
+        x0 = x0 - self.fbuf_pos[buf_idx][0]
+        y0 = y0 - self.fbuf_pos[buf_idx][1]
+        x1 = x1 - self.fbuf_pos[buf_idx][0]
+        y1 = y1 - self.fbuf_pos[buf_idx][1]
+        self.fbufs[buf_idx].line(x0, y0, x1, y1, color)
 
     def vscrdef(self, tfa, vsa, bfa):
         """
@@ -790,7 +847,7 @@ class ST7789:
         """
         self._write(_ST7789_VSCSAD, struct.pack(">H", vssa))
 
-    def scroll(self,xstep,ystep):
+    def scroll(self,xstep,ystep, buf_idx=0):
         """
         Shift the contents of the FrameBuffer by the given vector.
         This may leave a footprint of the previous colors in the FrameBuffer.
@@ -799,7 +856,7 @@ class ST7789:
         this method scrolls the framebuffer itself.
         This is a wrapper for the framebuffer.scroll method:
         """
-        self.fbuf.scroll(xstep,ystep)
+        self.fbufs[buf_idx].scroll(xstep,ystep)
 
     @micropython.viper
     @staticmethod
@@ -865,7 +922,7 @@ class ST7789:
 
         return buffer
 
-    def _text8(self, font, text, x0, y0, fg_color=WHITE):
+    def _text8(self, font, text, x0, y0, fg_color=WHITE, buf_idx=0):
         """
         Internal method to write characters with width of 8 and
         heights of 8 or 16.
@@ -876,7 +933,9 @@ class ST7789:
             x0 (int): column to start drawing at
             y0 (int): row to start drawing at
             color (int): 565 encoded color to use for characters
+            buf_idx (int): index of framebuffer to use
         """
+        
         if fg_color == 0:
             bg_color = 1
         else:
@@ -901,11 +960,11 @@ class ST7789:
                 for line in range(passes):
                     idx = (ch - font.FIRST) * size + (each * line)
                     buffer = self._pack8(font.FONT, idx, fg_color, bg_color)
-                    self.blit_buffer(buffer, x0, y0 + 8 * line, 8, 8,key=bg_color)
+                    self.blit_buffer(buffer, x0, y0 + 8 * line, 8, 8,key=bg_color, buf_idx=buf_idx)
 
                 x0 += 8
 
-    def _text16(self, font, text, x0, y0, fg_color=WHITE):
+    def _text16(self, font, text, x0, y0, fg_color=WHITE, buf_idx=0):
         """
         Internal method to draw characters with width of 16 and heights of 16
         or 32.
@@ -916,6 +975,7 @@ class ST7789:
             x0 (int): column to start drawing at
             y0 (int): row to start drawing at
             color (int): 565 encoded color to use for characters
+            buf_idx (int): index of framebuffer to use
         """
         if fg_color == 0:
             bg_color = 1
@@ -939,10 +999,10 @@ class ST7789:
                 for line in range(passes):
                     idx = (ch - font.FIRST) * size + (each * line)
                     buffer = self._pack16(font.FONT, idx, fg_color, bg_color)
-                    self.blit_buffer(buffer, x0, y0 + 8 * line, 16, 8,key=bg_color)
+                    self.blit_buffer(buffer, x0, y0 + 8 * line, 16, 8,key=bg_color, buf_idx=buf_idx)
             x0 += 16
 
-    def text(self, text, x, y, color=WHITE):
+    def text(self, text, x, y, color=WHITE, buf_idx=0):
         """
         Quickly draw text to the display using the FrameBuffer text method.
         
@@ -953,12 +1013,16 @@ class ST7789:
             x (int): column to start drawing at
             y (int): row to start drawing at
             color (int): 565 encoded color to use for text
+            buf_idx (int): index of framebuffer to use
         """
         if self.needs_swap:
             color = swap_bytes(color)
-        self.fbuf.text(text, x, y, color)
+        # convert global coordinate to fbuf-specific coordinate
+        x -= self.fbuf_pos[buf_idx][0]
+        y -= self.fbuf_pos[buf_idx][1]
+        self.fbufs[buf_idx].text(text, x, y, color)
 
-    def bitmap_text(self, font, text, x0, y0, color=WHITE):
+    def bitmap_text(self, font, text, x0, y0, color=WHITE, buf_idx=0):
         """
         Draw text on display in specified font and colors. 8 and 16 bit wide
         fonts are supported.
@@ -969,16 +1033,17 @@ class ST7789:
             x0 (int): column to start drawing at
             y0 (int): row to start drawing at
             color (int): 565 encoded color to use for characters
+            buf_idx (int): index of framebuffer to use
         """
         if self.needs_swap:
             color=swap_bytes(color)
 
         if font.WIDTH == 8:
-            self._text8(font, text, x0, y0, color)
+            self._text8(font, text, x0, y0, color, buf_idx=buf_idx)
         else:
-            self._text16(font, text, x0, y0, color)
+            self._text16(font, text, x0, y0, color, buf_idx=buf_idx)
 
-    def bitmap(self, bitmap, x, y, index=0, key=-1):
+    def bitmap(self, bitmap, x, y, index=0, key=-1, buf_idx=0):
         """
         Draw a bitmap on display at the specified column and row
 
@@ -1023,11 +1088,9 @@ class ST7789:
             buffer[i] = color & 0xFF
             buffer[i + 1] = color >> 8
         
-        self.blit_buffer(buffer,x,y,width,height,key=key)
-        #self._set_window(x, y, to_col, to_row)
-        #self._write(None, buffer)
+        self.blit_buffer(buffer,x,y,width,height,key=key,buf_idx=buf_idx)
 
-    def bitmap_icons(self, bitmap_module, bitmap, color, x, y, invert_colors=False):
+    def bitmap_icons(self, bitmap_module, bitmap, color, x, y, invert_colors=False, buf_idx=0):
         """
         Draw a 2 color bitmap as a transparent icon on display,
         at the specified column and row, using given color and memoryview object.
@@ -1081,51 +1144,10 @@ class ST7789:
             buffer[i + 1] = color >> 8
 
         
-        self.blit_buffer(buffer,x,y,width,height,key=palette[0])
+        self.blit_buffer(buffer,x,y,width,height,key=palette[0], buf_idx=buf_idx)
                 
-            
-#     def write(self, font, string, x, y, fg=WHITE, bg=None):
-#         #key out bg when unspecified
-#         key=-1
-#         if bg==None:
-#             if fg == 0:
-#                 bg = 65535
-#                 key = 65535
-#             else:
-#                 bg = 0
-#                 key = 0
-#         buffer_len = font.HEIGHT * font.MAX_WIDTH * 2
-#         buffer = bytearray(buffer_len)
-#         fg_hi = fg >> 8
-#         fg_lo = fg & 0xFF
-#         bg_hi = bg >> 8
-#         bg_lo = bg & 0xFF
-#         for character in string:
-#             try:
-#                 char_index = font.MAP.index(character)
-#                 offset = char_index * font.OFFSET_WIDTH
-#                 bs_bit = font.OFFSETS[offset]
-#                 
-#                 if font.OFFSET_WIDTH > 2:
-#                     bs_bit = (bs_bit << 8) + font.OFFSETS[offset + 2]
-#                 elif font.OFFSET_WIDTH > 1:
-#                     bs_bit = (bs_bit << 8) + font.OFFSETS[offset + 1]
-#                 char_width = font.WIDTHS[char_index]
-#                 buffer_needed = char_width * font.HEIGHT * 2
-#                 for i in range(0, buffer_needed, 2):
-#                     if font.BITMAPS[bs_bit // 8] & 1 << (7 - (bs_bit % 8)) > 0:
-#                         buffer[i] = fg_hi
-#                         buffer[i + 1] = fg_lo
-#                     else:
-#                         buffer[i] = bg_hi
-#                         buffer[i + 1] = bg_lo
-#                     bs_bit += 1
-#                 self.blit_buffer(buffer,x,y,char_width,font.HEIGHT,key=key)
-#                 x += char_width
-#             except ValueError:
-#                 pass
 
-    def write(self, font, string, x, y, fg=WHITE):
+    def write(self, font, string, x, y, fg=WHITE, buf_idx=0):
         """
         Write a string using a converted true-type font on the display starting
         at the specified column and row
@@ -1138,9 +1160,12 @@ class ST7789:
             fg (int): foreground color, optional, defaults to WHITE
             bg (int): background color, optional, defaults to None
         """
+        # convert global coordinate to fbuf-specific coordinate
+        x -= self.fbuf_pos[buf_idx][0]
+        y -= self.fbuf_pos[buf_idx][1]
         if self.needs_swap:
             fg = swap_bytes(fg)
-            
+        fbuf=self.fbufs[buf_idx]
         for character in string:
             try:
                 char_index = font.MAP.index(character)
@@ -1159,7 +1184,7 @@ class ST7789:
                     px_x = x + ((i) % char_width)
                     px_y = y + ((i) // char_width)
                     if font.BITMAPS[bs_bit // 8] & 1 << (7 - (bs_bit % 8)) > 0:
-                        self.fbuf.pixel(px_x,px_y,fg)
+                        fbuf.pixel(px_x,px_y,fg)
                     
                     bs_bit += 1
 
@@ -1192,7 +1217,7 @@ class ST7789:
 
         return width
     
-    def simple_poly(self,points,x,y,color,fill=False):
+    def simple_poly(self,points,x,y,color,fill=False,buf_idx=0):
         """
         Draw a polygon on the display.
 
@@ -1204,11 +1229,14 @@ class ST7789:
         """
         if self.needs_swap:
             color = swap_bytes(color)
-        self.fbuf.poly(x,y,points,color,fill)
+        # convert global coordinate to fbuf-specific coordinate
+        x -= self.fbuf_pos[buf_idx][0]
+        y -= self.fbuf_pos[buf_idx][1]
+        self.fbufs[buf_idx].poly(x,y,points,color,fill)
     
     
     
-    def polygon(self, points, x, y, color, angle=0, center_x=None, center_y=None, scale=1, warp=None, fill=False):
+    def polygon(self, points, x, y, color, angle=0, center_x=None, center_y=None, scale=1, warp=None, fill=False, buf_idx=0):
         """
         Draw a polygon on the display.
 
@@ -1221,12 +1249,15 @@ class ST7789:
             center_x (int): X-coordinate of the rotation center (default: 0).
             center_y (int): Y-coordinate of the rotation center (default: 0).
         """
+        # convert global coordinate to fbuf-specific coordinate
+        x -= self.fbuf_pos[buf_idx][0]
+        y -= self.fbuf_pos[buf_idx][1]
         
         #simple poly wrapper
         if angle == 0 and scale == 1 and warp == None:
             if self.needs_swap:
                 color = swap_bytes(color)
-            self.fbuf.poly(x,y,points,color,fill)
+            self.fbufs[buf_idx].poly(x,y,points,color,fill)
         
         #complex polygon
         else:
@@ -1251,4 +1282,4 @@ class ST7789:
             if warp != None:
                 warp_points(points, warp)
             
-            self.fbuf.poly(x,y,points,color,fill)
+            self.fbufs[buf_idx].poly(x,y,points,color,fill)
