@@ -1,5 +1,12 @@
 import math
 
+"""
+Tincture version 1.1
+
+changes:
+    solved broken clamping operations, added < and > support on Tincts
+"""
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~      Basic convenience functions:      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -176,11 +183,6 @@ class Tinct:
         l3,c3 = blend_tuple((l1,c1),(l2,c2),factor=fac)
         h3 = blend_angle(h1,h2,factor=fac)
         return Tinct(okLCh=(l3,c3,h3))
-
-
-    def gradient(self, other_tinct:'Tinct',ease=False) -> 'Gradient':
-        """Return a Gradient object that starts at this Tinct, and ends at other_tinct."""      
-        return Gradient(RGB_start=self.get_RGB(), RGB_end=other_tinct.get_RGB(), ease=ease)
     
     def darker(self) -> 'Tinct':
         """Simply get a darker version of the color. Use add_lightness for a specific amount."""
@@ -420,14 +422,7 @@ class Tinct:
             return self.get_RGB255() == other
 
     def __int__(self):
-        rgb = self.get_RGB255()
-        result = ''
-        for val in rgb:
-            valstr = str(val)
-            while len(valstr) < 3:
-                valstr = '0' + valstr
-            result += valstr
-        return  int(result)
+        return  self.get_RGB565()
     
     # math
 
@@ -643,6 +638,19 @@ class Tinct:
                 raise TypeError(f'Operations between Tinct and {type(other)} expect that len({type(other)} == 3)')
         else:
             return NotImplemented
+        
+    def __lt__(self,other):
+        if type(other) != Tinct:
+            return NotImplemented
+        else:
+            return sum(self.rgb) < sum(other.rgb)
+        
+    def __gt__(self,other):
+        if type(other) != Tinct:
+            return NotImplemented
+        else:
+            return sum(self.rgb) > sum(other.rgb)
+        
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ additional helper functions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 
