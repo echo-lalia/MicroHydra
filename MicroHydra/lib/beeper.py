@@ -1,8 +1,6 @@
 from machine import I2S, Pin
 import math
 
-fast_sin_len = const(320)
-fast_sin_hz = const(25)
 SCK_PIN = const(41)
 WS_PIN = const(43)
 SD_PIN = const(42)
