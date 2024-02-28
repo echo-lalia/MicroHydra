@@ -994,7 +994,7 @@ class ST7789:
 
         return width
 
-
+    @micropython.native
     def polygon(self, points, x, y, color, angle=0, center_x=0, center_y=0):
         """
         Draw a polygon on the display.

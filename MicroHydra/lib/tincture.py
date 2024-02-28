@@ -1,16 +1,14 @@
 import math
 
 """
-Tincture version 1.1
+Tincture version 1.2
 
 changes:
-    solved broken clamping operations, added < and > support on Tincts
+    Heavily trimmed for use in MicroPython
 """
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~      Basic convenience functions:      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def separate_color565(color):
     """
@@ -27,28 +25,6 @@ def clamp(value,minimum,maximum,):
     #then choose the smallest, of the max and the value
     output = min(output, maximum)
     return output
-
-def wrap(value, minimum, maximum):
-    """Basically a modulo wrapper, this convenience function wraps a value around,
-    in the range of min to max."""
-    output = value
-    
-    #translate the value by the min, because modulo works here on min=0
-    output -= minimum
-    deltamax = maximum - minimum
-    
-    #then modulo to wrap in our new range of 0 - deltamax. 
-    output = output % deltamax
-    
-    #ok, now shift back to the original range
-    output += minimum
-    #lastly clamp so that we dont have any weird values due to rounding errors
-    return clamp(output, minimum=minimum, maximum=maximum)
-
-def blend_value(input1,input2,factor=0.5):
-    """take two numbers, and average them to the weight of factor."""
-    new_val = (input1 * (1 - factor)) + (input2 * factor)
-    return new_val
 
 def blend_tuple(input1,input2,factor=0.5):
     """take two tuples of equal size, and average them to the weight of factor.
@@ -76,55 +52,6 @@ def blend_angle(angle1, angle2, factor=0.5):
 
     return blended
 
-def sigmoid(val):
-    return 1 / (1 + math.exp(-val))
-
-def ease_in_out(x:float) -> float:
-    """easeInOutQuad function implementation"""
-    if x < 0.5:
-        return 2 * x**2
-    else:
-        return 1 - ((-2 * x + 2)**2) / 2
-    
-def map_range(value:float, input_min:float, input_max:float, output_min:float=0, output_max:float=1) -> float:
-    """Take value, from range (input_min,input_max), and reshape it for the range (output_min,output_max)"""
-    output = value - input_min
-    output = output / (input_max - input_min)
-    output = output * (output_max - output_min)
-    output += output_min
-    return output
-
-def binary_search(sorted_list, target):
-    """This helper function is used to quickly find the index of 2 numbers in a sorted list, 
-    which are closest in value to the target value (one above and one below) """
-    low = 0
-    high = len(sorted_list) - 1
-
-    # Handle cases where the target is outside the range of the list
-    if target <= sorted_list[0]:
-        return None, 0
-    elif target >= sorted_list[-1]:
-        return len(sorted_list) - 1, None
-
-    while low <= high:
-        mid = (low + high) // 2
-
-        if sorted_list[mid] == target:
-            # for consistency we should return mid twice, but if we do that, we'll waste time comparing them later.
-            #so just return one, it should be a little faster. 
-            return mid, None
-
-        if sorted_list[mid] < target:
-            low = mid + 1
-        else:
-            high = mid - 1
-
-    # At this point, high is the index of the largest element < target,
-    # and low is the index of the smallest element > target.
-    return high, low
-
-
-
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~      Tinct - color class definition      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -135,15 +62,8 @@ class Tinct:
     This class aims to provide a very simple and straightforward way to mix, convert, and manipulate color.
     Colors are stored as a Tuple of floats in RGB, but can be converted an manipulated in any supported colorspace."""
     
-    def __init__(self,RGB565=None,RGB=None,RGBA=None,RGB255=None,HSL=None,okLab=None,okLCh=None,hex=None,position=None,alpha=1):
+    def __init__(self,RGB565=None,RGB=None,RGBA=None,RGB255=None,HSL=None,okLab=None,okLCh=None,hex=None):
         self.rgb = (0.0,0.0,0.0)
-        # I have chosen to store the value as an rgb value.
-        # This is being done purely for convenience. Another colorspace might make more sense,
-        # but this way it requires a minimum understanding of colorspaces to utilize the stored value.
-        # However, the self.rgb value should always be raw; we need to be able to convert between
-        # other colorspaces as well, even if those spaces are larger than RGB. 
-
-
         #check each of the input variables and preform required transformations.
         if RGB565:
             self.set_RGB565(RGB565)
@@ -164,33 +84,14 @@ class Tinct:
         elif hex:
             self.set_hex(hex)
 
-        self.alpha = alpha
-
-        #Tinct stores it's own position for use in Tincture
-        self.position = position
-
-
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   Useful modifiers:   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    def blend(self,other_tinct:'Tinct',factor=0.5,ease=False) -> 'Tinct':
-        """Mix this Tinct with another using factor. Transform is done is okLCh space. 
-        if ease == True, apply an easing function to the factor (otherwise linear blend)"""
-        if ease:
-            fac = ease_in_out(factor)
-        else:
-            fac = factor
+    def blend(self,other_tinct:'Tinct',fac=0.5,ease=False) -> 'Tinct':
+        """Mix this Tinct with another using factor. Transform is done is okLCh space."""
         l1,c1,h1 = self.get_okLCh()
         l2,c2,h2 = other_tinct.get_okLCh()
         l3,c3 = blend_tuple((l1,c1),(l2,c2),factor=fac)
         h3 = blend_angle(h1,h2,factor=fac)
         return Tinct(okLCh=(l3,c3,h3))
-    
-    def darker(self) -> 'Tinct':
-        """Simply get a darker version of the color. Use add_lightness for a specific amount."""
-        return self % 0
-    
-    def lighter(self) -> 'Tinct':
-        """Simply get a lighter version of the color. Use add_lightness for a specific amount."""
-        return self % 100
     
     def add_lightness(self,amount, clamped=True) -> 'Tinct':
         """Add amount (percent) to current lightness. Values can be negative.
@@ -258,12 +159,6 @@ class Tinct:
     def set_RGB(self,RGB):
         """Input RGB as a 3 tuple of floats, range[0,1]"""
         self.rgb = RGB
-
-    def set_RGBA(self,RGBA):
-        """Input RGBA as a 4 tuple of floats, range[0,1]"""
-        r,g,b,a = RGBA
-        self.rgb = (r,g,b)
-        self.alpha = a
     
     def set_RGB255(self,RGB255):
         """Input RGB as a 3 tuple of floats (or int) with range[0,255]"""
@@ -284,10 +179,6 @@ class Tinct:
         r,g,b = bytes.fromhex(cleaned)
         self.set_RGB255((r,g,b))
 
-    def set_alpha(self,a):
-        """update alpha value"""
-        self.alpha = a
-
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 'get_' functions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 
     def get_RGB565(self) -> int:
@@ -300,12 +191,7 @@ class Tinct:
         #get the rgb color of this Tinct.
         r,g,b = self.rgb
         return (clamp(r,minimum=0,maximum=1),clamp(g,minimum=0,maximum=1),clamp(b,minimum=0,maximum=1))
-    
-    def get_RGBA(self) -> tuple[float,float,float,float]:
-        """return RGBA value as a 4 tuple of floats, range [0,1]"""
-        r,g,b = self.rgb
-        return (clamp(r,0,1),clamp(g,0,1),clamp(b,0,1),clamp(self.alpha,0,1))
-        
+
     def get_HSL(self,as_int=False) -> tuple[float,float,float]:
         """return HSL value as tuple with range:
         H [0,360], S [0,100%], L [0,100%]"""
@@ -344,21 +230,16 @@ class Tinct:
 
         return (hue,saturation,lightness)
 
-    def get_RGB255(self, as_float=False) -> tuple[int,int,int]:
+    def get_RGB255(self) -> tuple[int,int,int]:
         """return okLab value as tuple with range:
         R [0,255], G [0,255], B [0,255]"""
         r,g,b = self.rgb
         r = clamp(r,0,1)
         g = clamp(g,0,1)
         b = clamp(b,0,1)
-        if as_float:
-            r = (r * 255)
-            g = (g * 255)
-            b = (b * 255)
-        else:
-            r = int(round(r * 255))
-            g = int(round(g * 255))
-            b = int(round(b * 255))
+        r = int(round(r * 255))
+        g = int(round(g * 255))
+        b = int(round(b * 255))
         return (r,g,b)
     
     def get_okLab(self) -> tuple[float,float,float]: 
@@ -394,10 +275,6 @@ class Tinct:
     def get_hex(self) -> str:
         """Get a hexidecimal representation of the color."""
         return '#%02x%02x%02x' % self.get_RGB255()
-
-    def get_alpha(self) -> float:
-        """Get this Tincts alpha, as a float range 0-1"""
-        return clamp(self.alpha,0,1)
     
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ dunders: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -425,7 +302,6 @@ class Tinct:
         return  self.get_RGB565()
     
     # math
-
     def __add__(self,other):
         if type(other) in {int,float,bool}:
             r,g,b = self.rgb
@@ -437,133 +313,6 @@ class Tinct:
             r,g,b = self.rgb
             r2,g2,b2 = other.rgb
             return Tinct(RGB=(r+r2,g+g2,b+b2))
-        elif type(other) in {list,tuple}:
-            if len(other) == 3:
-                if type(other[0]) in {int,float,bool} and type(other[1]) in {int,float,bool} and type(other[2]) in {int,float,bool}:
-                    r,g,b = self.rgb
-                    r2,g2,b2 = other
-                    return Tinct(RGB=(r+r2,g+g2,b+b2))
-                else:
-                    raise TypeError(f'Operations between Tinct and {type(other)} expect numerical values')
-            else:
-                raise TypeError(f'Operations between Tinct and {type(other)} expect that len({type(other)} == 3)')
-        #if we made it here, its unsupported
-        return NotImplemented
-        
-    def __sub__(self,other):
-        if type(other) in {int,float,bool}:
-            r,g,b = self.rgb
-            r -= other
-            g -= other
-            b -= other
-            return Tinct(RGB=(r,g,b))
-        elif type(other) == Tinct:
-            r,g,b = self.rgb
-            r2,g2,b2 = other.rgb
-            return Tinct(RGB=(r-r2,g-g2,b-b2))
-        elif type(other) in {list,tuple}:
-            if len(other) == 3:
-                if type(other[0]) in {int,float,bool} and type(other[1]) in {int,float,bool} and type(other[2]) in {int,float,bool}:
-                    r,g,b = self.rgb
-                    r2,g2,b2 = other
-                    return Tinct(RGB=(r-r2,g-g2,b-b2))
-                else:
-                    raise TypeError(f'Operations between Tinct and {type(other)} expect numerical values')
-            else:
-                raise TypeError(f'Operations between Tinct and {type(other)} expect that len({type(other)} == 3)')
-        else:
-            return NotImplemented
-        
-    def __mul__(self,other):
-        if type(other) in {int,float,bool}:
-            r,g,b = self.rgb
-            r *= other
-            g *= other
-            b *= other
-            return Tinct(RGB=(r,g,b))
-        elif type(other) == Tinct:
-            r,g,b = self.rgb
-            r2,g2,b2 = other.rgb
-            return Tinct(RGB=(r*r2,g*g2,b*b2))
-        elif type(other) in {list,tuple}:
-            if len(other) == 3:
-                if type(other[0]) in {int,float,bool} and type(other[1]) in {int,float,bool} and type(other[2]) in {int,float,bool}:
-                    r,g,b = self.rgb
-                    r2,g2,b2 = other
-                    return Tinct(RGB=(r*r2,g*g2,b*b2))
-                else:
-                    raise TypeError(f'Operations between Tinct and {type(other)} expect numerical values')
-            else:
-                raise TypeError(f'Operations between Tinct and {type(other)} expect that len({type(other)} == 3)')
-        else:
-            return NotImplemented
-        
-    def __truediv__(self,other):
-        if type(other) in {int,float,bool}:
-            r,g,b = self.rgb
-            r /= other
-            g /= other
-            b /= other
-            return Tinct(RGB=(r,g,b))
-        elif type(other) == Tinct:
-            # /0 operations are lazily avoided to allow for simple photo-editor-like behavior on Tinct/Tinct
-            r,g,b = self.rgb
-            r2,g2,b2 = other.rgb
-            if r2 == 0:
-                rr=r/0.00001
-            else:
-                rr = r / r2
-            if g2 == 0:
-                gg=g/0.00001
-            else:
-                gg = g / g2
-            if b2 == 0:
-                bb = b/0.00001
-            else:
-                bb = b / b2
-            return Tinct(RGB=(rr,gg,bb))
-        
-        elif type(other) in {list,tuple}:
-            if len(other) == 3:
-                if type(other[0]) in {int,float,bool} and type(other[1]) in {int,float,bool} and type(other[2]) in {int,float,bool}:
-                    r,g,b = self.rgb
-                    r2,g2,b2 = other
-                    return Tinct(RGB=(r/r2,g/g2,b/b2))
-                else:
-                    raise TypeError(f'Operations between Tinct and {type(other)} expect numerical values')
-
-            else:
-                raise TypeError(f'Operations between Tinct and {type(other)} expect that len({type(other)} == 3)')
-        else:
-            return NotImplemented
-        
-    def __mod__(self,other):
-        #mod on tinct blends colors together
-        if type(other) in {int,float,bool}:
-            #if only one number is provided, just change lightness
-            l,a,b = self.get_okLab()
-            return self.blend(Tinct(okLab=(other,a,b)))
-        elif type(other) == Tinct:
-            # Tinct%Tinct shorthands a simple blend of colors
-            return self.blend(other)
-        elif type(other) in {list,tuple}:
-            if len(other) == 3:
-                if type(other[0]) in {int,float,bool} and type(other[1]) in {int,float,bool} and type(other[2]) in {int,float,bool}:
-                    return self.blend(Tinct(RGB=(other)))
-                else:
-                    raise TypeError(f'Operations between Tinct and {type(other)} expect numerical values')
-            else:
-                raise TypeError(f'Operations between Tinct and {type(other)} expect that len({type(other)} == 3)')
-        else:
-            return NotImplemented
-        
-    def __radd__(self,other):
-        if type(other) in {int,float,bool}:
-            r,g,b = self.rgb
-            r += other
-            g += other
-            b += other
-            return Tinct(RGB=(r,g,b))
         elif type(other) in {list,tuple}:
             if len(other) == 3:
                 if type(other[0]) in {int,float,bool} and type(other[1]) in {int,float,bool} and type(other[2]) in {int,float,bool}:
@@ -596,48 +345,6 @@ class Tinct:
                 raise TypeError(f'Operations between Tinct and {type(other)} expect that len({type(other)} == 3)')
         else:
             return NotImplemented
-
-    def __rmul__(self,other):
-        if type(other) in {int,float,bool}:
-            r,g,b = self.rgb
-            r *= other
-            g *= other
-            b *= other
-            return Tinct(RGB=(r,g,b))
-        elif type(other) in {list,tuple}:
-            if len(other) == 3:
-                if type(other[0]) in {int,float,bool} and type(other[1]) in {int,float,bool} and type(other[2]) in {int,float,bool}:
-                    r,g,b = self.rgb
-                    r2,g2,b2 = other
-                    return Tinct(RGB=(r*r2,g*g2,b*b2))
-                else:
-                    raise TypeError(f'Operations between Tinct and {type(other)} expect numerical values')
-            else:
-                raise TypeError(f'Operations between Tinct and {type(other)} expect that len({type(other)} == 3)')
-        else:
-            return NotImplemented
-        
-    def __rtruediv__(self,other):
-        if type(other) in {int,float,bool}:
-            r,g,b = self.rgb
-            r = other / r
-            g = other / g
-            b = other / b
-            return Tinct(RGB=(r,g,b))
-        
-        elif type(other) in {list,tuple}:
-            if len(other) == 3:
-                if type(other[0]) in {int,float,bool} and type(other[1]) in {int,float,bool} and type(other[2]) in {int,float,bool}:
-                    r,g,b = self.rgb
-                    r2,g2,b2 = other
-                    return Tinct(RGB=(r2/r,g2/g,b2/b))
-                else:
-                    raise TypeError(f'Operations between Tinct and {type(other)} expect numerical values')
-
-            else:
-                raise TypeError(f'Operations between Tinct and {type(other)} expect that len({type(other)} == 3)')
-        else:
-            return NotImplemented
         
     def __lt__(self,other):
         if type(other) != Tinct:
@@ -651,7 +358,6 @@ class Tinct:
         else:
             return sum(self.rgb) > sum(other.rgb)
         
-
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ additional helper functions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 
     # linear srgb conversions are described here:
@@ -675,246 +381,13 @@ class Tinct:
         return tuple(output)
 
 
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    Tincture - color class definition     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-class Tincture:
-    """To impart a tint or color to; To imbue or infuse with something.
-    Params:
-     - positions
-     - blend_mode: 'linear' 'ease' or 'auto' to choose based on positions of content"""
-    def __init__(self,*args,colors=None,positions=None, blend_mode='auto'):
-        # args is the input colors. if input_colors is given, it overrides args. 
-        # positions is 0-1, representing position of each Tinct.
-
-        self.blend_mode=blend_mode
-
-        input_colors = list(args)
-        if len(input_colors) == 1:
-            if type(input_colors[0]) in {list, tuple}:
-                input_colors = input_colors[0]
-        if colors:
-            if type(colors) == Tinct:
-                input_colors = [colors]
-            else:
-                input_colors = colors
-        my_elements = []
-        for item in input_colors:
-            if type(item) == Tinct:
-                my_elements.append(item)
-            elif type(item) == Tincture:
-                my_elements += item.elements
-            elif type(item) == str:
-                my_elements.append(Tinct(hex=item))
-            elif type(item) in {list,tuple}:
-                if len(item) == 3:
-                    r,g,b = item
-                    my_elements.append(Tinct(RGB=(r,g,b)))
-                elif len(item) == 4:
-                    r,g,b,a = item
-                    my_elements.append(Tinct(RGBA=(r,g,b,a)))
-                else:
-                    raise TypeError(f'Tincture got a {type(item)} with len {len(item)} in input, but it should be a 3 tuple to interpret as RGB, or a 4 tuple for RGBA')
-            else:
-                raise TypeError(f'Tincture got a {type(item)} in input. Expected value of Tinct, Tincture, a 3-tuple representing RGB, or a 4-tuple representing RGBA')
-            
-        self.elements = my_elements
-        if positions:
-            self.update_positions(positions)
-        else:
-            self.set_default_positions()
-
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    tincture utils    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def update_positions(self,positions:list[float]):
-        """Set positions for stored Tincts to the provided list of positions.
-        Stored Tincts will also be sorted by position."""
-        if len(positions) != len(self.elements):
-            raise ValueError(f'Tincture contains {len(self.elements)} Tincts, but was given {len(positions)} positions.')
-        for idx, pos in enumerate(positions):
-            self.elements[idx].position = pos
-        #sort ourselves
-        self.sort_elements()
-
-    def sort_elements(self):
-        """Sort elements stored in this tincture. This is required for the retrieval functions to work properly."""
-        self.elements = sorted(self.elements,key=lambda x: x.position)
-
-    def set_default_positions(self):
-        """Set the position values for stored Tincts to the default, which is a linear mapping of 0-1 based on position in list."""
-        num_positions = len(self.elements)
-        if num_positions == 1:
-            #one position should just be 0, I suppose
-            self.elements[0].position = 0.0
-        elif num_positions > 0:
-            for idx, tinct in enumerate(self.elements):
-                fac = idx / (num_positions - 1)
-                tinct.position = fac
-
-    def reshape_positions(self):
-        """Scale this Tincts position values so that they fit range 0-1."""
-        positions = []
-        for tinct in self.elements:
-            positions.append(tinct.position)
-        minimum = min(positions)
-        maximum = max(positions)
-        new_positions = []
-        for pos in positions:
-            new_positions.append(map_range(pos,minimum,maximum))
-        self.update_positions(new_positions)
-
-    def copy(self) -> 'Tincture':
-        """return a copy of this Tincture"""
-        return Tincture(colors=self.elements.copy(), blend_mode=self.blend_mode)
-
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    modifying    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def add_tinct(self, tinct:Tinct = None, inplace:bool = False, **kwargs):
-        """Quickly add Tinct to the Tincture. 
-        Params:
-         - tinct: pass a Tinct, to add that Tinct to this Tincture
-         - inplace: False (default) will return a copy with your specified changes, True will return None and update this Tincture directly
-         - **kwargs: instead of passing tinct, you can pass keyword args, which are simply passed on to a new Tinct object
-        
-        If the Tinct has no position, then it will be added to the end, and the other elements will be automatically reshaped."""
-        my_tinct = None
-        reshaping = False
-        if tinct:
-            if type(tinct) == Tinct:
-                my_tinct = tinct
-            else:
-                raise TypeError(f"parameter 'tinct' expects a Tinct object, but got {type(tinct)}")
-        if kwargs:
-            my_tinct = Tinct(**kwargs)
-        if my_tinct == None:
-            raise TypeError("add_tinct needs to be given a Tinct to add (got None)")
-        
-        if my_tinct.position == None:
-            reshaping = True
-            #figure out where to put new element, based on previous elements location. This will be >1 to start, but fixed later.
-            location = 1 + (1 / max(len(self.elements), 1))
-            my_tinct.position = location
-        
-
-        if inplace:
-            self.elements.append(my_tinct)
-            if reshaping:
-                self.reshape_positions()
-            else:
-                self.sort_elements()
-            return None
-        else:        
-            new_elements = self.elements.copy()
-            new_elements.append(my_tinct)
-            #make a copy to do operations on
-            new_tincture = self.copy()
-            new_tincture.elements = new_elements
-            if reshaping:
-                new_tincture.reshape_positions()
-            else:
-                new_tincture.sort_elements()
-            return new_tincture
-
-
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~    retrieval    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def sample(self, location):
-        """Pick a color from the Tincture based on the specified position."""
-        positions = []
-        for tinct in self.elements:
-            positions.append(tinct.position)
-
-        # for starters, if the tincture has len 0, we can just return None
-        if len(self.elements) == 0:
-            return None
-        #if len is 1, theres only one color to return, so do it
-        elif len(self.elements) == 1:
-            return self.elements[0]
-        
-        #if we passed both checks above, we have at least 2 elements, and we should select from them. 
-        #use binary search to find where our location value falls compared to positions of the Tincts
-        idx_low, idx_high = binary_search(positions, location)
-        #if either values are empty, it means our location is outside of the range of self.elements[].position
-        if idx_low == None:
-            return self.elements[idx_high]
-        elif idx_high == None:
-            return self.elements[idx_low]
-        #if neither check above passed, then we have two Tincts to sample from. 
-        
-        #lets figure out what positions our Tincts sit at
-        pos_low = self.elements[idx_low].position
-        pos_high = self.elements[idx_high].position
-        #to use the built in blend function, we need to scale the position and location values from whatever they are now, to a range of 0-1
-
-        #represents relative location between pos_low as 0, and pos_high as 1
-        location_factor = map_range(location, pos_low, pos_high, 0, 1)
-
-        #check our blend mode! 
-        ease = (self.blend_mode == 'ease')
-        if self.blend_mode == 'auto':
-            #auto should use linear if we have len 3 or less.
-            # but if we have more, then outer edges should be linear, others should be ease
-            if len(self.elements) > 3 and (idx_low > 0 and idx_high < (len(self.elements) - 1)):
-                ease = True
-
-        #now lets simply sample from our range using the blend function, and our location factor
-        return self.elements[idx_low].blend(self.elements[idx_high], location_factor, ease=ease)
-    
-    def get_list(self, num_colors, kind:None|str = None) -> list:
-        """return a list of colors.
-        params: 
-         - num_colors: the length of the returned list
-         - kind: 'RGB','RGBA','RGB255','HSL','okLab','okLCh','hex', or None.   
-           - None will just return a list of Tincts. 
-           - Setting a valid type will convert the Tinct's to color representations.
-         """
-        output = []
-        if num_colors == 0:
-            return []
-        elif num_colors == len(self.elements):
-            output = self.elements.copy()
-        else:
-            for i in range(0,num_colors):
-                fac = i / (num_colors - 1)
-                output.append(self.sample(fac))
-        
-        if type(kind) == str:
-            if kind.lower() == "rgb":
-                tmp_output = []
-                for tinct in output:
-                    tmp_output.append(tinct.get_RGB())
-                output = tmp_output
-            elif kind.lower() == "rgba":
-                tmp_output = []
-                for tinct in output:
-                    tmp_output.append(tinct.get_RGBA())
-                output = tmp_output
-            elif kind.lower() == "rgb565":
-                tmp_output = []
-                for tinct in output:
-                    tmp_output.append(tinct.get_RGB565())
-                output = tmp_output
-            
-        return output
-
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ dunders: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def __len__(self):
-        return len(self.elements)
-
-
-
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~   Testing or demo body:   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 if __name__ == '__main__':
-    from lib import st7789fbuf
     from machine import Pin, SPI
-    
+    from lib import st7789fbuf
     tft = st7789fbuf.ST7789(
     SPI(1, baudrate=40000000, sck=Pin(36), mosi=Pin(35), miso=None),
     135,
@@ -936,10 +409,15 @@ if __name__ == '__main__':
     color_end = Tinct(RGB255=(38,0,230))
     
     # create a tincture object to mix colors
-    tincture = Tincture([color_start,color_end])
-    
-    # get a list of blended colors from the tincture
-    color_list = tincture.get_list(10)
+    color_list = (
+        color_start.blend(color_end, 0.2),
+        color_start.blend(color_end, 0.3),
+        color_start.blend(color_end, 0.4),
+        color_start.blend(color_end, 0.5),
+        color_start.blend(color_end, 0.6),
+        color_start.blend(color_end, 0.7),
+        color_start.blend(color_end, 0.8),
+        )
     
     
     #add starting colors to the left and right
