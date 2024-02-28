@@ -148,3 +148,4 @@ Navigate to the folder where you downloaded this repository, and into the "Micro
 
 Once the files are transferred over to the Cardputer, you can test it out by disconnecting it, and powering it on. If everything is working, you should see the main launcher open up!
 
+If you have any issues, feel free to reach out. MH is still growing, and I'm interested to hear of any trouble it might be giving you. 
