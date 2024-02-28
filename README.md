@@ -46,6 +46,8 @@ Apps are designed to work very simply in this launcher. Any Python file placed i
 This means that a simple app can be contained as one script, which will be executed when the app is selected from the launcher.   
 It also means more complicated apps can place a startup file in the apps directory, which imports anything it needs from another folder in the filesystem. 
 
+Some apps for MH can be found [here](https://github.com/echo-lalia/MicroHydra-Apps), but there are many other apps (especially work-in-progress apps) living in other locations, as well. 
+
 *Quick note about apps on the SD card: The apps wont be able to use SPI slot 2 for the display (or anything else) because it will be occupied by the SD card. Thankfully, the display works fine in slot 1.*
 
 <br /><br /><br />
@@ -55,16 +57,30 @@ It also means more complicated apps can place a startup file in the apps directo
 
 # Installing MicroHydra:
 
-Flash Micropython to your Cardputer, and copy the contents of the "MicroHydra" folder over to the flash. 
+You can install MicroHydra a few different ways. 
+
+ - *Install plain .py version on MicroPython:*   
+   Flash Micropython to your Cardputer, and copy the contents of the "MicroHydra" folder over to the flash.   
+   This is the most convenient way to install for development, because you can simply open up the MH files to see what's going on.   
+   You can also find pre-compiled .mpy versions in "compiled.zip", in the releases section. These will use less memory and start faster.   
+
+ - *Flash MH as a compiled firmware:*   
+   The latest 'finished' version of MH, frozen into MicroPython, can be found [here](https://github.com/echo-lalia/microhydra-frozen). (Look for the .bin file in 'releases'.)   
+   This is a form of MicroPython that has MH built in. This is the fastest and easiest to use form of MH   
+   And it can also be downloaded/installed from M5Burner.   
+   This has the drawback of not being able to pick apart or modify the core MH files, however.   
+   *Make sure you erase the flash before installing. Put your device in download mode by holding G0 when plugging it in, if you are having issues*
+
 
 <br />
 <br />
 
-**Here's a detailed walkthrough:**
+**Here's a detailed walkthrough for installing MicroPython, and the ".py" form of MicroHydra:**
 
 <br />
 
-Download this repository as a zip file, and extract it somewhere on your computer. 
+Download the code from this repository as a zip file, and extract it somewhere on your computer.   
+*Go to the 'releases' section to get .mpy files, or for a stable checkpoint of MH, if you encounter any issues.*
 
 Install Thonny: https://thonny.org/   
 *Make sure to use a new version; older versions might fail to flash the ESP32-S3*
@@ -132,3 +148,4 @@ Navigate to the folder where you downloaded this repository, and into the "Micro
 
 Once the files are transferred over to the Cardputer, you can test it out by disconnecting it, and powering it on. If everything is working, you should see the main launcher open up!
 
+If you have any issues, feel free to reach out. MH is still growing, and I'm interested to hear of any trouble it might be giving you. 
