@@ -5,6 +5,37 @@ MicroHydra started with very fast and chaotic developnment, designed by one pers
 Now that there are multiple people interested in implementing new features and improvements to MH, as well as people designing apps to be used with MH, I thought it would be best to create some contribution guidelines to help us work together more easily, and prevent things from getting broken haphazardly. 
 
 <br/>
+<br/>
+<br/>
+
+## Overview on communicating and sharing your changes:
+
+### If there's a problem with MicroHydra, or if you have an idea for an improvement or addition you'd like to see, create an issue for it.   
+This will aide in communication with other contributors for this project, by creating a space to dicuss a particular change, and by allowing you (or another contributor) to assign yourself to the issue, to signal that you are working on it.   
+
+### Once you've assigned yourself to an issue, create a personal fork, and implement your changes   
+Try keeping it to one issue at a time, and make sure you're testing the changes you make as you go. Sometimes the behavior can differ when run directly from Thonny, vs running on the device on its own.
+
+### Test your changes on a normal MicroPython install
+Because MicroHydra is indended to be capable of running uncompiled, on a plain install of MicroPython, it's important that it be tested like this, as well.   
+The code will generally use less memory and be more stable when compiled, so it's important that the changes it be tested uncompiled, on it's own (not through thonny / REPL) on a regular MicroPython install.   
+If it works like that, it should usually work even better once compiled. If for any reason you are unable to test it yourself, or you would like a second opinion on it, let me know. 
+
+### Create a pull request with a summary of your changes, and link the pull request to the issue
+Once it's been reviewed, if no further changes need to be made to it, it'll be pulled to the main repo, and the issue will be closed
+
+*If you have any concerns or questions about this workflow, feel free to reach out!*
+
+
+
+<br/>
+<br/>
+<br/>
+
+
+
+
+
 
 ## Guidelines and philosophy for core MicroHydra functionality
 
@@ -31,6 +62,10 @@ I've abandonded some really cool features for the launcher due to stablity reaso
 ## Code, comments, and formatting
 
 *As mentioned above, MicroHydra was originally created quickly and messily. Not all of these suggestions are fully implemented in existing code, but these are goals for future code in MicroHydra.*
+
+#### Use tab characters for indentation
+The debate between tabs vs spaces has been ongoing for a long time, and many coding style guides recommend using spaces. The main reason for this choice is that spaces are simply the more popular option, and consistency is important, because the two indentation styles can not be mixed.   
+However, tab characters are [much more accessible](https://adamtuttle.codes/blog/2021/tabs-vs-spaces-its-an-accessibility-issue/) than spaces for a variety of reasons. Given this project's goal of being highly accessible, tabs have therefore been chosen as the official method for MicroHydra.   
 
 #### Comment heavily!
 As MicroHydra is intended to be accessible and approachable, I highly recommend using many comments in your code! It takes only a small amount of extra storage, uses no memory at all, and makes your code much more understandable for beginners.   
