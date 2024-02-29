@@ -30,6 +30,15 @@ I've abandonded some really cool features for the launcher due to stablity reaso
 
 ## Code, comments, and formatting
 
-As mentioned above, MicroHydra was originally created quickly and messily. Not all of these suggestions are fully implemented in existing code, but these are goals for future code in MicroHydra. 
+*As mentioned above, MicroHydra was originally created quickly and messily. Not all of these suggestions are fully implemented in existing code, but these are goals for future code in MicroHydra.*
 
-#### 
+#### Comment heavily!
+As MicroHydra is intended to be accessible and approachable, I highly recommend using many comments in your code! It takes only a small amount of extra storage, uses no memory at all, and makes your code much more understandable for beginners.   
+I'm a particular fan of using large, flashy, blocks of comments to split code into sections, and adding comments which explain why one piece of code might be using a different approach than you would first expect. 
+
+#### Be mindful of unneeded object creation, and memory fragmentation
+ - Memory fragmentation can be an issue with MicroPython, but can be improved by [avoiding unnecessary object creation])(https://docs.micropython.org/en/latest/reference/constrained.html#execution-phase), and sometimes with [controlled garbage collection](https://docs.micropython.org/en/latest/library/gc.html)
+ - Using an underscore alongside the 'const()' declaration for a MicroPython constant [prevents it from being allocated, and saves memory](https://docs.micropython.org/en/latest/develop/optimizations.html#variables), but also prevent them from being accessed as a global variable, or from outside the module they are declared in.
+
+*For more, take a look at the MicroPython documentation for [speed](https://docs.micropython.org/en/latest/reference/speed_python.html#maximising-micropython-speed), [memory managment](https://docs.micropython.org/en/latest/develop/memorymgt.html), and [optimizations](https://docs.micropython.org/en/latest/develop/optimizations.html)*
+
