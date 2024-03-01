@@ -61,11 +61,7 @@ I've abandonded some really cool features for the launcher due to stablity reaso
 
 ## Code, comments, and formatting
 
-*As mentioned above, MicroHydra was originally created quickly and messily. Not all of these suggestions are fully implemented in existing code, but these are goals for future code in MicroHydra.*
-
-#### Use tab characters for indentation
-The debate between tabs vs spaces has been ongoing for a long time, and many coding style guides recommend using spaces. The main reason for this choice is that spaces are simply the more popular option, and consistency is important, because the two indentation styles can not be mixed.   
-However, tab characters are [much more accessible](https://adamtuttle.codes/blog/2021/tabs-vs-spaces-its-an-accessibility-issue/) than spaces for a variety of reasons. Given this project's goal of being highly accessible, tabs have therefore been chosen as the official method for MicroHydra.   
+*As mentioned above, MicroHydra was originally created quickly and messily. Not all of these suggestions are fully implemented in existing code, but these are goals for future code in MicroHydra.* 
 
 #### Comment heavily!
 As MicroHydra is intended to be accessible and approachable, I highly recommend using many comments in your code! It takes only a small amount of extra storage, uses no memory at all, and makes your code much more understandable for beginners.   
