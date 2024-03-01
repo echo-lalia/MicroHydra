@@ -41,6 +41,8 @@ class UI_Overlay:
             if len(word) + len(current_line) >= max_length:
                 lines.append(current_line)
                 current_line = word
+            elif len(current_line) == 0:
+                current_line += word
             else:
                 current_line += ' ' + word
             
