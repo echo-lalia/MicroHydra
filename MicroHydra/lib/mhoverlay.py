@@ -1,3 +1,4 @@
+import time
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ UI_Overlay Class ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class UI_Overlay:
     def __init__(self, config, keyboard, display_fbuf=None, display_py=None):
@@ -152,12 +153,12 @@ class UI_Overlay:
         
 if __name__ == "__main__":
     # just for testing
-    from lib import st7789fbuf, keyboard
+    from lib import st7789py, keyboard
     from lib.mhconfig import Config
     from machine import Pin, SPI
     from font import vga2_16x32 as font
-    import time
-    tft = st7789fbuf.ST7789(
+
+    tft = st7789py.ST7789(
         SPI(1, baudrate=40000000, sck=Pin(36), mosi=Pin(35), miso=None),
         135,
         240,
@@ -166,40 +167,40 @@ if __name__ == "__main__":
         dc=Pin(34, Pin.OUT),
         backlight=Pin(38, Pin.OUT),
         rotation=1,
-        color_order=st7789fbuf.BGR
+        color_order=st7789py.BGR
         )
     
     kb = keyboard.KeyBoard()
     config = Config()
-    overlay = UI_Overlay(config=config, keyboard=kb, display_fbuf=tft)
+    overlay = UI_Overlay(config=config, keyboard=kb, display_py=tft)
 
     # popup demo:
     tft.fill(0)
-    tft.show()
+    #tft.show()
     time.sleep(0.5)
     
     overlay.popup("Lorem ipsum is placeholder text commonly used in the graphic, print, and publishing industries for previewing layouts and visual mockups.")
     tft.fill(0)
-    tft.show()
+    #tft.show()
     time.sleep(0.5)
     
     overlay.error("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt")
     tft.fill(0)
-    tft.show()
+    #tft.show()
     
     # color palette
     bar_width = 240 // len(config.palette)
     for i in range(0,len(config.palette)):
-        tft.rect(bar_width*i, 0, bar_width, 135, config.palette[i], fill=True)
+        tft.fill_rect(bar_width*i, 0, bar_width, 135, config.palette[i])
         
     # extended colors
     bar_width = 240 // len(config.extended_colors)
     for i in range(0,len(config.extended_colors)):
-        tft.rect(bar_width*i, 0, bar_width, 20, config.extended_colors[i], fill=True)
+        tft.fill_rect(bar_width*i, 0, bar_width, 20, config.extended_colors[i])
         
     config.save() # this should do nothing
     
-    tft.show()
+    #tft.show()
     time.sleep(2)
     tft.fill(0)
-    tft.show()
+    #tft.show()
