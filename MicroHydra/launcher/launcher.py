@@ -1,13 +1,12 @@
 from machine import Pin, SDCard, SPI, RTC, ADC
 import time, os, math, ntptime, network
-from lib import keyboard, beeper
+from lib import keyboard, beeper, battlevel
 import machine
 from lib import st7789py as st7789
 from launcher.icons import icons, battery
 from font import vga1_8x16 as fontsmall
 from font import vga2_16x32 as font
 from lib.mhconfig import Config
-
 
 
 
@@ -225,29 +224,6 @@ def time_24_to_12(hour_24,minute):
     return time_string, ampm
 
 
-def read_battery_level(adc):
-    """
-    read approx battery level on the adc and return as int range 0 (low) to 3 (high)
-    """
-    raw_value = adc.read_uv() # vbat has a voltage divider of 1/2
-    
-    # more real-world data is needed to dial in battery level.
-    # the original values were low, so they will be adjusted based on feedback.
-    
-    #originally 525000 (1.05v)
-    if raw_value < 1575000: #3.15v
-        return 0
-    #originally 1050000 (2.1v)
-    if raw_value < 1750000: #3.5v
-        return 1
-    #originally 1575000 (3.15v)
-    if raw_value < 1925000: #3.85v
-        return 2
-    # 2100000 (4.2v)
-    return 3 # 4.2v or higher
-
-
-
 
 
 
@@ -313,9 +289,8 @@ def main_loop():
     kb = keyboard.KeyBoard()
     new_keys = []
     
-    #init the ADC for the battery
-    batt = ADC(10)
-    batt.atten(ADC.ATTN_11DB)
+    #init the battery meter
+    batt = battlevel.Battery()
     
     #init driver for the graphics
     spi = SPI(1, baudrate=40000000, sck=Pin(36), mosi=Pin(35), miso=None)
@@ -533,12 +508,12 @@ def main_loop():
             tft.text(fontsmall, ampm, 8 + (len(formatted_time) * 8),1,config.palette[3], config.palette[2])
             
             #battery
-            battlevel = read_battery_level(batt)
-            if battlevel == 3:
+            batt_lvl = batt.read_level()
+            if batt_lvl == 3:
                 tft.bitmap_icons(battery, battery.FULL, (config.palette[2],config.palette[4]),212, 4)
-            elif battlevel == 2:
+            elif batt_lvl == 2:
                 tft.bitmap_icons(battery, battery.HIGH, (config.palette[2],config.palette[4]),212, 4)
-            elif battlevel == 1:
+            elif batt_lvl == 1:
                 tft.bitmap_icons(battery, battery.LOW, (config.palette[2],config.palette[4]),212, 4)
             else:
                 tft.bitmap_icons(battery, battery.EMPTY, (config.palette[2],config.extended_colors[0]),212, 4)
