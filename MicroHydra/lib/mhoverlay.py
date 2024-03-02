@@ -115,11 +115,11 @@ class UI_Overlay:
                 box_y = 67 - (box_height // 2)
                 
                 self.display.fill_rect(box_x, box_y, box_width, box_height, 0)
-                self.display.rect(box_x-1, box_y-1, box_width+2, box_height+2, self.config.extended_colors[0])
+                self.display.rect(box_x-1, box_y-1, box_width+2, box_height+2, self.config.rgb_colors[0])
                 self.display.rect(box_x-2, box_y-2, box_width+4, box_height+4, self.config.palette[0])
-                self.display.rect(box_x-3, box_y-3, box_width+6, box_height+6, self.config.extended_colors[0])
+                self.display.rect(box_x-3, box_y-3, box_width+6, box_height+6, self.config.rgb_colors[0])
                 
-                self.display.text(self.font, "ERROR", 100, box_y + 4, self.config.extended_colors[0])
+                self.display.text(self.font, "ERROR", 100, box_y + 4, self.config.rgb_colors[0])
                 for idx, line in enumerate(lines):
                     centered_x = 120 - (len(line) * 4)
                     self.display.text(self.font, line, centered_x, box_y + 20 + (idx*16), 65535, 0)
@@ -131,11 +131,11 @@ class UI_Overlay:
                 box_y = 67 - (box_height // 2)
                 
                 self.display.rect(box_x, box_y, box_width, box_height, 0, fill=True)
-                self.display.rect(box_x-1, box_y-1, box_width+2, box_height+2, self.config.extended_colors[0], fill=False)
+                self.display.rect(box_x-1, box_y-1, box_width+2, box_height+2, self.config.rgb_colors[0], fill=False)
                 self.display.rect(box_x-2, box_y-2, box_width+4, box_height+4, self.config.palette[0], fill=False)
-                self.display.rect(box_x-3, box_y-3, box_width+6, box_height+6, self.config.extended_colors[0], fill=False)
+                self.display.rect(box_x-3, box_y-3, box_width+6, box_height+6, self.config.rgb_colors[0], fill=False)
                 
-                self.display.text("ERROR", 100, box_y + 4, self.config.extended_colors[0])
+                self.display.text("ERROR", 100, box_y + 4, self.config.rgb_colors[0])
                 for idx, line in enumerate(lines):
                     centered_x = 120 - (len(line) * 4)
                     self.display.text(line, centered_x, box_y + 16 + (idx*10), 65535)
@@ -195,9 +195,9 @@ if __name__ == "__main__":
         tft.fill_rect(bar_width*i, 0, bar_width, 135, config.palette[i])
         
     # extended colors
-    bar_width = 240 // len(config.extended_colors)
-    for i in range(0,len(config.extended_colors)):
-        tft.fill_rect(bar_width*i, 0, bar_width, 20, config.extended_colors[i])
+    bar_width = 240 // len(config.rgb_colors)
+    for i in range(0,len(config.rgb_colors)):
+        tft.fill_rect(bar_width*i, 0, bar_width, 20, config.rgb_colors[i])
         
     config.save() # this should do nothing
     
