@@ -1,14 +1,14 @@
 from machine import I2S, Pin
 import math
 
-SCK_PIN = const(41)
-WS_PIN = const(43)
-SD_PIN = const(42)
-I2S_ID = const(1)
-BUFFER_LENGTH_IN_BYTES = const(2100)
-SAMPLE_SIZE_IN_BITS = const(16)
-FORMAT = I2S.STEREO
-SAMPLE_RATE_IN_HZ = const(16000)
+_SCK_PIN = const(41)
+_WS_PIN = const(43)
+_SD_PIN = const(42)
+_I2S_ID = const(1)
+_BUFFER_LENGTH_IN_BYTES = const(2048)
+_SAMPLE_SIZE_IN_BITS = const(16)
+_FORMAT = I2S.STEREO
+_SAMPLE_RATE_IN_HZ = const(16000)
 
 volume_map = {0:1,1:4,2:10,3:16,4:20,5:28,6:36,7:50,8:60,9:80,10:127}
 tone_map = {
@@ -54,15 +54,15 @@ class Beeper:
     def __init__(self, buf_size=4000):
         
         self._output = I2S(            
-            I2S_ID,
-            sck=Pin(SCK_PIN),
-            ws=Pin(WS_PIN),
-            sd=Pin(SD_PIN),
+            _I2S_ID,
+            sck=Pin(_SCK_PIN),
+            ws=Pin(_WS_PIN),
+            sd=Pin(_SD_PIN),
             mode=I2S.TX,
-            bits=SAMPLE_SIZE_IN_BITS,
-            format=FORMAT,
-            rate=SAMPLE_RATE_IN_HZ,
-            ibuf=BUFFER_LENGTH_IN_BYTES)
+            bits=_SAMPLE_SIZE_IN_BITS,
+            format=_FORMAT,
+            rate=_SAMPLE_RATE_IN_HZ,
+            ibuf=_BUFFER_LENGTH_IN_BYTES)
         
         self._current_notes = []
 
