@@ -12,16 +12,25 @@ class Config:
         """
         import json, gc
         # initialize the config object with the values from config.json
+        self.config = DEFAULT_CONFIG
         try:
             with open("config.json", "r") as conf:
                 self.config = json.loads(conf.read())
+            # storing just the vals from the config lets us check later if any values have been modified
+            self.initial_values = tuple( self.config.values() )
+            # check for missing keys to prevent a keyerror
+            for key in DEFAULT_CONFIG.keys():
+                if key not in self.config.keys():
+                    self.config[key] = DEFAULT_CONFIG[key]
+            
         except:
             print("could not load settings from config.json. reloading default values.")
             with open("config.json", "w") as conf:
                 self.config = DEFAULT_CONFIG
                 conf.write(json.dumps(self.config))
-        # storing just the vals from the config lets us check later if any values have been modified
-        self.initial_values = tuple( self.config.values() )
+            # storing just the vals from the config lets us check later if any values have been modified
+            self.initial_values = tuple( self.config.values() )
+                
         # generate an extended color palette
         self.generate_palette()
         
