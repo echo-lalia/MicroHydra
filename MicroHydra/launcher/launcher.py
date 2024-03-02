@@ -17,7 +17,8 @@ VERSION: 0.8
 
 CHANGES:
     Created mhconfig.Config, mhoverlay.UI_Overlay, cleaned up launcher.py, endured the horrors
-
+    Renamed constants to make them "real" constants, and added slight improvements to st7789fbuf.py
+    
 This program is designed to be used in conjunction with "main.py" apploader, to select and launch MPy apps.
 
 The basic app loading logic works like this:
@@ -40,14 +41,14 @@ Because MicroPython completely resets between apps, the only "wasted" ram from t
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constants: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-appname_y = const(80) 
-target_vscsad = const(40) # scrolling display "center"
+_APPNAME_Y = const(80) 
+_TARGET_VSCSAD = const(40) # scrolling display "center"
 
-display_width = const(240)
-display_height = const(135)
+_DISPLAY_WIDTH = const(240)
+_DISPLAY_HEIGHT = const(135)
 
-max_wifi_attemps = const(1000)
-max_ntp_attemps = const(10)
+_MAX_WIFI_ATTEMPTS = const(1000)
+_MAX_NTP_ATTEMPTS = const(10)
 
 
 
@@ -320,8 +321,8 @@ def main_loop():
     spi = SPI(1, baudrate=40000000, sck=Pin(36), mosi=Pin(35), miso=None)
     tft = st7789.ST7789(
     spi,
-    display_height,
-    display_width,
+    _DISPLAY_HEIGHT,
+    _DISPLAY_WIDTH,
     reset=Pin(33, Pin.OUT),
     cs=Pin(37, Pin.OUT),
     dc=Pin(34, Pin.OUT),
@@ -330,8 +331,8 @@ def main_loop():
     color_order=st7789.BGR
     )
     
-    tft.vscrdef(40,display_width,40)
-    tft.vscsad(target_vscsad)
+    tft.vscrdef(40,_DISPLAY_WIDTH,40)
+    tft.vscsad(_TARGET_VSCSAD)
     
     nonscroll_elements_displayed = False
     
@@ -358,7 +359,7 @@ def main_loop():
         
         
     #init diplsay
-    tft.fill_rect(-40,0,280, display_height, config['bg_color'])
+    tft.fill_rect(-40,0,280, _DISPLAY_HEIGHT, config['bg_color'])
     tft.fill_rect(-40,0,280, 18, config.palette[2])
     tft.hline(-40,18,280,config.palette[0])
     
@@ -376,7 +377,7 @@ def main_loop():
                 #animation:
 
                 scroll_direction = 1
-                current_vscsad = target_vscsad
+                current_vscsad = _TARGET_VSCSAD
                 if config['ui_sound']:
                     beep.play((("C5","D4"),"A4"), 80, config['volume'])
 
@@ -389,7 +390,7 @@ def main_loop():
                 scroll_direction = -1
                 
                 #this prevents multiple scrolls from messing up the animation
-                current_vscsad = target_vscsad
+                current_vscsad = _TARGET_VSCSAD
                 
                 if config['ui_sound']:
                     beep.play((("B3","C5"),"A4"), 80, config['volume'])
@@ -453,7 +454,7 @@ def main_loop():
                                         scroll_direction = -1
                                     elif app_selector_index < idx:
                                         scroll_direction = 1
-                                    current_vscsad = target_vscsad
+                                    current_vscsad = _TARGET_VSCSAD
                                     # go there!
                                     app_selector_index = idx
                                     if config['ui_sound']:
@@ -501,25 +502,25 @@ def main_loop():
 
                 
         # if vscsad/scrolling is not centered, move it toward center!
-        if scroll_direction == 0 and current_vscsad != target_vscsad:
+        if scroll_direction == 0 and current_vscsad != _TARGET_VSCSAD:
             tft.vscsad(current_vscsad % 240)
-            if current_vscsad < target_vscsad:
+            if current_vscsad < _TARGET_VSCSAD:
 
-                current_vscsad += (abs(current_vscsad - target_vscsad) // 8) + 1
-            elif current_vscsad > target_vscsad:
-                current_vscsad -= (abs(current_vscsad - target_vscsad) // 8) + 1
+                current_vscsad += (abs(current_vscsad - _TARGET_VSCSAD) // 8) + 1
+            elif current_vscsad > _TARGET_VSCSAD:
+                current_vscsad -= (abs(current_vscsad - _TARGET_VSCSAD) // 8) + 1
 
         
         
         # if we are scrolling, we should change some UI elements until we finish
-        if nonscroll_elements_displayed and (current_vscsad != target_vscsad):
+        if nonscroll_elements_displayed and (current_vscsad != _TARGET_VSCSAD):
             tft.fill_rect(0,132,240,3,config['bg_color']) # erase scrollbar
             tft.fill_rect(6,2,58,16,config.palette[2]) # erase clock
             tft.fill_rect(212,4,20,10,config.palette[2]) # erase battery
             nonscroll_elements_displayed = False
             
             
-        elif nonscroll_elements_displayed == False and (current_vscsad == target_vscsad):
+        elif nonscroll_elements_displayed == False and (current_vscsad == _TARGET_VSCSAD):
             #scroll bar
             scrollbar_width = 240 // len(app_names)
             tft.fill_rect((scrollbar_width * app_selector_index),133,scrollbar_width,2,config.palette[2])
@@ -558,10 +559,10 @@ def main_loop():
                     current_app_text = current_app_text[:12] + "..."
                 
                 #blackout the old text
-                tft.fill_rect(-40, appname_y, 280, 32, config['bg_color'])
+                tft.fill_rect(-40, _APPNAME_Y, 280, 32, config['bg_color'])
             
                 #draw new text
-                tft.text(font, current_app_text, center_text_x(current_app_text), appname_y, config['ui_color'], config['bg_color'])
+                tft.text(font, current_app_text, center_text_x(current_app_text), _APPNAME_Y, config['ui_color'], config['bg_color'])
             
             if refresh_timer == 2 or force_redraw_display: # redraw icon
                 refresh_timer = 0
@@ -619,13 +620,13 @@ def main_loop():
                     rtc.datetime(tuple(time_list))
                     print(f'RTC successfully synced to {rtc.datetime()} with {sync_ntp_attemps} attemps.')
                     
-                elif sync_ntp_attemps >= max_ntp_attemps:
+                elif sync_ntp_attemps >= _MAX_NTP_ATTEMPTS:
                     nic.disconnect()
                     nic.active(False) #shut off wifi
                     syncing_clock = False
                     print(f"Syncing RTC aborted after {sync_ntp_attemps} attemps")
                 
-            elif connect_wifi_attemps >= max_wifi_attemps:
+            elif connect_wifi_attemps >= _MAX_WIFI_ATTEMPTS:
                 nic.disconnect()
                 nic.active(False) #shut off wifi
                 syncing_clock = False

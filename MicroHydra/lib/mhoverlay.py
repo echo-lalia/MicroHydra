@@ -1,3 +1,4 @@
+import time
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ UI_Overlay Class ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class UI_Overlay:
     def __init__(self, config, keyboard, display_fbuf=None, display_py=None):
@@ -5,14 +6,14 @@ class UI_Overlay:
         UI_Overlay aims to provide easy to use methods for displaying themed UI popups, and other Overlays.
         params:
             config:Config
-                - A 'microhydra.Config' object.
+                - A 'lib.mhconfig.Config' object.
                 
             keyboard:KeyBoard
                 - A 'KeyBoard' object from lib.keyboard
                 
             display_fbuf:ST7789
             display_py:ST7789
-                - An 'ST7789' object from lib.st7789fbuf or lib.st7789py
+                - An 'ST7789' object from lib.st7789py or lib.st7789fbuf
                 - One of them must be supplied. 
         """
         self.config = config
@@ -114,11 +115,11 @@ class UI_Overlay:
                 box_y = 67 - (box_height // 2)
                 
                 self.display.fill_rect(box_x, box_y, box_width, box_height, 0)
-                self.display.rect(box_x-1, box_y-1, box_width+2, box_height+2, self.config.extended_colors[0])
+                self.display.rect(box_x-1, box_y-1, box_width+2, box_height+2, self.config.rgb_colors[0])
                 self.display.rect(box_x-2, box_y-2, box_width+4, box_height+4, self.config.palette[0])
-                self.display.rect(box_x-3, box_y-3, box_width+6, box_height+6, self.config.extended_colors[0])
+                self.display.rect(box_x-3, box_y-3, box_width+6, box_height+6, self.config.rgb_colors[0])
                 
-                self.display.text(self.font, "ERROR", 100, box_y + 4, self.config.extended_colors[0])
+                self.display.text(self.font, "ERROR", 100, box_y + 4, self.config.rgb_colors[0])
                 for idx, line in enumerate(lines):
                     centered_x = 120 - (len(line) * 4)
                     self.display.text(self.font, line, centered_x, box_y + 20 + (idx*16), 65535, 0)
@@ -130,11 +131,11 @@ class UI_Overlay:
                 box_y = 67 - (box_height // 2)
                 
                 self.display.rect(box_x, box_y, box_width, box_height, 0, fill=True)
-                self.display.rect(box_x-1, box_y-1, box_width+2, box_height+2, self.config.extended_colors[0], fill=False)
+                self.display.rect(box_x-1, box_y-1, box_width+2, box_height+2, self.config.rgb_colors[0], fill=False)
                 self.display.rect(box_x-2, box_y-2, box_width+4, box_height+4, self.config.palette[0], fill=False)
-                self.display.rect(box_x-3, box_y-3, box_width+6, box_height+6, self.config.extended_colors[0], fill=False)
+                self.display.rect(box_x-3, box_y-3, box_width+6, box_height+6, self.config.rgb_colors[0], fill=False)
                 
-                self.display.text("ERROR", 100, box_y + 4, self.config.extended_colors[0])
+                self.display.text("ERROR", 100, box_y + 4, self.config.rgb_colors[0])
                 for idx, line in enumerate(lines):
                     centered_x = 120 - (len(line) * 4)
                     self.display.text(line, centered_x, box_y + 16 + (idx*10), 65535)
@@ -152,11 +153,11 @@ class UI_Overlay:
         
 if __name__ == "__main__":
     # just for testing
+    reserved_bytearray = bytearray(240*135*2)
     from lib import st7789fbuf, keyboard
     from lib.mhconfig import Config
     from machine import Pin, SPI
-    from font import vga2_16x32 as font
-    import time
+
     tft = st7789fbuf.ST7789(
         SPI(1, baudrate=40000000, sck=Pin(36), mosi=Pin(35), miso=None),
         135,
@@ -166,7 +167,8 @@ if __name__ == "__main__":
         dc=Pin(34, Pin.OUT),
         backlight=Pin(38, Pin.OUT),
         rotation=1,
-        color_order=st7789fbuf.BGR
+        color_order=st7789fbuf.BGR,
+        reserved_bytearray=reserved_bytearray
         )
     
     kb = keyboard.KeyBoard()
@@ -190,12 +192,12 @@ if __name__ == "__main__":
     # color palette
     bar_width = 240 // len(config.palette)
     for i in range(0,len(config.palette)):
-        tft.rect(bar_width*i, 0, bar_width, 135, config.palette[i], fill=True)
+        tft.fill_rect(bar_width*i, 0, bar_width, 135, config.palette[i])
         
     # extended colors
-    bar_width = 240 // len(config.extended_colors)
-    for i in range(0,len(config.extended_colors)):
-        tft.rect(bar_width*i, 0, bar_width, 20, config.extended_colors[i], fill=True)
+    bar_width = 240 // len(config.rgb_colors)
+    for i in range(0,len(config.rgb_colors)):
+        tft.fill_rect(bar_width*i, 0, bar_width, 20, config.rgb_colors[i])
         
     config.save() # this should do nothing
     
