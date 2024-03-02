@@ -384,6 +384,8 @@ class ST7789:
         custom_rotations (tuple): custom rotation definitions
 
           - ((width, height, xstart, ystart, madctl, needs_swap), ...)
+          
+        reserved_bytearray (bytearray): pre-allocated bytearray to use for framebuffer
 
     """
 
@@ -400,6 +402,7 @@ class ST7789:
         color_order=BGR,
         custom_init=None,
         custom_rotations=None,
+        reserved_bytearray = None
     ):
         """
         Initialize display.
@@ -417,10 +420,13 @@ class ST7789:
             raise ValueError("dc pin is required.")
         
         #init the fbuf
+        if reserved_bytearray == None:
+            reserved_bytearray = bytearray(height*width*2)
+            
         if rotation == 1 or rotation == 3:
-            self.fbuf = framebuf.FrameBuffer(bytearray(height*width*2), height, width, framebuf.RGB565)
+            self.fbuf = framebuf.FrameBuffer(reserved_bytearray, height, width, framebuf.RGB565)
         else:
-            self.fbuf = framebuf.FrameBuffer(bytearray(height*width*2), width, height, framebuf.RGB565)
+            self.fbuf = framebuf.FrameBuffer(reserved_bytearray, width, height, framebuf.RGB565)
         
         self.physical_width = self.width = width
         self.physical_height = self.height = height
@@ -441,6 +447,7 @@ class ST7789:
         self.rotation(self._rotation)
         self.needs_swap = True
         self.fill(0x0)
+        self.show()
 
         if backlight is not None:
             backlight.value(1)

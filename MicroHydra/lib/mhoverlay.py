@@ -153,12 +153,12 @@ class UI_Overlay:
         
 if __name__ == "__main__":
     # just for testing
-    from lib import st7789py, keyboard
+    reserved_bytearray = bytearray(240*135*2)
+    from lib import st7789fbuf, keyboard
     from lib.mhconfig import Config
     from machine import Pin, SPI
-    from font import vga2_16x32 as font
 
-    tft = st7789py.ST7789(
+    tft = st7789fbuf.ST7789(
         SPI(1, baudrate=40000000, sck=Pin(36), mosi=Pin(35), miso=None),
         135,
         240,
@@ -167,26 +167,27 @@ if __name__ == "__main__":
         dc=Pin(34, Pin.OUT),
         backlight=Pin(38, Pin.OUT),
         rotation=1,
-        color_order=st7789py.BGR
+        color_order=st7789fbuf.BGR,
+        reserved_bytearray=reserved_bytearray
         )
     
     kb = keyboard.KeyBoard()
     config = Config()
-    overlay = UI_Overlay(config=config, keyboard=kb, display_py=tft)
+    overlay = UI_Overlay(config=config, keyboard=kb, display_fbuf=tft)
 
     # popup demo:
     tft.fill(0)
-    #tft.show()
+    tft.show()
     time.sleep(0.5)
     
     overlay.popup("Lorem ipsum is placeholder text commonly used in the graphic, print, and publishing industries for previewing layouts and visual mockups.")
     tft.fill(0)
-    #tft.show()
+    tft.show()
     time.sleep(0.5)
     
     overlay.error("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt")
     tft.fill(0)
-    #tft.show()
+    tft.show()
     
     # color palette
     bar_width = 240 // len(config.palette)
@@ -200,7 +201,7 @@ if __name__ == "__main__":
         
     config.save() # this should do nothing
     
-    #tft.show()
+    tft.show()
     time.sleep(2)
     tft.fill(0)
-    #tft.show()
+    tft.show()
