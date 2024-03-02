@@ -6,14 +6,14 @@ class UI_Overlay:
         UI_Overlay aims to provide easy to use methods for displaying themed UI popups, and other Overlays.
         params:
             config:Config
-                - A 'microhydra.Config' object.
+                - A 'lib.mhconfig.Config' object.
                 
             keyboard:KeyBoard
                 - A 'KeyBoard' object from lib.keyboard
                 
             display_fbuf:ST7789
             display_py:ST7789
-                - An 'ST7789' object from lib.st7789fbuf or lib.st7789py
+                - An 'ST7789' object from lib.st7789py or lib.st7789fbuf
                 - One of them must be supplied. 
         """
         self.config = config

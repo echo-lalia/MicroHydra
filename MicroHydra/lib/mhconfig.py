@@ -69,8 +69,8 @@ class Config:
             (mid_tinct + (-0.1,-0.1,0.15)).get_RGB565() # blue color
             )
     def __getitem__(self, key):
-		# get item passthrough
-		return self.config[key]
+        # get item passthrough
+        return self.config[key]
     def __setitem__(self, key, newvalue):
         # set item passthrough
         self.config[key] = newvalue
