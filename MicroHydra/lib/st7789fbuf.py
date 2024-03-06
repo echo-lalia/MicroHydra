@@ -737,6 +737,8 @@ class ST7789:
             y1 (int): End point y coordinate
             color (int): 565 encoded color
         """
+        if self.needs_swap:
+            color = swap_bytes(color)
         self.fbuf.line(x0, y0, x1, y1, color)
 
     def vscrdef(self, tfa, vsa, bfa):
