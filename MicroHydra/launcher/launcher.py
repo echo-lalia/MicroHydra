@@ -1,4 +1,4 @@
-from machine import Pin, SDCard, SPI, RTC
+from machine import Pin, SDCard, SPI, RTC, ADC
 import time, os, math, ntptime, network
 from lib import keyboard, beeper, battlevel
 import machine
@@ -36,8 +36,8 @@ Because MicroPython completely resets between apps, the only "wasted" ram from t
 
 """
 
-
-
+#init beeper asap to help prevent volume bug
+beep = beeper.Beeper()
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constants: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 _APPNAME_Y = const(80) 
@@ -237,7 +237,7 @@ def time_24_to_12(hour_24,minute):
 
 
 def main_loop():
-    
+    global beep
     #bump up our clock speed so the UI feels smoother (240mhz is the max officially supported, but the default is 160mhz)
     machine.freq(240_000_000)
     
@@ -322,7 +322,7 @@ def main_loop():
     refresh_timer = 0
     
     #init the beeper!
-    beep = beeper.Beeper()
+    #beep = beeper.Beeper()
     
     #starupp sound
     if config['ui_sound']:
