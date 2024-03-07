@@ -21,8 +21,7 @@ class Battery:
         
     def read_pct(self):
         """
-        Return an approximate battery level as a percentage.
-        This is currently not very accurate.
+        Return an approximate battery level as a percentage
         """
         raw_value = self.adc.read_uv()
     
@@ -38,7 +37,9 @@ class Battery:
 
     def read_level(self):
         """
-        Read approx battery level on the adc and return as int range 0 (low) to 3 (high).
+        Read approx battery level on the adc and return as int range 0 (low) to 3 (high)
+        This is reccomended, as the readings are not very accurate,
+        and a percentage could therefore be misleading.
         """
         raw_value = self.adc.read_uv()
         if raw_value < _MIN_VALUE:
