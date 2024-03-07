@@ -1,10 +1,10 @@
-from lib import st7789py, keyboard
+from lib import st7789py, keyboard, battlevel
 from lib import microhydra as mh
 from launcher.icons import battery
 import time
 from font import vga2_16x32 as font
 from font import vga1_8x16 as font2
-from machine import SPI, Pin, PWM, reset, ADC
+from machine import SPI, Pin, PWM, reset
 import machine
 import random
 
@@ -13,7 +13,9 @@ min_bright = const(22000)
 bright_peak = const(65535)
 bright_step = const(500)
 
-#a simple clock program for the cardputer
+
+# v1.2
+# a simple clock program for the cardputer
 
 
 tft = st7789py.ST7789(
@@ -134,23 +136,6 @@ def get_random_colors():
     mid_color = mh.mix_color565(bg_color, ui_color)
     
     return ui_color, bg_color, mid_color, lighter_color, darker_color
-    
-    
-    
-def read_battery_level(adc):
-    """
-    read approx battery level on the adc and return as int range 0 (low) to 3 (high)
-    """
-    raw_value = adc.read_uv() # vbat has a voltage divider of 1/2
-
-    if raw_value < 525000: # 1.05v
-        return 0
-    if raw_value < 1050000: # 2.1v
-        return 1
-    if raw_value < 1575000: # 3.15v
-        return 2
-    return 3 # 4.2v or higher
-
 
 
 kb = keyboard.KeyBoard()
@@ -171,10 +156,8 @@ prev_pressed_keys = kb.get_pressed_keys()
 current_bright = bright_peak
 
 #init the ADC for the battery
-batt = ADC(10)
-batt.atten(ADC.ATTN_11DB)
-
-batt_level = read_battery_level(batt)
+batt = battlevel.Battery()
+batt_level = batt.read_level()
 
 
 
@@ -311,14 +294,14 @@ while True:
         moving_up = False
         ui_color, bg_color, mid_color, lighter_color, darker_color = get_random_colors()
         red_color = mh.color565_shiftred(mid_color)
-        batt_level = read_battery_level(batt)
+        batt_level = batt.read_level()
         
     elif y_pos >= 87:
         y_pos = 87
         moving_up = True
         ui_color, bg_color, mid_color, lighter_color, darker_color = get_random_colors()
         red_color = mh.color565_shiftred(mid_color)
-        batt_level = read_battery_level(batt)
+        batt_level = batt.read_level()
         
         
     #x_collision
@@ -327,14 +310,14 @@ while True:
         moving_right = True
         ui_color, bg_color, mid_color, lighter_color, darker_color = get_random_colors()
         red_color = mh.color565_shiftred(mid_color)
-        batt_level = read_battery_level(batt)
+        batt_level = batt.read_level()
         
     elif x_pos >= 224 - time_width:
         x_pos = 224 - time_width
         moving_right = False
         ui_color, bg_color, mid_color, lighter_color, darker_color = get_random_colors()
         red_color = mh.color565_shiftred(mid_color)
-        batt_level = read_battery_level(batt)
+        batt_level = batt.read_level()
     
     
     

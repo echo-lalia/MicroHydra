@@ -51,7 +51,7 @@ tone_map = {
 }
 
 class Beeper:
-    def __init__(self, buf_size=4000):
+    def __init__(self, buf_size=3000):
         
         self._output = I2S(            
             _I2S_ID,

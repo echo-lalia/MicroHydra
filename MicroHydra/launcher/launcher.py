@@ -1,4 +1,4 @@
-from machine import Pin, SDCard, SPI, RTC, ADC
+from machine import Pin, SDCard, SPI, RTC
 import time, os, math, ntptime, network
 from lib import keyboard, beeper, battlevel
 import machine
