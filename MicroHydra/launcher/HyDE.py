@@ -5,9 +5,10 @@ from font import vga1_8x16 as font
 from lib import microhydra as mh
 import os, time, sys
 
+# increased freq makes fancy text drawing faster. This may not be necessary if fancytext function is optimized
 machine.freq(240000000)
 
-# constants
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constants: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _DISPLAY_WIDTH = const(240)
 _DISPLAY_HEIGHT = const(135)
 
@@ -30,15 +31,14 @@ _CURSOR_BLINK_HALF = const(_CURSOR_BLINK_MS // 2)
 
 _FILE_BROWSER = const("/launcher/files.py")
 
-# sd needs to be mounted for files in /sd
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Global Objects: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# sd needs to be mounted for any files in /sd
 try:
     sd = machine.SDCard(slot=2, sck=machine.Pin(40), miso=machine.Pin(39), mosi=machine.Pin(14), cs=machine.Pin(12))
     os.mount(sd, '/sd')
 except OSError:
     print("Could not mount SDCard!")
 
-
-# global objects
 tft = st7789fbuf.ST7789(
     SPI(1, baudrate=40000000, sck=Pin(36), mosi=Pin(35), miso=None),
     135,
@@ -55,6 +55,7 @@ kb = keyboard.KeyBoard()
 rtc = machine.RTC()
 config = mhconfig.Config()
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Generate color palette: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def shift_color565_hue(color, shift):
     """shift the hue of a color565 to the right and left. this is useful for generating complimentary colors."""
     r,g,b = mhconfig.separate_color565(color)
@@ -78,6 +79,7 @@ keyword_color = shift_color565_hue(config.palette[5], -0.3)
 comment_color = shift_color565_hue(config.palette[3], -0.2)
 dark_comment_color = shift_color565_hue(config.palette[2], -0.15)
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Functions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def file_options(target_file,overlay,editor):
     """Give file options menu"""
     _OPTIONS = const(("Back", "Save", "Run here", "Restart and run", "Exit to Files"))
@@ -120,7 +122,6 @@ def run_file_here(filepath, overlay):
     except Exception as e:
         overlay.error(f"File closed with error: {e}")
     
-
 def classify_char(char):
     """Classify char types for comparison. Returns an int representing the type."""
     if char == None:
@@ -303,8 +304,9 @@ def draw_fancy_line(line, x, y, highlight=False):
         
         x += 8
 
-#class to handle our text editor display
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Editor Class: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class Editor:
+    #class to handle our text editor display and state
     def __init__(self, overlay):
         self.overlay = overlay
         self.lines = []
@@ -453,6 +455,22 @@ class Editor:
         elif self.cursor_index[1] > self.display_index[1] + 7:
             self.display_index[1] = self.cursor_index[1] - 7
     
+    def display_snap_right(self):
+        self.display_index[0] += 100
+        self.display_to_cursor_x()
+        
+    def display_snap_left(self):
+        self.display_index[0] = 0
+        self.display_to_cursor_x()
+
+    def display_snap_up(self):
+        self.display_index[1] = -3
+        self.display_to_cursor_y()
+
+    def display_snap_down(self):
+        self.display_index[1] = len(self.lines)
+        self.display_to_cursor_y()
+    
     def clamp_cursor(self):
         if self.cursor_index[0] < 0:
             self.cursor_index[0] = len(self.lines[max(0,self.cursor_index[1] - 1)])
@@ -499,10 +517,6 @@ class Editor:
         if self.cursor_index[1] < 0:
             self.cursor_index[1] = 0
             self.display_index[1] -= 1
-#         elif self.cursor_index[1] < self.display_index[1] + 3:
-#             self.display_index[1] -= 1
-#         if self.display_index[1] < -3:
-#             self.display_index[1] = -3
         self.display_to_cursor_y()
         self.snap_cursor_x()
         
@@ -512,13 +526,8 @@ class Editor:
         if self.cursor_index[1] >= len(self.lines):
             self.cursor_index[1] = len(self.lines) - 1
             self.display_index[1] += 1
-#         elif self.cursor_index[1] > self.display_index[1] + 7:
-#             self.display_index[1] += 1
-#         if self.display_index[1] > len(self.lines) -8:
-#             self.display_index[1] = len(self.lines) -8
         self.display_to_cursor_y()
         self.snap_cursor_x()
-        
         
     def draw_scrollbar(self):
         # y scrollbar
@@ -548,14 +557,6 @@ class Editor:
             else:
                 output.append("")
         return output
-        
-    
-    def find_max_h_len(self):
-        self.max_h_len = len(
-                self.lines[self.cursor_index[1]]
-            )
-        print(self.max_h_len)
-        
     
     def draw_cursor(self):
         cursor_x = 8 * (self.cursor_index[0] - self.display_index[0]) + _LEFT_PADDING
@@ -609,70 +610,86 @@ def main_loop():
     pressed_keys = kb.get_new_keys()
     
     redraw_display = True
-    #redraw_timer = time.ticks_ms() # timer to regularly redraw blinking graphics.
     
     while True:
         keys = kb.get_new_keys()
         if keys:
             redraw_display = True
             for key in keys:
-                if key == 'UP':
-                    editor.move_up()
-                elif key == 'DOWN':
-                    editor.move_down()
-                elif key == "LEFT":
-                    editor.move_left()
-                elif key == "RIGHT":
-                    editor.move_right()
-                elif key == "ENT":
-                    editor.insert_line()
+                if "CTL" in kb.key_state:
+                    # CTRL KEY SHORTCUTS
                     
-                elif "CTL" in kb.key_state and ";" == key:
-                    for _ in range(0,4):
-                        editor.move_up()
-                elif "CTL" in kb.key_state and "." == key:
-                    for _ in range(0,4):
-                        editor.move_down()
-                elif "CTL" in kb.key_state and "/" == key:
-                    editor.jump_right()
-                
-                elif "CTL" in kb.key_state and "," == key:
-                    editor.jump_left()
+                    if key == ";":
+                        for _ in range(0,4):
+                            editor.move_up()
+                    elif key == ".":
+                        for _ in range(0,4):
+                            editor.move_down()
+                    elif key == "/":
+                        editor.jump_right()
                     
-                elif "CTL" in kb.key_state and "BSPC" == key:
-                    editor.jump_backspace()
-                elif "CTL" in kb.key_state and "s" == key:
-                    editor.save_file(target_file)
-                
-                elif "OPT" in kb.key_state and "." == key:
-                    editor.move_end()
-                elif "OPT" in kb.key_state and ";" == key:
-                    editor.move_home()
-                    
-                elif key == "F5":
-                    if "CTL" in kb.key_state:
+                    elif key == ",":
+                        editor.jump_left()
+                        
+                    elif key == "BSPC":
+                        editor.jump_backspace()
+                    elif key == "s":
+                        editor.save_file(target_file)
+                    elif key == "F5":
                         boot_into_file(target_file,overlay)
-                    else:
+                    
+                elif "OPT" in kb.key_state:
+                    # OPT KEY SHORTCUTS
+                    
+                    if "." == key:
+                        editor.move_end()
+                    elif ";" == key:
+                        editor.move_home()
+                        
+                elif "ALT" in kb.key_state:
+                    # OPT KEY SHORTCUTS
+                    if key == "/":
+                        editor.display_snap_right()
+                    elif key == ",":
+                        editor.display_snap_left()
+                    elif key == ";":
+                        editor.display_snap_up()
+                    elif key == ".":
+                        editor.display_snap_down()
+                        
+                else:
+                    # REGULAR KEYS
+                    
+                    if key == 'UP':
+                        editor.move_up()
+                    elif key == 'DOWN':
+                        editor.move_down()
+                    elif key == "LEFT":
+                        editor.move_left()
+                    elif key == "RIGHT":
+                        editor.move_right()
+                    elif key == "ENT":
+                        editor.insert_line()
+                    elif key == "F5":
                         run_file_here(target_file,overlay)
-                    
-                elif key == "BSPC":
-                    editor.backspace()
+                    elif key == "BSPC":
+                        editor.backspace()
                 
-                elif key == "SPC":
-                    editor.insert_char(" ")
+                    elif key == "SPC":
+                        editor.insert_char(" ")
+                        
+                    elif key == "TAB":
+                        editor.insert_char(" ") #TODO: implement real tab support
+                        editor.insert_char(" ")
+                        editor.insert_char(" ")
+                        editor.insert_char(" ")
                     
-                elif key == "TAB":
-                    editor.insert_char(" ") #TODO: implement real tab support
-                    editor.insert_char(" ")
-                    editor.insert_char(" ")
-                    editor.insert_char(" ")
-                    
-                elif key == "GO":
-                    # file actions menu
-                    file_options(target_file,overlay,editor)
-                    
-                elif len(key) == 1:
-                    editor.insert_char(key)
+                    elif key == "GO":
+                        # file actions menu
+                        file_options(target_file,overlay,editor)
+                        
+                    elif len(key) == 1:
+                        editor.insert_char(key)
         
         # graphics! 
         if redraw_display:
