@@ -158,6 +158,9 @@ def scan_apps(sd):
     #sort alphabetically without uppercase/lowercase discrimination:
     app_names.sort(key=lambda element: element.lower())
     
+    #add an appname for builtin file browser
+    app_names.append("Files")
+    app_paths["Files"] = "/launcher/files.py"
     #add an appname to refresh the app list
     app_names.append("Reload Apps")
     #add an appname to control the beeps
