@@ -31,6 +31,14 @@ _CURSOR_BLINK_HALF = const(_CURSOR_BLINK_MS // 2)
 
 _FILE_BROWSER = const("/launcher/files.py")
 
+# arbitrary char classifications as int:
+_NONE_CLASS = const(0)
+_ALPHA_CLASS = const(7)
+_DIGIT_CLASS = const(8)
+_DOT_CLASS = const(9)
+_SPACE_CLASS = const(1)
+_OTHER_CLASS = const(4)
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Global Objects: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # sd needs to be mounted for any files in /sd
 try:
@@ -72,12 +80,20 @@ def shift_color565_hue(color, shift):
 str_color = shift_color565_hue(config.palette[5], -0.4)
 dark_str_color = shift_color565_hue(config.palette[3], -0.2)
 
-num_color = shift_color565_hue(config.palette[5], -0.5)
+# num_color = shift_color565_hue(config.palette[5], -0.5)
+num_color = shift_color565_hue(
+    mhconfig.mix_color565(config.palette[1], config.palette[5], mix_factor=0.95, hue_mix_fac=0, sat_mix_fac=0.95),
+    -0.15
+    )
 
-keyword_color = shift_color565_hue(config.palette[5], -0.3)
+op_color = mhconfig.mix_color565(config.palette[1], config.palette[5], mix_factor=0.9, hue_mix_fac=0.7, sat_mix_fac=0.8)
 
-comment_color = shift_color565_hue(config.palette[3], -0.2)
-dark_comment_color = shift_color565_hue(config.palette[2], -0.15)
+# keyword_color = shift_color565_hue(config.palette[5], -0.3)
+keyword_color = mhconfig.mix_color565(config.palette[1], config.palette[5], mix_factor=1, hue_mix_fac=0.3, sat_mix_fac=0.7)
+
+#comment_color = shift_color565_hue(config.palette[3], -0.2)
+comment_color = mhconfig.mix_color565(config.palette[1], config.palette[5], mix_factor=0.5, hue_mix_fac=0, sat_mix_fac=0.1)
+dark_comment_color = mhconfig.mix_color565(config.palette[1], config.palette[5], mix_factor=0.25, hue_mix_fac=0, sat_mix_fac=0.1)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Functions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def file_options(target_file,overlay,editor):
@@ -122,18 +138,33 @@ def run_file_here(filepath, overlay, editor):
         
     except Exception as e:
         overlay.error(f"File closed with error: {e}")
-    
+
 def classify_char(char):
     """Classify char types for comparison. Returns an int representing the type."""
     if char == None:
-        return 0
+        return _NONE_CLASS
     elif char.isalpha() or char == "_":
-        return 8
-    elif char.isdigit() or char == ".":
-        return 9
+        return _ALPHA_CLASS
+    elif char.isdigit():
+        return _DIGIT_CLASS
+    elif char == ".":
+        return _DOT_CLASS
     elif char.isspace():
-        return 1
-    return 4
+        return _SPACE_CLASS
+    return _OTHER_CLASS
+
+def is_var(string):
+    """Check if string could be a variable name."""
+    for idx, char in enumerate(string):
+        if idx == 0:
+        # first char can only be underscore or letter
+            if not (char.isalpha() or char == "_"):
+                return False
+        else:
+        # chars must be alphanumeric or underscores
+            if not (char.isalpha() or char == "_" or char.isdigit()):
+                return False
+    return True
 
 def is_numeric(string):
     """Check if string is numeric. Support for "_" and "." """
@@ -145,7 +176,7 @@ def is_numeric(string):
             return False
     return any_numbers
 
-#string formatter multitool
+#string formatter
 def clean_line(line):
     return line.replace('\r',''
                 ).replace('\n','')
@@ -196,8 +227,11 @@ def segment_from_str(string, index):
     start_class = classify_char(string[index])
     idx = index  
     while idx < len(string): # look right
-        if classify_char(string[idx]) == start_class or (
-            start_class == 8 and classify_char(string[idx]) == 9): # allow numbers on vars
+        if (classify_char(string[idx]) == start_class 
+            )or (start_class == _ALPHA_CLASS and classify_char(string[idx]) == _DIGIT_CLASS # allow numbers on vars
+            )or (start_class == _DOT_CLASS and classify_char(string[idx]) == _DIGIT_CLASS # allow numbers to start with a "."
+            )or (start_class == _DIGIT_CLASS and classify_char(string[idx]) == _DOT_CLASS): # allow numbers with "." at the end or middle
+            
             output_str += string[idx]
             idx += 1
         else: break
@@ -231,6 +265,7 @@ def draw_fancy_line(line, x, y, highlight=False, trim=True):
     """apply special styling to a line and display it."""
     _KEYWORDS = const(("is","not","and","if","else","elif","return","or","break","as","in","False","True",
                  "None","try","except","def","global","class","while","for","from","import","self","with"))
+    _OPERATORS = const("<>,|[]{}()*^%!=-+/:;&@")
     # TODO: I worry this may be extremely unoptomized. Should maybe be tested/optimized further.
     
     # trim right part of line to speed up styling
@@ -249,6 +284,8 @@ def draw_fancy_line(line, x, y, highlight=False, trim=True):
     string_char = None
     num_char = False
     
+    var_char = False
+    
     current_segment = ""
     segment_counter = -1
     
@@ -260,6 +297,12 @@ def draw_fancy_line(line, x, y, highlight=False, trim=True):
             #if char.isalpha() or char.isdigit() or char == "_":
             current_segment = segment_from_str(line, idx)
             segment_counter = len(current_segment)
+            
+            # check if it could be a var
+            if is_var(current_segment):
+                var_char = True
+            else:
+                var_char = False
         
         # find comments
         if char == "#" and string_char == None:
@@ -286,6 +329,8 @@ def draw_fancy_line(line, x, y, highlight=False, trim=True):
             color = keyword_color
         elif is_numeric(current_segment): # this is a number
             color = num_color
+        elif char in _OPERATORS:
+            color = op_color
         elif x < _LEFT_PADDING: # fade left chars
             color = config.palette[3]
         elif x >= _RIGHT_TEXT_FADE:
@@ -435,6 +480,7 @@ class Editor:
                 self.lines[self.cursor_index[1]] = l_line[:len(l_line)-4] + r_line
                 self.cursor_index[0] = max(0,self.cursor_index[0] - 3)
                 self.move_left()
+
             else:
                 self.lines[self.cursor_index[1]] = l_line[:len(l_line)-1] + r_line
                 self.move_left()
@@ -597,7 +643,10 @@ class Editor:
         self.lines[self.cursor_index[1]] = ''
         self.cursor_index[0] = 0
         self.backspace()
-    
+        
+        
+        
+        
 def main_loop():
     global str_color, dark_str_color, keyword_color, comment_color, dark_comment_color
     
@@ -608,14 +657,12 @@ def main_loop():
     # Find our filepath from RTC memory
     target_file = rtc.memory().decode()
     
-    # JUST FOR TESTING
-    #target_file = "/apps/testtext.txt"
-    
     # remove syntax hilighting for plain txt files.
     if target_file.endswith('.txt'):
         str_color = config['ui_color']; dark_str_color = config['ui_color']
         keyword_color = config['ui_color']
         comment_color = config['ui_color']; dark_comment_color = config['ui_color']
+    
     
     try:
         with open(target_file,'r') as file:
@@ -670,7 +717,7 @@ def main_loop():
                         editor.copy_line()
                     elif key == "v":
                         editor.paste()
-
+                    
                 elif "OPT" in kb.key_state:
                     # OPT KEY SHORTCUTS
                     
