@@ -12,11 +12,10 @@ from lib.mhconfig import Config
 
 """
 
-VERSION: 0.8
+VERSION: 0.9
 
 CHANGES:
-    Created mhconfig.Config, mhoverlay.UI_Overlay, cleaned up launcher.py, endured the horrors
-    Renamed constants to make them "real" constants, and added slight improvements to st7789fbuf.py
+    Created files.py and HyDE.py, modified main.py to allow multiple paths.
     
 This program is designed to be used in conjunction with "main.py" apploader, to select and launch MPy apps.
 
@@ -54,9 +53,6 @@ _MAX_NTP_ATTEMPTS = const(10)
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Finding Apps ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-
 
 def scan_apps(sd):
     # first we need a list of apps located on the flash or SDCard
@@ -117,7 +113,6 @@ def scan_apps(sd):
 
 
 
-
     # now lets collect some separate app names and locations
     app_names = []
     app_paths = {}
@@ -158,6 +153,9 @@ def scan_apps(sd):
     #sort alphabetically without uppercase/lowercase discrimination:
     app_names.sort(key=lambda element: element.lower())
     
+    #add an appname for builtin file browser
+    app_names.append("Files")
+    app_paths["Files"] = "/launcher/files.py"
     #add an appname to refresh the app list
     app_names.append("Reload Apps")
     #add an appname to control the beeps
@@ -173,18 +171,11 @@ def scan_apps(sd):
 
 
 
-
-
-
-
-
-
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Function Definitions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def launch_app(app_path):
-    #print(f'launching {app_path}')
     rtc = machine.RTC()
     rtc.memory(app_path)
     print(f"Launching '{app_path}...'")
@@ -192,8 +183,6 @@ def launch_app(app_path):
     machine.freq(160_000_000)
     time.sleep_ms(10)
     machine.reset()
-    
-
 
 
 def center_text_x(text, char_width = 16):
@@ -209,8 +198,6 @@ def center_text_x(text, char_width = 16):
 def ease_out_cubic(x):
     return 1 - ((1 - x) ** 3)
         
-        
-
 def time_24_to_12(hour_24,minute):
     ampm = 'am'
     if hour_24 >= 12:
@@ -226,14 +213,11 @@ def time_24_to_12(hour_24,minute):
 
 
 
-
 #--------------------------------------------------------------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main Loop: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #--------------------------------------------------------------------------------------------------
-
-
 
 
 def main_loop():
@@ -262,7 +246,7 @@ def main_loop():
         except RuntimeError as e:
             print("Wifi WLAN object couldnt be created. Gave this error:",e)
             import micropython
-            print(micropython.mem_info(),micropython.qstr_info())
+            print(micropython.mem_info())
         
     if config['wifi_ssid'] == '':
         syncing_clock = False # no point in wasting resources if wifi hasn't been setup
@@ -419,11 +403,13 @@ def main_loop():
             else: # keyboard shortcuts!
                 for key in new_keys:
                     # jump to letter:
-                    if len(key) == 1: # filter special keys and repeated presses
-                        if key in 'abcdefghijklmnopqrstuvwxyz1234567890':
+                    if len(key) == 1 and key in 'abcdefghijklmnopqrstuvwxyz1234567890': # filter special keys and repeated presses
                             #search for that letter in the app list
-                            for idx, name in enumerate(app_names):
-                                if name.lower().startswith(key):
+                            for idx in range(len(app_names)):
+                                # this lets us scan starting at the current app_selector_index
+                                idx = (idx + app_selector_index) % len(app_names)
+                                name = app_names[idx]
+                                if name.lower().startswith(key) and idx != app_selector_index:
                                     #animation:
                                     if app_selector_index > idx:
                                         scroll_direction = -1
@@ -434,7 +420,6 @@ def main_loop():
                                     app_selector_index = idx
                                     if config['ui_sound']:
                                         beep.play(("G3"), 100, config['volume'])
-                                    found_key = True
                                     break
 
         
@@ -563,9 +548,6 @@ def main_loop():
                     tft.bitmap_icons(icons, icons.SDCARD, (config['bg_color'],config['ui_color']),104, 36)
                 else:
                     tft.bitmap_icons(icons, icons.FLASH, (config['bg_color'],config['ui_color']),104, 36)
-            
-
-        
             
         
         #reset vars for next loop

@@ -873,8 +873,8 @@ class ST7789:
             ch = ord(char)
             if (
                 font.FIRST <= ch < font.LAST
-                and x0 + font.WIDTH <= self.width
-                and y0 + font.HEIGHT <= self.height
+                and x0 <= self.width
+                and y0 <= self.height
             ):
                 if font.HEIGHT == 8:
                     passes = 1
@@ -912,8 +912,8 @@ class ST7789:
             ch = ord(char)
             if (
                 font.FIRST <= ch < font.LAST
-                and x0 + font.WIDTH <= self.width
-                and y0 + font.HEIGHT <= self.height
+                and x0 <= self.width
+                and y0 <= self.height
             ):
                 each = 16
                 if font.HEIGHT == 16:
