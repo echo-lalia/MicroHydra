@@ -90,7 +90,7 @@ def file_options(target_file,overlay,editor):
     elif choice == "Save":
         editor.save_file(target_file)
     elif choice == "Run here":
-        run_file_here(target_file, overlay)
+        run_file_here(target_file, overlay, editor)
     elif choice == "Restart and run":
         boot_into_file(target_file,overlay)
     elif choice == "Exit to Files":
@@ -107,8 +107,9 @@ def boot_into_file(target_file,overlay):
     rtc.memory(target_file)
     machine.reset()
     
-def run_file_here(filepath, overlay):
+def run_file_here(filepath, overlay, editor):
     """Try running the target file here"""
+    editor.save_file(filepath)
     overlay.draw_textbox("Running...", _DISPLAY_WIDTH//2, _DISPLAY_HEIGHT//2)
     tft.show()
     try:
@@ -226,14 +227,14 @@ def draw_rules(line,x,y,small=False,highlight=False):
             tft.vline(x,y,height,color)
         x += 8
 
-def draw_fancy_line(line, x, y, highlight=False):
+def draw_fancy_line(line, x, y, highlight=False, trim=True):
     """apply special styling to a line and display it."""
     _KEYWORDS = const(("is","not","and","if","else","elif","return","or","break","as","in","False","True",
                  "None","try","except","def","global","class","while","for","from","import","self","with"))
     # TODO: I worry this may be extremely unoptomized. Should maybe be tested/optimized further.
     
     # trim right part of line to speed up styling
-    if len(line) > _HORIZONTAL_CHARACTERS:
+    if len(line) > _HORIZONTAL_CHARACTERS and trim:
         offset = 0
         if x < _LEFT_RULE:
             offset_px = (x - _LEFT_RULE) * - 1
@@ -312,6 +313,7 @@ class Editor:
         self.lines = []
         self.display_index = [0,-3]
         self.cursor_index = [0,0]
+        self.clipboard = ''
     
     def draw_lines(self):
         draw_y = 0
@@ -340,8 +342,9 @@ class Editor:
                     if i == self.cursor_index[1]:
                         tft.rect(0,draw_y, 238,16,config.palette[0],fill=True)
                     if i >= 0 and i < len(self.lines):
-                        draw_rules(self.lines[i],line_x,draw_y,small=False,highlight=(i == self.cursor_index[1]))
-                        draw_fancy_line(self.lines[i], line_x, draw_y, highlight=(i == self.cursor_index[1]))
+                        is_currentline = (i == self.cursor_index[1])
+                        draw_rules(self.lines[i],line_x,draw_y,small=False,highlight=is_currentline)
+                        draw_fancy_line(self.lines[i], line_x, draw_y, highlight=is_currentline,trim=is_currentline)
                     draw_y += 16 + _DISPLAY_PADDING
                     
     def get_current_indentation(self):
@@ -408,7 +411,6 @@ class Editor:
             indent_count = len(indent)
         else:
             indent = self.get_current_indentation()
-            print(len(indent))
             r_line = indent + r_line
             indent_count = len(indent)
             
@@ -433,7 +435,6 @@ class Editor:
                 self.lines[self.cursor_index[1]] = l_line[:len(l_line)-4] + r_line
                 self.cursor_index[0] = max(0,self.cursor_index[0] - 3)
                 self.move_left()
-                #self.move_left();self.move_left();self.move_left();self.move_left()
             else:
                 self.lines[self.cursor_index[1]] = l_line[:len(l_line)-1] + r_line
                 self.move_left()
@@ -578,9 +579,28 @@ class Editor:
         with open(filepath,"w") as file:
             for line in self.lines:
                 file.write(line + "\r\n")
-            
+    
+    def copy_line(self):
+        self.clipboard = self.lines[self.cursor_index[1]]
+    
+    def paste(self):
+        for char in self.clipboard:
+            self.insert_char(char)
+    
+    def cut_line(self):
+        self.clipboard = self.lines[self.cursor_index[1]]
+        self.lines[self.cursor_index[1]] = ''
+        self.cursor_index[0] = 0
+        self.clamp_cursor()
+        
+    def del_line(self):
+        self.lines[self.cursor_index[1]] = ''
+        self.cursor_index[0] = 0
+        self.backspace()
     
 def main_loop():
+    global str_color, dark_str_color, keyword_color, comment_color, dark_comment_color
+    
     tft.fill(config['bg_color'])
     overlay = mhoverlay.UI_Overlay(config, kb, display_fbuf=tft)
     editor = Editor(overlay)
@@ -590,6 +610,12 @@ def main_loop():
     
     # JUST FOR TESTING
     #target_file = "/apps/testtext.txt"
+    
+    # remove syntax hilighting for plain txt files.
+    if target_file.endswith('.txt'):
+        str_color = config['ui_color']; dark_str_color = config['ui_color']
+        keyword_color = config['ui_color']
+        comment_color = config['ui_color']; dark_comment_color = config['ui_color']
     
     try:
         with open(target_file,'r') as file:
@@ -637,7 +663,14 @@ def main_loop():
                         editor.save_file(target_file)
                     elif key == "F5":
                         boot_into_file(target_file,overlay)
-                    
+                        
+                    elif key == "x":
+                        editor.cut_line()
+                    elif key == "c":
+                        editor.copy_line()
+                    elif key == "v":
+                        editor.paste()
+
                 elif "OPT" in kb.key_state:
                     # OPT KEY SHORTCUTS
                     
@@ -671,7 +704,7 @@ def main_loop():
                     elif key == "ENT":
                         editor.insert_line()
                     elif key == "F5":
-                        run_file_here(target_file,overlay)
+                        run_file_here(target_file,overlay,editor)
                     elif key == "BSPC":
                         editor.backspace()
                 
@@ -687,6 +720,9 @@ def main_loop():
                     elif key == "GO":
                         # file actions menu
                         file_options(target_file,overlay,editor)
+                        
+                    elif key == "DEL":
+                        editor.del_line()
                         
                     elif len(key) == 1:
                         editor.insert_char(key)

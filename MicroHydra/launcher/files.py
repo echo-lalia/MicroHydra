@@ -29,8 +29,6 @@ FILE_HANDLERS = {
 
 
 
-
-
 kb = keyboard.KeyBoard()
 
 tft = st7789fbuf.ST7789(
@@ -48,7 +46,18 @@ tft = st7789fbuf.ST7789(
 
 config = mhconfig.Config()
 overlay = mhoverlay.UI_Overlay(config, kb, display_fbuf=tft)
-    
+
+sd = None
+
+def mount_sd():
+    global sd
+    # sd needs to be mounted for any files in /sd
+    try:
+        if sd == None:
+            sd = machine.SDCard(slot=2, sck=machine.Pin(40), miso=machine.Pin(39), mosi=machine.Pin(14), cs=machine.Pin(12))
+        os.mount(sd, '/sd')
+    except OSError:
+        print("Could not mount SDCard!")
 
 class ListView:
     def __init__(self, tft, config, items, dir_dict):
@@ -141,8 +150,7 @@ def draw_hamburger_menu(x,y,color):
     tft.rect(x,y+_PADDING,_WIDTH,_HEIGHT,color)
     tft.rect(x,y+_PADDING+_OFFSET,_WIDTH,_HEIGHT,color)
     tft.rect(x,y+_PADDING+_OFFSET+_OFFSET,_WIDTH,_HEIGHT,color)
-    
-     
+         
 def ease_in_out_sine(x):
     return -(math.cos(math.pi * x) - 1) / 2
 
@@ -162,7 +170,9 @@ def parse_files():
     dirlist = []
     filelist = []
     #add directories to the top
-    for name, itype, _, _ in os.ilistdir():
+    for ilist in os.ilistdir():
+        print(ilist)
+        name = ilist[0]; itype = ilist[1]
         if itype == 0x4000:
             dirlist.append(name)
             dirdict[name] = True
@@ -176,22 +186,25 @@ def parse_files():
     
     return (dirlist + filelist, dirdict)
 
-def new_options(overlay):
+def ext_options(overlay):
     """Create popup with options for new file or directory."""
-    option = overlay.popup_options(("directory", "file"), title="New:")
-    if option == "directory":
+    cwd = os.getcwd()
+    option = overlay.popup_options(("New Directory", "New File", "Refresh"), title=f"{cwd}:")
+    if option == "New Directory":
         name = overlay.text_entry(title="Directory name:", blackout_bg=True)
         try:
             os.mkdir(name)
         except Exception as e:
             overlay.error(e)
-    elif option == "file":
+    elif option == "New File":
         name = overlay.text_entry(title="File name:", blackout_bg=True)
         try:
             with open(name, "w") as newfile:
                 newfile.write("")
         except Exception as e:
             overlay.error(e)
+    elif option == "Refresh":
+        mount_sd()
 
 def file_options(file, overlay):
     """Create popup with file options for given file."""
@@ -246,7 +259,7 @@ def open_file(file):
 def main_loop(tft, kb, config, overlay):
     
     new_keys = kb.get_new_keys()
-    
+    mount_sd()
     file_list, dir_dict = parse_files()
     
     view = ListView(tft, config, file_list, dir_dict)
@@ -261,7 +274,7 @@ def main_loop(tft, kb, config, overlay):
             elif key == "ENT" or key == "GO":
                 selection_name = file_list[view.cursor_index]
                 if selection_name == "/.../": # new file
-                    new_options(overlay)
+                    ext_options(overlay)
                     file_list, dir_dict = parse_files()
                     view.items = file_list
                     view.dir_dict = dir_dict
@@ -285,7 +298,10 @@ def main_loop(tft, kb, config, overlay):
                         
             elif key ==  "BSPC" or key == "`":
                     # previous directory
-                    os.chdir("..")
+                    if os.getcwd() == "/sd":
+                        os.chdir("/")
+                    else:
+                        os.chdir("..")
                     file_list, dir_dict = parse_files()
                     view.items = file_list
                     view.dir_dict = dir_dict
