@@ -203,6 +203,7 @@ def ext_options(overlay):
         except Exception as e:
             overlay.error(e)
     elif option == "Refresh":
+        os.sync()
         mount_sd()
 
 def file_options(file, overlay):
