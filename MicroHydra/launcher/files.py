@@ -1,6 +1,6 @@
-import st7789fbuf, mhconfig, mhoverlay, keyboard, os, machine, time, math
+from lib import st7789fbuf, mhconfig, mhoverlay, keyboard
 from font import vga2_16x32 as font
-
+import os, machine, time, math
 
 
 _DISPLAY_HEIGHT = const(135)
@@ -171,7 +171,6 @@ def parse_files():
     filelist = []
     #add directories to the top
     for ilist in os.ilistdir():
-        print(ilist)
         name = ilist[0]; itype = ilist[1]
         if itype == 0x4000:
             dirlist.append(name)
@@ -248,7 +247,6 @@ def open_file(file):
     handler = FILE_HANDLERS[filetype]
     
     full_path = handler + _PATH_JOIN + filepath
-    print(full_path)
     
     # write path to RTC memory
     rtc = machine.RTC()

@@ -12,11 +12,10 @@ from lib.mhconfig import Config
 
 """
 
-VERSION: 0.8
+VERSION: 0.9
 
 CHANGES:
-    Created mhconfig.Config, mhoverlay.UI_Overlay, cleaned up launcher.py, endured the horrors
-    Renamed constants to make them "real" constants, and added slight improvements to st7789fbuf.py
+    Created files.py and HyDE.py, modified main.py to allow multiple paths.
     
 This program is designed to be used in conjunction with "main.py" apploader, to select and launch MPy apps.
 
@@ -177,7 +176,6 @@ def scan_apps(sd):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def launch_app(app_path):
-    #print(f'launching {app_path}')
     rtc = machine.RTC()
     rtc.memory(app_path)
     print(f"Launching '{app_path}...'")
