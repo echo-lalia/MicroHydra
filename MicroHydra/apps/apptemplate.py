@@ -1,4 +1,5 @@
-import st7789fbuf, mhconfig, keyboard, machine, time
+from lib import st7789fbuf, mhconfig, keyboard
+import machine, time
 
 """
 MicroHydra App Template
@@ -8,7 +9,8 @@ Version: 1.0
 This is a basic skeleton for a MicroHydra app, to get you started.
 
 There is no specific requirement in the way a MicroHydra app must be organized or styled.
-The choices made here are based entirely on my own preferences and stylistic whims; please change anything you'd like to suit your needs.
+The choices made here are based entirely on my own preferences and stylistic whims;
+please change anything you'd like to suit your needs (or ignore this template entirely if you'd rather)
 
 This template is not intended to enforce a specific style, or to give guidelines on best practices,
 it is just intended to provide an easy starting point for learners,
