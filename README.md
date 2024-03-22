@@ -4,8 +4,8 @@ MicroHydra is a simple MicroPython based app launcher designed for the M5Stack C
 ![ezgif-2-c755779e82](https://github.com/echo-lalia/Cardputer-MicroHydra/assets/108598670/a0782c5d-5633-489a-a5eb-f6b4e83803ef)
 
 
-This program is still in early development, but it seems to be working so far. 
-This code was built with MicroPython v1.22.1, for a Generic ESP32-S3 controller.
+This program is still in development, and not all features are fully realized.
+This code was built with MicroPython v1.23.0 (preview), for a Generic ESP32-S3 controller.
 
 The main function of MicroHydra is to provide an interface to easily switch between MicroPython apps.   
 And to help lower the barriers to entry for anyone wanting to develop apps for their Cardputer. 
@@ -119,7 +119,8 @@ The G0 button is on the back edge of the Cardputer, and there's another G0 butto
 
 In "target port" you should now see a device with a name like "USB JTAG". Set the options in the window like this:
 ![image](https://github.com/echo-lalia/Cardputer-MicroHydra/assets/108598670/06022ade-a5c3-4b95-be50-d086f963eb6f)   
-And click Install
+And click Install   
+*note: version 1.23+ is recommended currently, as it contains an important bugfix affecting MicroHydra's audio*
 
 If installing didn't start, check that the correct device is selected, and it's in bootloader mode.   
 
