@@ -37,10 +37,17 @@ _PERIODS = [ # c-0 thru b-0 - how much to advance a sample pointer per frame for
 	b'\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00'
 ]
 
-@micropython.native
-def _volume(volume):
-	"""Returns volume 0-15 reversed in order to be used in bitshifting."""
-	return 15 - (0 if volume < 0 else 15 if volume > 15 else volume)
+_INT_MINVAL = const(-32768)
+_INT_MAXVAL = const(32767)
+
+@micropython.viper
+def _volume(volume:int) -> int:
+	"""Returns volume 0-30 reversed in order to be used in bitshifting. 15 is 100% (no bitshift)"""
+	if volume <= 0:
+		return 15
+	if volume <= 30:
+		return 15 - volume
+	return -15
 
 @micropython.viper
 def _vipmod(a:int, b:int) -> int:
@@ -48,6 +55,60 @@ def _vipmod(a:int, b:int) -> int:
 	while a >= b:
 		a -= b
 	return a
+
+# streaming samples from sd card without using much ram oh yeah i'm feeling really clever!!
+class Sample():
+	def __init__(self, source, buffer_size=1024):
+		"""Initialize a sample for playback
+		
+		- source: If string, filename. Otherwise, use MemoryView.
+		- buffer_size: If loading from filename, the size to buffer in RAM.
+		"""
+		if type(source) == str:
+			from os import stat
+			self.length = stat(source)[6]
+			if self.length < buffer_size:
+				buffer_size = self.length
+			self.buffer = bytearray(buffer_size)
+			self.buf_mv = memoryview(self.buffer)
+			self.file = open(source, "rb")
+			self.start = 0
+			self.end = self.file.readinto(self.buf_mv)
+		elif type(source) == memoryview:
+			self.file = None
+			self.buf_mv = source
+			self.start = 0
+			self.end = len(source)
+			self.length = len(source)
+		else:
+			raise TypeError
+
+	def __len__(self):
+		return self.length
+	
+	def load(self, ptr):
+		if self.file:
+			self.start = ptr
+			self.file.seek(self.start)
+			read = self.file.readinto(self.buf_mv)
+			self.end = self.start + read
+
+	# not sure this ever worked or if i want to go this route
+	#def __getitem__(self, key):
+	#	if type(key) != int:
+	#		raise TypeError
+	#	if self.file:
+	#		if key < self.start or key >= self.end:
+	#			self.start = key
+	#			self.file.seek(self.start)
+	#			read = self.file.readinto(self.buf_mv)
+	#			self.end = self.start + read
+	#	return self.buf_mv[key - self.start:]
+	
+	def __del__(self):
+		if self.file:
+			self.file.close()
+			del(self.buffer)
 
 class Register:
 	"""Stores settings for timed playback of samples in M5Sound."""
@@ -58,7 +119,6 @@ class Register:
 		self.period = period
 		self.note = note
 		self.period_mult = period_mult
-		self.sample_len = sample_len
 		self.loop = loop
 		self.volume = volume
 
@@ -70,7 +130,6 @@ class Register:
 		registers.period = self.period
 		registers.note = self.note
 		registers.period_mult = self.period_mult
-		registers.sample_len = self.sample_len
 		registers.loop = self.loop
 		registers.volume = self.volume
 		return registers
@@ -114,17 +173,25 @@ class M5Sound:
 	def play(self, sample, note=0, octave=4, volume=15, channel=0, loop=False):
 		"""Schedules a sample to be played immediately.
 		
-		- sample: Bytearray or MemoryView for a sample. Must be 16bits mono, sample rate matching M5Sound constructor.
+		- sample: Sample or MemoryView for a sample. Must be 16bits mono, sample rate matching M5Sound constructor.
 		- note: Numerical 0-12 mapping from C-0 to B-0. Numbers outside that range will affect octave as well.
 		- octave: Octave to play the sample at. By default C-4 which corresponds to unalterated sample.
 		- volume: Volume the sample should play at, range 0-15.
 		- channel: Channel the sample should play on, must be within range of channels defined in M5Sound constructor.
 		- loop: If True, sample will loop forever until channel is stopped.
 		"""
+		if type(sample) == bytearray or type(sample) == bytes:
+			source = Sample(memoryview(sample))
+		elif type(sample) == memoryview:
+			source = Sample(sample)
+		elif type(sample) == Sample:
+			source = sample
+		else:
+			raise TypeError
+
 		registers = Register(
 			buf_start = self._gen_buf_start(),
-			sample = sample,
-			sample_len = len(sample) // 2,
+			sample = source,
 			loop = loop,
 			note = note % 12,
 			period_mult = 2 ** ((octave-1 if octave > 0 else 0) + (note // 12)),
@@ -157,13 +224,15 @@ class M5Sound:
 			buf[i] = 0
 
 	@micropython.viper
-	def _fill_buffer(self, registers, end:int) -> bool:
+	def _fill_buffer(self, registers, end:int):
 		"""Takes a sample register and fills internal buffer with it."""
 		buf = ptr16(self._buf_mv)
 		start = int(registers.buf_start)
-		smp = ptr16(registers.sample)
-		slen = int(registers.sample_len)
 		ptr = int(registers.pointer)
+		smp = ptr16(registers.sample.buf_mv)
+		slen = int(len(registers.sample))>>1
+		sbstart = int(registers.sample.start)>>1
+		sbend = int(registers.sample.end)>>1
 		per = ptr8(_PERIODS[registers.note])
 		perlen = int(len(_PERIODS[registers.note]))
 		perptr = int(registers.period)
@@ -173,14 +242,26 @@ class M5Sound:
 		for i in range(start, end):
 			if ptr >= slen: # sample ended
 				if not loop: # stop playing
-					return False
+					registers.sample = None
+					return
 				ptr = int(_vipmod(ptr, slen)) # or loop
-			bsmp = int(smp[ptr])
-			# ladies and gentlemen, the two's complement
-			bsmp = (bsmp & 0b1000000000000000) | ((bsmp & 0b0111111111111111) >> vol)
-			if (bsmp & 0b1000000000000000) != 0:
-				bsmp |= (0b111111111111111 << 15-vol)
-			buf[i] += bsmp
+			if ptr < sbstart or ptr >= sbend:
+				# sample buffer end, load more from sdcard
+				# we're doing funny shifts because ptr is 16bit word and outside uses single bytes
+				registers.sample.load(ptr<<1)
+				sbstart = int(registers.sample.start)>>1
+				sbend = int(registers.sample.end)>>1
+			bsmp = int(smp[ptr-sbstart])
+			bsmp_int = (int(smp[ptr-sbstart]) - 0b10000000000000000) if bsmp & 0b1000000000000000 else bsmp
+			buf_int = (int(buf[i]) - 0b10000000000000000) if buf[i] & 0b1000000000000000 else buf[i]
+			if vol < 0:
+				bsmp_int <<= (0-vol)
+			else:
+				bsmp_int >>= vol
+			res = bsmp_int + buf_int
+			buf[i] = (_INT_MINVAL if res < _INT_MINVAL else _INT_MAXVAL if res > _INT_MAXVAL else res)
+			if res < 0:
+				buf[i] |= 0b1000000000000000
 			for _ in range(permult): # add together frame periods for different octaves
 				ptr += per[perptr]
 				perptr += int(1)
@@ -189,7 +270,6 @@ class M5Sound:
 		registers.buf_start = 0
 		registers.pointer = ptr
 		registers.period = perptr
-		return True
 
 	@micropython.native
 	def _process_buffer(self, arg):
@@ -211,9 +291,11 @@ class M5Sound:
 					playing = False
 
 				if registers.sample:
-					if not self._fill_buffer(registers, end):
-						registers.sample = None
-			
+					self._fill_buffer(registers, end)
+
+		for ch in range(int(self.channels)):
+			if self._registers[ch].sample:
+				self._registers[ch].sample.load(self._registers[ch].pointer<<1)
 			for reg in self._queues[ch]:
 				if reg.buf_start >= self._buf_size:
 					reg.buf_start -= self._buf_size
