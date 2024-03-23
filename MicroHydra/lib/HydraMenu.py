@@ -5,10 +5,29 @@ from lib import microhydra as mh
 _DISPLAY_WIDTH = const(240)
 _DISPLAY_HEIGHT = const(135)
 
+_DISPLAY_WIDTH_CENTER = const(_DISPLAY_WIDTH//2)
+
+# scrollbar
 _SCROLLBAR_WIDTH = const(2)
 _SCROLLBAR_X = const(_DISPLAY_WIDTH-_SCROLLBAR_WIDTH)
+_SCROLLBAR_BUFFER_WIDTH = const(4)
+_SCROLLBAR_BUFFER_X = const(_SCROLLBAR_X-_SCROLLBAR_BUFFER_WIDTH)
 
-_FONT_HEIGHT = const(32)
+_FONT_HEIGHT = const(32) # big font height
+_FONT_WIDTH = const(16) # big font width
+_SMALL_FONT_HEIGHT = const(8) # small font height
+_SMALL_FONT_WIDTH = const(8) # small font width
+_SMALL_FONT_WIDTH_HALF = const(_SMALL_FONT_WIDTH//2)
+
+
+# right text
+_RIGHT_TEXT_Y = const((_FONT_HEIGHT-_SMALL_FONT_HEIGHT) // 2)
+_RIGHT_TEXT_X_OFFSET = const(40)
+_RIGHT_TEXT_X = const(_DISPLAY_WIDTH - _RIGHT_TEXT_X_OFFSET)
+
+# left text
+_LEFT_TEXT_SELECTED_X = const(-4)
+_LEFT_TEXT_UNSELECTED_X = const(10)
 
 _PER_PAGE = const(_DISPLAY_HEIGHT//_FONT_HEIGHT)
 _Y_PADDING = const( (_DISPLAY_HEIGHT - (_PER_PAGE*_FONT_HEIGHT)) // 2)
@@ -89,13 +108,15 @@ class Menu:
                     self.items[i].draw()
             self.display.hline(0, y, _DISPLAY_WIDTH, CONFIG.palette[3])# separation lines
         self.display.hline(0, y + FONT.HEIGHT, _DISPLAY_WIDTH, CONFIG.palette[3])# separation lines
+        self.update_scroll_bar()
 
     def update_scroll_bar(self):
         max_screen_index = len(self.items) - self.per_page
         scrollbar_height = _DISPLAY_HEIGHT // max_screen_index
-        scrollbar_position = math.floor((_DISPLAY_HEIGHT - scrollbar_height) * (self.cursor_index / max_screen_index))
+        scrollbar_position = math.floor((_DISPLAY_HEIGHT - scrollbar_height) * (self.setting_screen_index / max_screen_index))
         
-        self.display.fill_rect(_SCROLLBAR_X, 0, _SCROLLBAR_WIDTH, _DISPLAY_HEIGHT, CONFIG['bg_color'])
+        self.display.fill_rect(_SCROLLBAR_BUFFER_X, 0, _SCROLLBAR_BUFFER_WIDTH, _DISPLAY_HEIGHT, CONFIG.palette[1])
+        self.display.fill_rect(_SCROLLBAR_X, 0, _SCROLLBAR_WIDTH, _DISPLAY_HEIGHT, CONFIG.palette[0])
         self.display.fill_rect(_SCROLLBAR_X, scrollbar_position, _SCROLLBAR_WIDTH, scrollbar_height, CONFIG.palette[3])
 
     def handle_input(self, key):
@@ -119,28 +140,97 @@ class Menu:
         elif key == 'GO' or key == 'ENT':
             return (self.items[self.cursor_index].handle_input("GO"))
 
-class bool_item:
-    def __init__(self, menu, text: str = None, BOOL: bool = False, x_pos: int = 0, y_pos: int = 0, selected: bool = False, callback: callable = None):
-        self.BOOL = BOOL
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Menu Items ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+class MenuItem:
+    """
+    Parent class for HydraMenu Menu Items.
+    """
+    def __init__(
+        self,
+        menu:Menu,
+        text:str,
+        value:bool|str|int,
+        selected:bool=False,
+        callback:callable|None=None
+        ):
         self.menu = menu
-        self.selected = selected
         self.text = text
-        self.x_pos = x_pos
-        self.y_pos = y_pos
-        self.callback = callback        
-    
+        self.value = value
+        self.callback = callback
+        
     def draw(self):
+        draw_right_text(self.menu, str(self.value), self.y_pos, self.selected)
         draw_left_text(self.menu, self.text, self.y_pos, self.selected)
-        draw_right_text(self.menu, str(self.BOOL), self.y_pos)
-        self.menu.display.hline(0, self.y_pos, _DISPLAY_WIDTH, CONFIG.palette[3])
-
+        self.menu.display.hline(0, self.y_pos, _DISPLAY_WIDTH, CONFIG.palette[2])
+    
+    def handle_input(self, key):
+        pass
+    
+class BoolItem(MenuItem):
+    """Item for creating boolean options"""
+    def __init__(
+        self,
+        menu:Menu,
+        text:str,
+        value:bool,
+        selected:bool=False,
+        callback:callable|None=None
+        ):
+        super().__init__(menu=menu, text=text, value=value, selected=selected, callback=callback)
+        
     def handle_input(self, key):
         if (key == "GO" or key == "ENT"):
-            self.BOOL = not self.BOOL
-            #self.menu.beep.play((("C3","E3","D3"),"D4","C4"), 100, CONFIG['volume'])
+            self.value = not self.value
+            
             self.draw()
             if self.callback != None:
-                self.callback(self, self.BOOL)
+                self.callback(self, self.value)
+                
+class DoItem(MenuItem):
+    """Item for creating 'action' buttons"""
+    def __init__(
+        self,
+        menu:Menu,
+        text:str,
+        value:None=None,
+        selected:bool=False,
+        callback:callable|None=None
+        ):
+        super().__init__(menu=menu, text=text, value=None, selected=selected, callback=callback)
+        
+    def draw(self):
+        if self.selected:
+            TEXT = f"< {self.text} >"
+            self.menu.display.bitmap_text(FONT, TEXT, _DISPLAY_WIDTH_CENTER - get_text_center(TEXT, FONT), self.y_pos, CONFIG['ui_color'])
+        else:
+            self.menu.display.bitmap_text(FONT, self.text, _DISPLAY_WIDTH_CENTER - get_text_center(self.text, FONT), self.y_pos, CONFIG.palette[4])
+        
+    def handle_input(self, key):
+        if self.callback:
+            self.callback(self)
+            
+# class bool_item:
+#     def __init__(self, menu, text: str = None, BOOL: bool = False, x_pos: int = 0, y_pos: int = 0, selected: bool = False, callback: callable = None):
+#         self.BOOL = BOOL
+#         self.menu = menu
+#         self.selected = selected
+#         self.text = text
+#         self.x_pos = x_pos
+#         self.y_pos = y_pos
+#         self.callback = callback
+#     
+#     def draw(self):
+#         draw_right_text(self.menu, str(self.BOOL), self.y_pos)
+#         draw_left_text(self.menu, self.text, self.y_pos, self.selected)
+#         self.menu.display.hline(0, self.y_pos, _DISPLAY_WIDTH, CONFIG.palette[3])
+# 
+#     def handle_input(self, key):
+#         if (key == "GO" or key == "ENT"):
+#             self.BOOL = not self.BOOL
+#             #self.menu.beep.play((("C3","E3","D3"),"D4","C4"), 100, CONFIG['volume'])
+#             self.draw()
+#             if self.callback != None:
+#                 self.callback(self, self.BOOL)
 
 class RGB_item:
     def __init__(self, menu, text: str = None, items: list = [], x_pos: int = 0, y_pos: int = 0, selected: bool = False, callback: callable = None):
@@ -232,26 +322,26 @@ class RGB_item:
         self.in_item = True
         self.draw_rgb_win()
 
-class do_item:
-    def __init__(self, menu, text: str = None, x_pos: int = 0, y_pos: int = 0, selected: bool = False, callback: callable = None):
-        self.menu = menu
-        self.selected = selected
-        self.text = text
-        self.x_pos = x_pos
-        self.y_pos = y_pos
-        self.callback = callback
-
-    def draw(self):
-        if self.selected:
-            TEXT = "< {} >".format(self.text)
-            self.menu.display.bitmap_text(FONT, TEXT, int(_DISPLAY_WIDTH / 2) - get_text_center(TEXT, FONT), self.y_pos, CONFIG['ui_color'])#, CONFIG.palette[3])
-        else:
-            self.menu.display.bitmap_text(FONT, self.text, int(_DISPLAY_WIDTH / 2) - get_text_center(self.text, FONT), self.y_pos, CONFIG['ui_color'])#, CONFIG['bg_color'])
-        
-    def handle_input(self, key):
-        if self.callback != None:
-            self.callback(self)
-            #self.menu.beep.play(("C4","D4","E4"), 50, self.menu.volume)
+# class do_item:
+#     def __init__(self, menu, text: str = None, x_pos: int = 0, y_pos: int = 0, selected: bool = False, callback: callable = None):
+#         self.menu = menu
+#         self.selected = selected
+#         self.text = text
+#         self.x_pos = x_pos
+#         self.y_pos = y_pos
+#         self.callback = callback
+# 
+#     def draw(self):
+#         if self.selected:
+#             TEXT = "< {} >".format(self.text)
+#             self.menu.display.bitmap_text(FONT, TEXT, _DISPLAY_WIDTH_CENTER - get_text_center(TEXT, FONT), self.y_pos, CONFIG['ui_color'])#, CONFIG.palette[3])
+#         else:
+#             self.menu.display.bitmap_text(FONT, self.text, _DISPLAY_WIDTH_CENTER - get_text_center(self.text, FONT), self.y_pos, CONFIG['ui_color'])#, CONFIG['bg_color'])
+#         
+#     def handle_input(self, key):
+#         if self.callback != None:
+#             self.callback(self)
+#             #self.menu.beep.play(("C4","D4","E4"), 50, self.menu.volume)
 
 class int_select_item:
     def __init__(self, menu, init_int, min_int, max_int, text: str = None, x_pos: int = 0, y_pos: int = 0, selected: bool = False, callback: callable = None):
@@ -388,19 +478,21 @@ def get_text_center(text:str, font):
 
 def draw_left_text(menu, text:str, y_pos:int, selected):
     if selected:
-        menu.display.bitmap_text(FONT, '>', 0, y_pos, CONFIG['ui_color'])
-        menu.display.bitmap_text(FONT, text, 15, y_pos, CONFIG['ui_color'])
+        menu.display.bitmap_text(FONT, text, _LEFT_TEXT_UNSELECTED_X, y_pos, CONFIG.palette[0])
+        menu.display.bitmap_text(FONT, '>'+text, _LEFT_TEXT_SELECTED_X, y_pos, CONFIG.palette[5])
     else:
-        menu.display.bitmap_text(FONT, ' ', 0, y_pos, CONFIG['ui_color'])
-        menu.display.bitmap_text(FONT, text, 15, y_pos, CONFIG['ui_color'])
+        menu.display.bitmap_text(FONT, text, _LEFT_TEXT_UNSELECTED_X, y_pos, CONFIG.palette[4])
 
-def draw_right_text(menu, text:str, y_pos:int):
-    menu.display.fill_rect(160, y_pos, 80, 8, CONFIG['bg_color'])# clear word
-    x = menu.display.width - 40 - (len(text)*4)
-    color = mh.mix_color565(CONFIG['ui_color'], CONFIG['bg_color'])
-    if len(text) * 4 > 80:
-         x = (int(menu.display.width / 2) + 40)
-    menu.display.text(str(text), x, y_pos, color)#, CONFIG['bg_color'])
+def draw_right_text(menu, text:str, y_pos:int, selected=False):
+    menu.display.fill_rect(160, y_pos+_RIGHT_TEXT_Y, 80, _SMALL_FONT_HEIGHT, CONFIG['bg_color'])# clear word
+    x = _RIGHT_TEXT_X - (len(text)*_SMALL_FONT_WIDTH_HALF)
+    
+    if len(text) * _SMALL_FONT_WIDTH_HALF > 80:
+         x = ((_DISPLAY_WIDTH // 2) + _RIGHT_TEXT_X_OFFSET)
+    if selected:
+        menu.display.text((text), x, y_pos+_RIGHT_TEXT_Y, CONFIG.palette[4])
+    else:
+        menu.display.text((text), x, y_pos+_RIGHT_TEXT_Y, CONFIG.palette[3])
 
 def draw_text_on_win(menu, text:str, y_pos:int):
     if len(text) > int(222 / FONT.WIDTH):
@@ -408,3 +500,7 @@ def draw_text_on_win(menu, text:str, y_pos:int):
         menu.display.bitmap_text(FONT, text[int(222 / FONT.WIDTH):len(text)], int(menu.display.width / 2) - get_text_center(text[int(222 / FONT.WIDTH):len(text)], FONT), 85, CONFIG['ui_color'])#, CONFIG['bg_color'])
     else:
         menu.display.bitmap_text(FONT, text, int(menu.display.width / 2) - get_text_center(text, FONT), 75, CONFIG['ui_color'])
+
+if __name__ == '__main__':
+    # just for testing!
+    from launcher import newSettings
