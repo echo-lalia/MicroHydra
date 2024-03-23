@@ -158,8 +158,11 @@ class MenuItem:
         self.value = value
         self.callback = callback
         
+    def __repr__(self):
+        return repr(self.value)
+        
     def draw(self):
-        draw_right_text(self.menu, str(self.value), self.y_pos, self.selected)
+        draw_right_text(self.menu, repr(self), self.y_pos, self.selected)
         draw_left_text(self.menu, self.text, self.y_pos, self.selected)
         self.menu.display.hline(0, self.y_pos, _DISPLAY_WIDTH, CONFIG.palette[2])
     
@@ -209,28 +212,76 @@ class DoItem(MenuItem):
         if self.callback:
             self.callback(self)
             
+class RGBItem(MenuItem):
+    """Item for creating RGB565 options"""
+    def __init__(
+        self,
+        menu:Menu,
+        text:str,
+        value:int,
+        selected:bool=False,
+        callback:callable|None=None
+        ):
+        super().__init__(menu=menu, text=text, value=value, selected=selected, callback=callback)
+        self.in_item = False
+        self.cursor_index = 0
+    
+    def __repr__(self):
+        return f"{self.value[0]},{self.value[1]},{self.value[2]}"
+    
+    def handle_input(self, key):
+        _MAX_RANGE = const((31, 63, 31))
+        
+        self.menu.in_submenu = True
+        if (key == 'RIGHT' or key == "/"):
+            self.cursor_index = (self.cursor_index + 1) % 3
+                
+        elif (key == "LEFT" or key == ","):
+            self.cursor_index = (self.cursor_index - 1) % 3
+                
+        elif (key == "UP" or key == ";"):
+            self.items[self.cursor_index] += 1
+            self.items[self.cursor_index] %= _MAX_RANGE[self.cursor_index]
+                
+        elif (key == "DOWN" or key == "."):
+            self.items[self.cursor_index] -= 1
+            self.items[self.cursor_index] %= _MAX_RANGE[self.cursor_index]
+                
+        elif (key == "GO" or key == "ENT") and self.in_item != False:
+            self.menu.in_submenu = False
+            self.in_item = False
+            self.menu.display_menu()
+            if self.callback != None:
+                self.callback(self, self.items)
+            return
+            
+        self.in_item = True
+        self.draw_rgb_win()
+        
+    def draw_rgb_win(self):
+        win = pop_up_win(self.menu.display, self.text, CONFIG['ui_color'], CONFIG['bg_color'])
+        win.draw()
+        color = [63488, 2016, 31]
+        rgb_text = ["R/31", "G/63", "B/31"]
+        for i, item in enumerate(self.items):
+            x = int(222/2 * (i * 0.5)) + int(222 / 5) #this needs to be looked at
+            y = int(20 + FONT.HEIGHT + 5)
+            if i == self.cursor_index:
+                self.menu.display.bitmap_text(FONT, str(item), x, y + FONT.HEIGHT, 16777215)
+            else:
+                self.menu.display.bitmap_text(FONT, str(item), x, y + FONT.HEIGHT, 16777215)
+            self.menu.display.bitmap_text(FONT, str(rgb_text[i]), x, y, color[i])
+            
+            # draw pointer
+        for i in range(0,16):
+            self.menu.display.hline(
+                x = (78 - i) + (44 * self.cursor_index),
+                y = 94 + i,
+                length = 2 + (i*2),
+                color = mh.combine_color565(self.items[0],self.items[1],self.items[2]))
+            self.menu.display.fill_rect(62 + (44 * self.cursor_index), 110, 34, 8, mh.combine_color565(self.items[0],self.items[1],self.items[2]))
+            
 # class bool_item:
-#     def __init__(self, menu, text: str = None, BOOL: bool = False, x_pos: int = 0, y_pos: int = 0, selected: bool = False, callback: callable = None):
-#         self.BOOL = BOOL
-#         self.menu = menu
-#         self.selected = selected
-#         self.text = text
-#         self.x_pos = x_pos
-#         self.y_pos = y_pos
-#         self.callback = callback
-#     
-#     def draw(self):
-#         draw_right_text(self.menu, str(self.BOOL), self.y_pos)
-#         draw_left_text(self.menu, self.text, self.y_pos, self.selected)
-#         self.menu.display.hline(0, self.y_pos, _DISPLAY_WIDTH, CONFIG.palette[3])
-# 
-#     def handle_input(self, key):
-#         if (key == "GO" or key == "ENT"):
-#             self.BOOL = not self.BOOL
-#             #self.menu.beep.play((("C3","E3","D3"),"D4","C4"), 100, CONFIG['volume'])
-#             self.draw()
-#             if self.callback != None:
-#                 self.callback(self, self.BOOL)
 
 class RGB_item:
     def __init__(self, menu, text: str = None, items: list = [], x_pos: int = 0, y_pos: int = 0, selected: bool = False, callback: callable = None):
@@ -263,10 +314,10 @@ class RGB_item:
             x = int(222/2 * (i * 0.5)) + int(222 / 5) #this needs to be looked at
             y = int(20 + FONT.HEIGHT + 5)
             if i == self.cursor_index:
-                self.menu.display.bitmap_text(FONT, str(item), x, y + FONT.HEIGHT, 16777215)#, 0)
+                self.menu.display.bitmap_text(FONT, str(item), x, y + FONT.HEIGHT, 16777215)
             else:
-                self.menu.display.bitmap_text(FONT, str(item), x, y + FONT.HEIGHT, 16777215)#, CONFIG['bg_color'])
-            self.menu.display.bitmap_text(FONT, str(rgb_text[i]), x, y, color[i])#, CONFIG['bg_color'])
+                self.menu.display.bitmap_text(FONT, str(item), x, y + FONT.HEIGHT, 16777215)
+            self.menu.display.bitmap_text(FONT, str(rgb_text[i]), x, y, color[i])
             
             # draw pointer
         for i in range(0,16):
@@ -279,69 +330,7 @@ class RGB_item:
         
         
     
-    def handle_input(self, key):
-        max_range = [31, 63, 31]
-        self.menu.in_submenu = True
-        if (key == 'RIGHT' or key == "/"):
-            self.cursor_index += 1
-            #if self.menu.ui_sound:
-            #    self.menu.beep.play(("D3","C3"), 100, self.menu.volume)
-            if self.cursor_index >= len(self.items):
-                self.cursor_index = 0
-                
-        elif (key == "LEFT" or key == ","):
-            self.cursor_index -= 1
-            #if self.menu.ui_sound:
-            #    self.menu.beep.play(("E3","C3"), 100, self.menu.volume)
-            if self.cursor_index < 0:
-                self.cursor_index = len(self.items) - 1
-                
-        elif (key == "UP" or key == ";"):
-            self.items[self.cursor_index] += 1
-            #if self.menu.ui_sound:
-            #    self.menu.beep.play(("C3","A3"), 80, self.menu.volume)
-            if self.items[self.cursor_index] > max_range[self.cursor_index]:
-                self.items[self.cursor_index] = 0
-                
-        elif (key == "DOWN" or key == "."):
-            self.items[self.cursor_index] -= 1
-            #if self.menu.ui_sound:
-            #    self.menu.beep.play(("C3","A3"), 80, self.menu.volume)
-            if self.items[self.cursor_index] < 0:
-                self.items[self.cursor_index] = max_range[self.cursor_index]
-                
-        elif (key == "GO" or key == "ENT") and self.in_item != False:
-            self.menu.in_submenu = False
-            self.in_item = False
-            self.menu.display_menu()
-            if self.callback != None:
-                self.callback(self, self.items)
-                #self.menu.beep.play(("C4","D4","E4"), 50, self.menu.volume)
-            return
-            
-        self.in_item = True
-        self.draw_rgb_win()
 
-# class do_item:
-#     def __init__(self, menu, text: str = None, x_pos: int = 0, y_pos: int = 0, selected: bool = False, callback: callable = None):
-#         self.menu = menu
-#         self.selected = selected
-#         self.text = text
-#         self.x_pos = x_pos
-#         self.y_pos = y_pos
-#         self.callback = callback
-# 
-#     def draw(self):
-#         if self.selected:
-#             TEXT = "< {} >".format(self.text)
-#             self.menu.display.bitmap_text(FONT, TEXT, _DISPLAY_WIDTH_CENTER - get_text_center(TEXT, FONT), self.y_pos, CONFIG['ui_color'])#, CONFIG.palette[3])
-#         else:
-#             self.menu.display.bitmap_text(FONT, self.text, _DISPLAY_WIDTH_CENTER - get_text_center(self.text, FONT), self.y_pos, CONFIG['ui_color'])#, CONFIG['bg_color'])
-#         
-#     def handle_input(self, key):
-#         if self.callback != None:
-#             self.callback(self)
-#             #self.menu.beep.play(("C4","D4","E4"), 50, self.menu.volume)
 
 class int_select_item:
     def __init__(self, menu, init_int, min_int, max_int, text: str = None, x_pos: int = 0, y_pos: int = 0, selected: bool = False, callback: callable = None):

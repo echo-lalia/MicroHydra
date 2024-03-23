@@ -60,8 +60,8 @@ def save_conf(caller):
     print("save config: ", config)
 
 menu.append(HydraMenu.int_select_item(menu, config["volume"], 0, 10, "volume", callback=change_vol))
-menu.append(HydraMenu.RGB_item(menu, "ui_color", ui_rgb, callback=rgb_change))
-menu.append(HydraMenu.RGB_item(menu, "bg_color", bg_rgb, callback=rgb_change))
+menu.append(HydraMenu.RGBItem(menu, "ui_color", ui_rgb, callback=rgb_change))
+menu.append(HydraMenu.RGBItem(menu, "bg_color", bg_rgb, callback=rgb_change))
 menu.append(HydraMenu.write_item(menu, "wifi_ssid", config["wifi_ssid"], callback=change_ssd))
 menu.append(HydraMenu.write_item(menu, "wifi_pass", config["wifi_pass"], hide=True, callback=change_wifi_pass))
 menu.append(HydraMenu.BoolItem(menu, "sync_clock", config["sync_clock"], callback=sync_clock))
