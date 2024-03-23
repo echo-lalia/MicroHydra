@@ -161,7 +161,7 @@ def darker_color565(color,mix_factor=0.5):
     return combine_color565(r,g,b)
 
 
-def lighter_color565(color,mix_factor=0.5):
+def lighter_color565(color,mix_factor=0.2):
     """
     Get the lighter version of a 565 color.
     """
@@ -173,7 +173,7 @@ def lighter_color565(color,mix_factor=0.5):
     h,s,v = rgb_to_hsv(r,g,b)
     
     #higher sat value is percieved as darker
-    s *= 1 - mix_factor
+    s *= 1 - (mix_factor / 2)
     v *= 1 + mix_factor
     
     #convert back to rgb floats
