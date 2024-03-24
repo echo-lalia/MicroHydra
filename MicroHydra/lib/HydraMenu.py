@@ -1,4 +1,4 @@
-import math, array
+import math, array, time
 from lib import microhydra as mh
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ CONSTANT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -28,6 +28,8 @@ _SMALL_FONT_WIDTH_HALF = const(_SMALL_FONT_WIDTH//2)
 
 _PER_PAGE = const(_DISPLAY_HEIGHT//_FONT_HEIGHT)
 _Y_PADDING = const( (_DISPLAY_HEIGHT - (_PER_PAGE*_FONT_HEIGHT)) // 2)
+
+_SCROLL_MS = const(200)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GLOBAL ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # global config will provide default stylings
@@ -71,8 +73,12 @@ class Menu:
         DISPLAY = display_fbuf
         self.items = []
         self.cursor_index = 0
-        self.prev_cursor_index = 0
+        
+        self.prev_screen_index = 0
         self.setting_screen_index = 0
+        #elf.exact_screen_index = 0.0
+        self.scroll_start_ms = time.ticks_ms()
+        
         self.per_page = per_page
         self.y_padding = y_padding
         self.in_submenu = False
@@ -82,19 +88,40 @@ class Menu:
     def append(self, item):
         self.items.append(item)
 
+    def get_animated_y(self):
+        distance = (self.setting_screen_index - self.prev_screen_index) * FONT.HEIGHT
+        fac = time.ticks_diff(time.ticks_ms(), self.scroll_start_ms) / _SCROLL_MS
+        if fac >= 1:
+            return 0
+        fac = ease_in_out(fac)
+        return int((1-fac)*distance)
+        
+
     def display_menu(self):
+        if self.in_submenu:
+            return
+        
         if self.cursor_index >= self.setting_screen_index + self.per_page:
+            self.prev_screen_index = self.setting_screen_index
             self.setting_screen_index += self.cursor_index - (self.setting_screen_index + (self.per_page - 1))
+            self.scroll_start_ms = time.ticks_ms()
 
         elif self.cursor_index < self.setting_screen_index:
+            self.prev_screen_index = self.setting_screen_index
             self.setting_screen_index -= self.setting_screen_index - self.cursor_index
+            self.scroll_start_ms = time.ticks_ms()
         
         DISPLAY.fill(CONFIG['bg_color'])
         
-        visible_items = self.items[self.setting_screen_index:self.setting_screen_index+self.per_page]
+        anim_y = self.get_animated_y()
+
+        if anim_y == 0:
+            visible_range = range(self.setting_screen_index, self.setting_screen_index + self.per_page)
+        else:
+            visible_range = range(self.setting_screen_index-1, self.setting_screen_index + self.per_page+1)
         
-        for i in range(self.setting_screen_index, self.setting_screen_index + self.per_page):
-            y = self.y_padding + (i - self.setting_screen_index) * FONT.HEIGHT
+        for i in visible_range:
+            y = self.y_padding + anim_y + (i - self.setting_screen_index) * FONT.HEIGHT
             if i <= len(self.items) - 1:
                 if i == self.cursor_index:
                     self.items[i].selected = 1
@@ -233,7 +260,7 @@ class RGBItem(MenuItem):
         selected:bool=False,
         callback:callable|None=None
         ):
-        super().__init__(menu=menu, text=text, value=value, selected=selected, callback=callback)
+        super().__init__(menu=menu, text=text, value=list(mh.separate_color565(value)), selected=selected, callback=callback)
         self.in_item = False
         self.cursor_index = 0
     
@@ -282,10 +309,8 @@ class RGBItem(MenuItem):
         for i, item in enumerate(self.value):
             x = _CENTERED_X[i]
             if i == self.cursor_index:
-                #DISPLAY.bitmap_text(FONT, str(item), x, y, 65535)
                 draw_centered_text(str(item), x, _RGB_INPUT_Y, CONFIG.palette[6], font=FONT)
             else:
-                #DISPLAY.bitmap_text(FONT, str(item), x, y, CONFIG.palette[5])
                 draw_centered_text(str(item), x, _RGB_INPUT_Y, CONFIG.palette[5], font=FONT)
             draw_centered_text(str(rgb_text[i]), x, _RGB_HINT_Y, _RGB[i])
             
@@ -489,6 +514,11 @@ def draw_right_text(text:str, y_pos:int, selected=False):
         DISPLAY.text((text), x, y_pos+_RIGHT_TEXT_Y, CONFIG.palette[4])
     else:
         DISPLAY.text((text), x, y_pos+_RIGHT_TEXT_Y, CONFIG.palette[3])
+        
+        
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Math Functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+def ease_in_out(x):
+    return -(math.cos(math.pi * x) - 1) / 2
 
 if __name__ == '__main__':
     # just for testing!
