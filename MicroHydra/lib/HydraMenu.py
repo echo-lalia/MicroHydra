@@ -93,7 +93,7 @@ class Menu:
         fac = time.ticks_diff(time.ticks_ms(), self.scroll_start_ms) / _SCROLL_MS
         if fac >= 1:
             return 0
-        fac = ease_in_out(fac)
+        fac = ease_out(fac)
         return int((1-fac)*distance)
         
 
@@ -179,8 +179,8 @@ class MenuItem:
         text:str,
         value:bool|str|int,
         selected:bool=False,
-        callback:callable|None=None
-        ):
+        callback:callable|None=None,
+        **kwargs):
         self.menu = menu
         self.text = text
         self.value = value
@@ -517,8 +517,8 @@ def draw_right_text(text:str, y_pos:int, selected=False):
         
         
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Math Functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-def ease_in_out(x):
-    return -(math.cos(math.pi * x) - 1) / 2
+def ease_out(x):
+    return 1 - ((1 - x) ** 3)
 
 if __name__ == '__main__':
     # just for testing!
