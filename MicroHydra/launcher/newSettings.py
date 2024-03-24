@@ -27,8 +27,7 @@ bg_rgb = [r,g,b]
 r,g,b = mh.separate_color565(config["ui_color"])
 ui_rgb = [r,g,b]
 
-def rgb_change(caller, rgb: list):
-    color = mh.combine_color565(rgb[0],rgb[1],rgb[2])
+def rgb_change(caller, color):
     if caller.text == "ui_color":
         config["ui_color"] = color
     if caller.text == "bg_color":
@@ -59,13 +58,13 @@ def save_conf(caller):
     config.save()
     print("save config: ", config)
 
-menu.append(HydraMenu.int_select_item(menu, config["volume"], 0, 10, "volume", callback=change_vol))
+menu.append(HydraMenu.IntItem(menu, "volume", config["volume"], min_int=0, max_int=10, callback=change_vol))
 menu.append(HydraMenu.RGBItem(menu, "ui_color", ui_rgb, callback=rgb_change))
 menu.append(HydraMenu.RGBItem(menu, "bg_color", bg_rgb, callback=rgb_change))
-menu.append(HydraMenu.write_item(menu, "wifi_ssid", config["wifi_ssid"], callback=change_ssd))
-menu.append(HydraMenu.write_item(menu, "wifi_pass", config["wifi_pass"], hide=True, callback=change_wifi_pass))
+menu.append(HydraMenu.WriteItem(menu, "wifi_ssid", config["wifi_ssid"], callback=change_ssd))
+menu.append(HydraMenu.WriteItem(menu, "wifi_pass", config["wifi_pass"], hide=True, callback=change_wifi_pass))
 menu.append(HydraMenu.BoolItem(menu, "sync_clock", config["sync_clock"], callback=sync_clock))
-menu.append(HydraMenu.int_select_item(menu, config["timezone"], -13, 13, "timezone", callback=change_timezone))
+menu.append(HydraMenu.IntItem(menu, "timezone", config["timezone"], min_int=-13, max_int=13, callback=change_timezone))
 menu.append(HydraMenu.DoItem(menu, "Confirm", callback=save_conf))
 
 menu.display_menu()
