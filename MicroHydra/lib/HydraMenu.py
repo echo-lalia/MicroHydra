@@ -437,20 +437,20 @@ class IntItem(MenuItem):
             self.init_value = self.value
         
         if (key == "UP" or key == ";"):
-            play_sound("D4", time_ms=80)
             self.value += 1
             if self.value > self.max_int:
                 self.value = self.min_int
             if self.instant_callback:
                 self.instant_callback(self, self.value)
+            play_sound("D4", time_ms=80)
                 
         elif (key == "DOWN" or key == "."):
-            play_sound("D4", time_ms=80)
             self.value -= 1
             if self.value < self.min_int:
                 self.value = self.max_int
             if self.instant_callback:
                 self.instant_callback(self, self.value)
+            play_sound("D4", time_ms=80)
                 
         elif (key == "GO" or key == "ENT") and self.in_item:
             play_sound(("C4","D4","E4"), time_ms=70)
