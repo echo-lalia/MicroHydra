@@ -46,11 +46,12 @@ BEEP = None
 class Menu:
     """
     args:
-    - display_fbuf (ST7789): st7789fbuf ST7789 object
+    - display_fbuf (ST7789): st7789fbuf.ST7789 object
     - font (module): bitmap font module
-    - sound (M5Sound): M5Sound M5Sound object
+    - beep (Beeper): beeper.Beeper object
     - per_page (int): menu items per page
     - y_padding (int): y padding on first menu item
+    - esc_callback (callable): callback for handling escape from menu screen
     """
     def __init__(self,
                  display_fbuf,
@@ -58,7 +59,8 @@ class Menu:
                  font = None,
                  beep = None,
                  per_page:int = _PER_PAGE,
-                 y_padding:int = _Y_PADDING
+                 y_padding:int = _Y_PADDING,
+                 esc_callback:callable|None=None,
                  ):
         # init global font and config
         global FONT, CONFIG, DISPLAY, BEEP
@@ -86,12 +88,14 @@ class Menu:
         
         self.prev_screen_index = 0
         self.setting_screen_index = 0
-        #elf.exact_screen_index = 0.0
+
         self.scroll_start_ms = time.ticks_ms()
         
         self.per_page = per_page
         self.y_padding = y_padding
         self.in_submenu = False
+        
+        self.esc_callback = esc_callback
     
     def append(self, item):
         self.items.append(item)
@@ -179,6 +183,12 @@ class Menu:
         elif key == 'GO' or key == 'ENT':
             play_sound(("B3"), time_ms=120)
             return (self.items[self.cursor_index].handle_input("GO"))
+        
+        elif key == '`' or key == "ESC":
+            # pass control back when menu is backed out of.
+            if self.esc_callback:
+                play_sound((("C3","E3","D3"),"D4","C4"), time_ms=100)
+                self.esc_callback(self)
 
 
 # -----------------------------------------------------------------------------------------------------------
@@ -233,7 +243,7 @@ class BoolItem(MenuItem):
         callback:callable|None=None
         ):
         super().__init__(menu=menu, text=text, value=value, selected=selected, callback=callback)
-        
+    
     def handle_input(self, key):
         if (key == "GO" or key == "ENT"):
             self.value = not self.value
@@ -241,7 +251,7 @@ class BoolItem(MenuItem):
             self.draw()
             if self.callback != None:
                 self.callback(self, self.value)
-
+    
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Do Item ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class DoItem(MenuItem):
     """Item for creating 'action' buttons"""
@@ -254,7 +264,7 @@ class DoItem(MenuItem):
         callback:callable|None=None
         ):
         super().__init__(menu=menu, text=text, value=None, selected=selected, callback=callback)
-        
+    
     def draw(self):
         if self.selected:
             TEXT = f"< {self.text} >"
@@ -263,7 +273,7 @@ class DoItem(MenuItem):
             DISPLAY.bitmap_text(FONT, self.text, _DISPLAY_WIDTH_CENTER - get_text_center(self.text, FONT), self.y_pos, CONFIG.palette[4])
         DISPLAY.hline(0, self.y_pos, _DISPLAY_WIDTH, CONFIG.palette[2])
         DISPLAY.hline(0, self.y_pos+_FONT_HEIGHT-1, _DISPLAY_WIDTH, CONFIG.palette[0])
-        
+    
     def handle_input(self, key):
         play_sound(("C4","C5"), time_ms=100)
         if self.callback:
@@ -479,7 +489,7 @@ class WriteItem(MenuItem):
                 self.callback(self, self.value)
             return
         
-        elif key == '`' or key == "ESC" and self.in_item:
+        elif key == "ESC" and self.in_item:
             self.value = self.init_value # reset value
             play_sound(("E4","D4","C4"), time_ms=70)
             self.menu.in_submenu = False

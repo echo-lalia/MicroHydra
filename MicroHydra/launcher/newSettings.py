@@ -1,10 +1,12 @@
 from lib import st7789fbuf, keyboard, mhconfig, HydraMenu
-from machine import Pin, SPI, freq
+from machine import Pin, SPI
 from font import vga2_16x32 as font
-import time
+import time, machine
 
-freq(240_000_000)
+# make the animations smooth :)
+machine.freq(240_000_000)
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Globals: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 kb = keyboard.KeyBoard()
 keys = kb.get_new_keys()
 config = mhconfig.Config()
@@ -21,16 +23,26 @@ display = st7789fbuf.ST7789(
     color_order=st7789fbuf.BGR
     )
 
-menu = HydraMenu.Menu(display_fbuf=display, config=config, font=font)
-
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Functions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def update_config(caller, value):
     config[caller.text] = value
     config.generate_palette()
     print(f"config['{caller.text}'] = {value}")
 
+def discard_conf(caller):
+    print("Discard config.")
+    display.fill(0)
+    display.show()
+    time.sleep_ms(10)
+    machine.reset()
+
 def save_conf(caller):
     config.save()
-    print("save config: ", config)
+    print("Save config: ", config.config)
+    display.fill(0)
+    display.show()
+    time.sleep_ms(10)
+    machine.reset()
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Key Repeater: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _KEY_HOLD_MS = const(600)
@@ -65,7 +77,13 @@ class KeyRepeater:
                 self.tracker[key] = time.ticks_ms() - _KEY_REPEAT_DELTA
         
         return keylist
-        
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main body: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Thanks to HydraMenu, the settings app is now pretty small.
+# So, not much point in overcomplicating things:
+
+menu = HydraMenu.Menu(display_fbuf=display, config=config, font=font, esc_callback=discard_conf)
+
 menu_def = [
     (HydraMenu.IntItem, 'volume', {'min_int':0,'max_int':10}),
     (HydraMenu.RGBItem, 'ui_color', {}),
@@ -106,6 +124,7 @@ while True:
     if updating_display:
         updating_display = menu.draw()
         display.show()
+    
     
     if not keys and not updating_display:
         time.sleep_ms(1)
