@@ -85,9 +85,9 @@ class KeyRepeater:
 menu = HydraMenu.Menu(display_fbuf=display, config=config, font=font, esc_callback=discard_conf)
 
 menu_def = [
-    (HydraMenu.IntItem, 'volume', {'min_int':0,'max_int':10}),
-    (HydraMenu.RGBItem, 'ui_color', {}),
-    (HydraMenu.RGBItem, 'bg_color', {}),
+    (HydraMenu.IntItem, 'volume', {'min_int':0,'max_int':10, 'instant_callback':update_config}),
+    (HydraMenu.RGBItem, 'ui_color', {'instant_callback':update_config}),
+    (HydraMenu.RGBItem, 'bg_color', {'instant_callback':update_config}),
     (HydraMenu.WriteItem, 'wifi_ssid', {}),
     (HydraMenu.WriteItem, 'wifi_pass', {'hide':True}),
     (HydraMenu.BoolItem, 'sync_clock', {}),

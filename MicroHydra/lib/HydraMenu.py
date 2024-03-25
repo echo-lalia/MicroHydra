@@ -205,6 +205,27 @@ _LEFT_TEXT_UNSELECTED_X = const(10)
 class MenuItem:
     """
     Parent class for HydraMenu Menu Items.
+    
+    Args:
+    - menu (Menu):
+        Parent Menu of the menu item.
+    - text (str):
+        Display text of the menu item.
+    - value :
+        the value that the menu item controls.
+    - callback (callable):
+        callback to call when menu item is updated. (optional)
+    - instant_callback (callable):
+        callback for any time menu item is changed,
+        even before changes are confirmed. (optional)
+        
+    Additional kwargs:
+    - min_int (int):
+        for IntItems, the minimum allowed value.
+    - max_int (int):
+        for IntItems, the maximum allowed value.
+    - hide (bool):
+        for WriteItems, whether or not to hide entered text.
     """
     def __init__(
         self,
@@ -213,11 +234,14 @@ class MenuItem:
         value:bool|str|int,
         selected:bool=False,
         callback:callable|None=None,
+        instant_callback:callable|None=None,
         **kwargs):
+        
         self.menu = menu
         self.text = text
         self.value = value
         self.callback = callback
+        self.instant_callback = instant_callback
         
     def __repr__(self):
         return repr(self.value)
@@ -240,8 +264,9 @@ class BoolItem(MenuItem):
         text:str,
         value:bool,
         selected:bool=False,
-        callback:callable|None=None
-        ):
+        callback:callable|None=None,
+        **kwargs):
+        
         super().__init__(menu=menu, text=text, value=value, selected=selected, callback=callback)
     
     def handle_input(self, key):
@@ -261,8 +286,9 @@ class DoItem(MenuItem):
         text:str,
         value:None=None,
         selected:bool=False,
-        callback:callable|None=None
-        ):
+        callback:callable|None=None,
+        **kwargs):
+        
         super().__init__(menu=menu, text=text, value=None, selected=selected, callback=callback)
     
     def draw(self):
@@ -292,9 +318,11 @@ class RGBItem(MenuItem):
         text:str,
         value:int,
         selected:bool=False,
-        callback:callable|None=None
-        ):
-        super().__init__(menu=menu, text=text, value=list(mh.separate_color565(value)), selected=selected, callback=callback)
+        callback:callable|None=None,
+        instant_callback:callable|None=None,
+        **kwargs):
+        
+        super().__init__(menu=menu, text=text, value=list(mh.separate_color565(value)), selected=selected, callback=callback, instant_callback=instant_callback)
         self.in_item = False
         self.cursor_index = 0
         self.init_value = list(mh.separate_color565(value))
@@ -322,11 +350,15 @@ class RGBItem(MenuItem):
             play_sound("D4", time_ms=80)
             self.value[self.cursor_index] += 1
             self.value[self.cursor_index] %= _MAX_RANGE[self.cursor_index]
+            if self.instant_callback:
+                self.instant_callback(self, mh.combine_color565(self.value[0],self.value[1],self.value[2]))
                 
         elif (key == "DOWN" or key == "."):
             play_sound("D4", time_ms=80)
             self.value[self.cursor_index] -= 1
             self.value[self.cursor_index] %= _MAX_RANGE[self.cursor_index]
+            if self.instant_callback:
+                self.instant_callback(self, mh.combine_color565(self.value[0],self.value[1],self.value[2]))
                 
         elif (key == "GO" or key == "ENT") and self.in_item:
             play_sound(("C4","D4","E4"), time_ms=70)
@@ -386,10 +418,12 @@ class IntItem(MenuItem):
         value:int,
         selected:bool=False,
         callback:callable|None=None,
+        instant_callback:callable|None=None,
         min_int:int=0,
-        max_int:int=10
-        ):
-        super().__init__(menu=menu, text=text, value=value, selected=selected, callback=callback)
+        max_int:int=10,
+        **kwargs):
+        
+        super().__init__(menu=menu, text=text, value=value, selected=selected, callback=callback, instant_callback=instant_callback)
         self.in_item = False
         self.min_int = min_int
         self.max_int = max_int
@@ -407,12 +441,16 @@ class IntItem(MenuItem):
             self.value += 1
             if self.value > self.max_int:
                 self.value = self.min_int
+            if self.instant_callback:
+                self.instant_callback(self, self.value)
                 
         elif (key == "DOWN" or key == "."):
             play_sound("D4", time_ms=80)
             self.value -= 1
             if self.value < self.min_int:
                 self.value = self.max_int
+            if self.instant_callback:
+                self.instant_callback(self, self.value)
                 
         elif (key == "GO" or key == "ENT") and self.in_item:
             play_sound(("C4","D4","E4"), time_ms=70)
@@ -452,8 +490,9 @@ class WriteItem(MenuItem):
         value:int,
         selected:bool=False,
         callback:callable|None=None,
-        hide:bool=False
-        ):
+        hide:bool=False,
+        **kwargs):
+        
         super().__init__(menu=menu, text=text, value=value, selected=selected, callback=callback)
         self.in_item = False
         self.hide = hide
