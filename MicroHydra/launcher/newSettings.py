@@ -1,8 +1,9 @@
 from lib import st7789fbuf, keyboard, mhconfig, HydraMenu
-from machine import Pin, SPI, PWM
-from font import vga1_8x16 as small_font
+from machine import Pin, SPI, freq
 from font import vga2_16x32 as font
-from lib import microhydra as mh
+import time
+
+freq(240_000_000)
 
 kb = keyboard.KeyBoard()
 keys = kb.get_new_keys()
@@ -20,62 +21,91 @@ display = st7789fbuf.ST7789(
     color_order=st7789fbuf.BGR
     )
 
-menu = HydraMenu.Menu(display_fbuf=display, font=font)
+menu = HydraMenu.Menu(display_fbuf=display, config=config, font=font)
 
-r,g,b = mh.separate_color565(config["bg_color"])
-bg_rgb = [r,g,b]
-r,g,b = mh.separate_color565(config["ui_color"])
-ui_rgb = [r,g,b]
-
-def rgb_change(caller, rgb: list):
-    color = mh.combine_color565(rgb[0],rgb[1],rgb[2])
-    if caller.text == "ui_color":
-        config["ui_color"] = color
-    if caller.text == "bg_color":
-        config["bg_color"] = color
-    print(caller.text, color)
-
-def sync_clock(caller, BOOL):
-    config["sync_clock"] = BOOL
-    print(caller.text, BOOL)
-
-def change_vol(caller, numb):
-    config["volume"] = numb
-    print(caller.text, numb)
-    
-def change_ssd(caller, text):
-    config["wifi_ssid"] = text
-    print(caller.text, text)
-    
-def change_wifi_pass(caller, text):
-    config["wifi_pass"] = text
-    print(caller.text, text)
-
-def change_timezone(caller, numb):
-    config["timezone"] = numb
-    print(caller.text, numb)
+def update_config(caller, value):
+    config[caller.text] = value
+    config.generate_palette()
+    print(f"config['{caller.text}'] = {value}")
 
 def save_conf(caller):
     config.save()
     print("save config: ", config)
 
-menu.append(HydraMenu.int_select_item(menu, config["volume"], 0, 10, "volume", callback=change_vol))
-menu.append(HydraMenu.RGBItem(menu, "ui_color", ui_rgb, callback=rgb_change))
-menu.append(HydraMenu.RGBItem(menu, "bg_color", bg_rgb, callback=rgb_change))
-menu.append(HydraMenu.write_item(menu, "wifi_ssid", config["wifi_ssid"], callback=change_ssd))
-menu.append(HydraMenu.write_item(menu, "wifi_pass", config["wifi_pass"], hide=True, callback=change_wifi_pass))
-menu.append(HydraMenu.BoolItem(menu, "sync_clock", config["sync_clock"], callback=sync_clock))
-menu.append(HydraMenu.int_select_item(menu, config["timezone"], -13, 13, "timezone", callback=change_timezone))
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Key Repeater: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_KEY_HOLD_MS = const(600)
+_KEY_REPEAT_MS = const(80)
+_KEY_REPEAT_DELTA = const(_KEY_HOLD_MS - _KEY_REPEAT_MS)
+
+class KeyRepeater:
+    """
+    KeyRepeater tracks the time since a key was pressed, and repeats keypresses at a specified interval.
+    """
+    def __init__(self):
+        self.tracker = {}
+        
+    def update_keys(self, keylist):
+        tracked_keys = self.tracker.keys()
+        time_now = time.ticks_ms()
+                
+        # add new keys to tracker
+        for key in keylist:
+            if key not in tracked_keys:
+                self.tracker[key] = time.ticks_ms()
+        
+        
+        for key in tracked_keys:
+            # remove keys that arent being pressed from tracker
+            if key not in kb.key_state:
+                self.tracker.pop(key)
+            
+            # test if keys have been held long enough to repeat
+            elif time.ticks_diff(time_now, self.tracker[key]) >= _KEY_HOLD_MS:
+                keylist.append(key)
+                self.tracker[key] = time.ticks_ms() - _KEY_REPEAT_DELTA
+        
+        return keylist
+        
+menu_def = [
+    (HydraMenu.IntItem, 'volume', {'min_int':0,'max_int':10}),
+    (HydraMenu.RGBItem, 'ui_color', {}),
+    (HydraMenu.RGBItem, 'bg_color', {}),
+    (HydraMenu.WriteItem, 'wifi_ssid', {}),
+    (HydraMenu.WriteItem, 'wifi_pass', {'hide':True}),
+    (HydraMenu.BoolItem, 'sync_clock', {}),
+    (HydraMenu.IntItem, 'timezone', {'min_int':-13,'max_int':13}),
+    ]
+
+# build menu from def
+for i_class, name, kwargs in menu_def:
+    menu.append(
+        i_class(
+            menu,
+            name,
+            config[name],
+            callback=update_config,
+            **kwargs
+            ))
 menu.append(HydraMenu.DoItem(menu, "Confirm", callback=save_conf))
 
-menu.display_menu()
+repeater = KeyRepeater()
 
-display.show()
+updating_display = True
+
 while True:
     keys = kb.get_new_keys()
+    
+    keys = repeater.update_keys(keys)
     
     for key in keys:
         menu.handle_input(key)
     
+    if keys:
+        updating_display = True
+        
+    if updating_display:
+        updating_display = menu.draw()
+        display.show()
     
-    display.show()  
+    if not keys and not updating_display:
+        time.sleep_ms(1)
