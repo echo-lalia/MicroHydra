@@ -1069,48 +1069,6 @@ class ST7789:
 
         
         self.blit_buffer(buffer,x,y,width,height,key=palette[0])
-                
-            
-#     def write(self, font, string, x, y, fg=WHITE, bg=None):
-#         #key out bg when unspecified
-#         key=-1
-#         if bg==None:
-#             if fg == 0:
-#                 bg = 65535
-#                 key = 65535
-#             else:
-#                 bg = 0
-#                 key = 0
-#         buffer_len = font.HEIGHT * font.MAX_WIDTH * 2
-#         buffer = bytearray(buffer_len)
-#         fg_hi = fg >> 8
-#         fg_lo = fg & 0xFF
-#         bg_hi = bg >> 8
-#         bg_lo = bg & 0xFF
-#         for character in string:
-#             try:
-#                 char_index = font.MAP.index(character)
-#                 offset = char_index * font.OFFSET_WIDTH
-#                 bs_bit = font.OFFSETS[offset]
-#                 
-#                 if font.OFFSET_WIDTH > 2:
-#                     bs_bit = (bs_bit << 8) + font.OFFSETS[offset + 2]
-#                 elif font.OFFSET_WIDTH > 1:
-#                     bs_bit = (bs_bit << 8) + font.OFFSETS[offset + 1]
-#                 char_width = font.WIDTHS[char_index]
-#                 buffer_needed = char_width * font.HEIGHT * 2
-#                 for i in range(0, buffer_needed, 2):
-#                     if font.BITMAPS[bs_bit // 8] & 1 << (7 - (bs_bit % 8)) > 0:
-#                         buffer[i] = fg_hi
-#                         buffer[i + 1] = fg_lo
-#                     else:
-#                         buffer[i] = bg_hi
-#                         buffer[i + 1] = bg_lo
-#                     bs_bit += 1
-#                 self.blit_buffer(buffer,x,y,char_width,font.HEIGHT,key=key)
-#                 x += char_width
-#             except ValueError:
-#                 pass
 
     def write(self, font, string, x, y, fg=WHITE):
         """

@@ -1,5 +1,5 @@
 from machine import I2S, Pin
-import math, _thread
+import math
 
 _SCK_PIN = const(41)
 _WS_PIN = const(43)
@@ -54,7 +54,7 @@ tone_map = {
 }
 
 class Beeper:
-    def __init__(self, buf_size=5000):
+    def __init__(self, buf_size=4000):
         
         self._output = I2S(            
             _I2S_ID,
