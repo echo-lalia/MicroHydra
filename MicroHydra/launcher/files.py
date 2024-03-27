@@ -1,4 +1,4 @@
-from lib import st7789fbuf, mhconfig, mhoverlay, keyboard
+from lib import st7789fbuf, mhconfig, mhoverlay, keyboard, beeper
 from font import vga2_16x32 as font
 import os, machine, time, math
 
@@ -46,6 +46,7 @@ tft = st7789fbuf.ST7789(
 
 config = mhconfig.Config()
 overlay = mhoverlay.UI_Overlay(config, kb, display_fbuf=tft)
+beep = beeper.Beeper()
 
 sd = None
 
@@ -190,19 +191,24 @@ def ext_options(overlay):
     cwd = os.getcwd()
     option = overlay.popup_options(("New Directory", "New File", "Refresh"), title=f"{cwd}:")
     if option == "New Directory":
+        play_sound(("D3"), 30)
         name = overlay.text_entry(title="Directory name:", blackout_bg=True)
+        play_sound(("G3"), 30)
         try:
             os.mkdir(name)
         except Exception as e:
             overlay.error(e)
     elif option == "New File":
+        play_sound(("B3"), 30)
         name = overlay.text_entry(title="File name:", blackout_bg=True)
+        play_sound(("G3"), 30)
         try:
             with open(name, "w") as newfile:
                 newfile.write("")
         except Exception as e:
             overlay.error(e)
     elif option == "Refresh":
+        play_sound(("B3","G3","D3"), 30)
         os.sync()
         mount_sd()
 
@@ -212,9 +218,11 @@ def file_options(file, overlay):
     option = overlay.popup_options(options, title=f'"{file}":')
     
     if option == "open":
+        play_sound(("G3"), 30)
         open_file(file)
     elif option == "copy":
         new_name = overlay.text_entry(start_value=file, title=f"Rename '{file}':", blackout_bg=True)
+        play_sound(("D3","G3","D3"), 30)
         with open(file,"rb") as source:
             with open(new_name, "wb") as dest:
                 while True:
@@ -223,12 +231,15 @@ def file_options(file, overlay):
                     dest.write(l)
         
     elif option == "rename":
+        play_sound(("B3"), 30)
         new_name = overlay.text_entry(start_value=file, title=f"Rename '{file}':", blackout_bg=True)
         os.rename(file,new_name)
         
     elif option == "delete":
+        play_sound(("D3"), 30)
         confirm = overlay.popup_options(("cancel", "confirm"), title=f'Delete "{file}"?', extended_border=True)
         if confirm == "confirm":
+            play_sound(("D3","B3","G3","G3"), 30)
             os.remove(file)
 
 
@@ -254,6 +265,10 @@ def open_file(file):
     rtc.memory(full_path)
     time.sleep_ms(10)
     machine.reset()
+    
+def play_sound(notes, time_ms=30):
+    if config['ui_sound']:
+        beep.play(notes, time_ms, config['volume'])
 
 def main_loop(tft, kb, config, overlay):
     
@@ -268,9 +283,12 @@ def main_loop(tft, kb, config, overlay):
         for key in new_keys:
             if key == ";":
                 view.up()
+                play_sound(("G3","B3"), 30)
             elif key == ".":
                 view.down()
+                play_sound(("D3","B3"), 30)
             elif key == "ENT" or key == "GO":
+                play_sound(("G3","B3","D3"), 30)
                 selection_name = file_list[view.cursor_index]
                 if selection_name == "/.../": # new file
                     ext_options(overlay)
@@ -296,16 +314,17 @@ def main_loop(tft, kb, config, overlay):
                         view.clamp_cursor()
                         
             elif key ==  "BSPC" or key == "`":
-                    # previous directory
-                    if os.getcwd() == "/sd":
-                        os.chdir("/")
-                    else:
-                        os.chdir("..")
-                    file_list, dir_dict = parse_files()
-                    view.items = file_list
-                    view.dir_dict = dir_dict
-                    view.cursor_index = 0
-                    view.view_index = 0
+                play_sound(("D3","B3","G3"), 30)
+                # previous directory
+                if os.getcwd() == "/sd":
+                    os.chdir("/")
+                else:
+                    os.chdir("..")
+                file_list, dir_dict = parse_files()
+                view.items = file_list
+                view.dir_dict = dir_dict
+                view.cursor_index = 0
+                view.view_index = 0
         
         view.draw()
         tft.show()
