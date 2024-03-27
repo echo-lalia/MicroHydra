@@ -187,18 +187,18 @@ class Menu:
         
         elif key == 'UP' or key == ';':
             self.cursor_index = (self.cursor_index - 1) % len(self.items)
-            play_sound(("E4","C4"))
+            play_sound(("G3","B3"), time_ms=30)
             return True
             #self.draw()
 
         elif key == 'DOWN' or key == '.':
             self.cursor_index = (self.cursor_index + 1) % len(self.items)
-            play_sound(("D4","C4"))
+            play_sound(("B3","D3"), time_ms=30)
             return True
             #self.draw()
         
         elif key == 'GO' or key == 'ENT':
-            play_sound(("B3"), time_ms=120)
+            play_sound(("G3","B3","D3"), time_ms=30)
             return (self.items[self.cursor_index].handle_input("GO"))
         
         elif key == '`' or key == "ESC":
@@ -323,7 +323,7 @@ class DoItem(MenuItem):
         DISPLAY.hline(0, self.y_pos+_FONT_HEIGHT-1, _DISPLAY_WIDTH, CONFIG.palette[0])
     
     def handle_input(self, key):
-        play_sound(("C4","C5"), time_ms=100)
+        play_sound(("C3","E3","G3",("E3","G3","C3")), time_ms=30)
         if self.callback:
             self.callback(self)
 
@@ -364,17 +364,17 @@ class RGBItem(MenuItem):
             
         self.menu.in_submenu = True
         if (key == 'RIGHT' or key == "/"):
-            play_sound(("C3","A3"), time_ms=100)
+            play_sound(("A3","C3"), time_ms=30)
             self.cursor_index = (self.cursor_index + 1) % 3
             input_accepted = True
                 
         elif (key == "LEFT" or key == ","):
-            play_sound(("C3","A3"), time_ms=100)
+            play_sound(("F3","A3"), time_ms=30)
             self.cursor_index = (self.cursor_index - 1) % 3
             input_accepted = True
                 
         elif (key == "UP" or key == ";"):
-            play_sound("D4", time_ms=80)
+            play_sound("D3", time_ms=30)
             self.value[self.cursor_index] += 1
             self.value[self.cursor_index] %= _MAX_RANGE[self.cursor_index]
             if self.instant_callback:
@@ -382,7 +382,7 @@ class RGBItem(MenuItem):
             input_accepted = True
                 
         elif (key == "DOWN" or key == "."):
-            play_sound("D4", time_ms=80)
+            play_sound("C3", time_ms=30)
             self.value[self.cursor_index] -= 1
             self.value[self.cursor_index] %= _MAX_RANGE[self.cursor_index]
             if self.instant_callback:
@@ -390,7 +390,7 @@ class RGBItem(MenuItem):
             input_accepted = True
                 
         elif (key == "GO" or key == "ENT") and self.in_item:
-            play_sound(("C4","D4","E4"), time_ms=70)
+            play_sound(("F3","A3","C4"), time_ms=30)
             self.menu.in_submenu = False
             self.in_item = False
             #self.menu.draw()
@@ -400,7 +400,7 @@ class RGBItem(MenuItem):
             
         elif key == '`' or key == "ESC" and self.in_item:
             self.value = self.init_value.copy() # reset value
-            play_sound(("E4","D4","C4"), time_ms=70)
+            play_sound(("A3","F3","C3"), time_ms=30)
             self.menu.in_submenu = False
             self.in_item = False
             #self.menu.draw()
@@ -476,7 +476,7 @@ class IntItem(MenuItem):
                 self.value = self.min_int
             if self.instant_callback:
                 self.instant_callback(self, self.value)
-            play_sound("D4", time_ms=80)
+            play_sound("G3", time_ms=30)
                 
         elif (key == "DOWN" or key == "."):
             self.value -= 1
@@ -484,10 +484,10 @@ class IntItem(MenuItem):
                 self.value = self.max_int
             if self.instant_callback:
                 self.instant_callback(self, self.value)
-            play_sound("D4", time_ms=80)
+            play_sound("E3", time_ms=30)
                 
         elif (key == "GO" or key == "ENT") and self.in_item:
-            play_sound(("C4","D4","E4"), time_ms=70)
+            play_sound(("E3","G3","B4"), time_ms=30)
             self.menu.in_submenu = False
             self.in_item = False
             self.menu.draw()
@@ -497,7 +497,7 @@ class IntItem(MenuItem):
         
         elif key == '`' or key == "ESC" and self.in_item:
             self.value = self.init_value # reset value
-            play_sound(("E4","D4","C4"), time_ms=70)
+            play_sound(("B4","G3","E3"), time_ms=20)
             self.menu.in_submenu = False
             self.in_item = False
             self.menu.draw()
@@ -554,7 +554,7 @@ class WriteItem(MenuItem):
             self.init_value = self.value
         
         if (key == "GO" or key == "ENT") and self.in_item:
-            play_sound(("C4","D4","E4"), time_ms=70)
+            play_sound(("A3","C4","E4"), time_ms=30)
             self.menu.in_submenu = False
             self.in_item = False
             self.menu.draw()
@@ -564,22 +564,22 @@ class WriteItem(MenuItem):
         
         elif key == "ESC" and self.in_item:
             self.value = self.init_value # reset value
-            play_sound(("E4","D4","C4"), time_ms=70)
+            play_sound(("A3","E3","C3"), time_ms=30)
             self.menu.in_submenu = False
             self.in_item = False
             self.menu.draw()
             return
         
         elif key == "SPC":
-            play_sound("F4", time_ms=70)
+            play_sound("E3", time_ms=30)
             self.value += " "
             
         elif len(key) == 1:
-            play_sound("F4", time_ms=70)
+            play_sound("A3", time_ms=30)
             self.value += key
             
         elif key == "BSPC":
-            play_sound("E4", time_ms=70)
+            play_sound(("C4","C3"), time_ms=30)
             self.value = self.value[:-1]
             
         self.in_item = True
@@ -728,4 +728,4 @@ def ease_out(x):
 
 if __name__ == '__main__':
     # just for testing!
-    from launcher import testpysettings
+    from launcher import settings

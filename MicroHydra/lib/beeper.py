@@ -50,7 +50,19 @@ tone_map = {
 "GS5": 831,
 "A5": 880,
 "AS5": 932,
-"B5": 988
+"B5": 988,
+"C6": 1046,
+"CS6": 1109,
+"D6": 1175,
+"DS6": 1245,
+"E6": 1319,
+"F6": 1397,
+"FS6": 1480,
+"G6": 1568,
+"GS6": 1661,
+"A6": 1760,
+"AS6": 1865,
+"B6": 1976,
 }
 
 class Beeper:
@@ -79,7 +91,7 @@ class Beeper:
         
         
     @micropython.viper
-    def gen_square_wave(self, frequency:int, time_ms:int, high_sample:int) -> int:
+    def gen_square_wave(self, frequency:int, time_ms:int, high_sample:int, max_bytes:int) -> int:
         """
         Rough micropython viper method for generating a square wave. Wave it put in self._buf,
         and returns the end index of the gennerated wave in _buf
@@ -98,18 +110,22 @@ class Beeper:
         #total_repetitions = total_samples // (samples_per_segment * 2) 
         number_of_bytes = total_samples * 2
         #this is needed in case our samples per segment overshoots our actual bytearray size
-        byte_safe_ending = number_of_bytes - (samples_per_segment * 32)
+        #byte_safe_ending = number_of_bytes - (samples_per_segment + samples_per_segment_low * 32)
+        if number_of_bytes > max_bytes:
+            number_of_bytes = max_bytes
         
         written_bytes = 0
         high_sample_counter = 0
         low_sample_counter = 0
-        while written_bytes < byte_safe_ending: #write samples until total samples written
+        while written_bytes < number_of_bytes: #write samples until total samples written
             
             #write high samples
             while high_sample_counter < samples_per_segment:
                 self._buf[written_bytes] = high_sample 
                 written_bytes += 1
                 high_sample_counter += 1
+            
+            
             
             #write low samples
             while low_sample_counter < samples_per_segment_low:
@@ -126,7 +142,7 @@ class Beeper:
     
     
     @micropython.viper
-    def double_square_wave(self, frequency1:int, frequency2:int, time_ms:int, high_sample:int) -> int:
+    def double_square_wave(self, frequency1:int, frequency2:int, time_ms:int, high_sample:int, max_bytes:int) -> int:
         """
         This is the same as self.gen_square_wave, except it has been refactored to play two frequencies together.
         """
@@ -147,8 +163,9 @@ class Beeper:
         number_of_bytes = total_samples * 2
         
         #this is needed in case our samples per segment overshoots our actual bytearray size
-        byte_safe_ending = number_of_bytes - (samples_per_segment1 * 32)
-        
+        #byte_safe_ending = number_of_bytes - (samples_per_segment1 * 32)
+        if number_of_bytes > max_bytes:
+            number_of_bytes = max_bytes
         
         
         written_bytes = 0
@@ -159,8 +176,7 @@ class Beeper:
         high_sample_counter2 = 0
         low_sample_counter2 = 0
         high_sample2 = True
-        while written_bytes < byte_safe_ending: #write samples until total samples written
-            
+        while written_bytes < number_of_bytes: #write samples until total samples written
 
             this_sample = 0
             #calc sample1
@@ -198,7 +214,7 @@ class Beeper:
         return written_bytes
 
     @micropython.viper
-    def triple_square_wave(self, frequency1:int, frequency2:int, frequency3:int, time_ms:int, high_sample:int) -> int:
+    def triple_square_wave(self, frequency1:int, frequency2:int, frequency3:int, time_ms:int, high_sample:int, max_bytes:int) -> int:
         """
         This is the same as self.gen_square_wave/self.double_square_wave,
         except it has been refactored to play three frequencies together.
@@ -222,7 +238,9 @@ class Beeper:
         total_samples = _SAMPLE_RATE_PER_MS * time_ms
         number_of_bytes = total_samples * 2
         #this is needed in case our samples per segment overshoots our actual bytearray size
-        byte_safe_ending = number_of_bytes - (samples_per_segment1 * 32)
+        #byte_safe_ending = number_of_bytes - (samples_per_segment1 * 32)
+        if number_of_bytes > max_bytes:
+            number_of_bytes = max_bytes
         
         written_bytes = 0
         high_sample_counter = 0
@@ -236,7 +254,7 @@ class Beeper:
         high_sample_counter3 = 0
         low_sample_counter3 = 0
         high_sample3 = True
-        while written_bytes < byte_safe_ending: #write samples until total samples written
+        while written_bytes < number_of_bytes: #write samples until total samples written
             
             this_sample = 0
             #calc sample1
@@ -288,12 +306,12 @@ class Beeper:
         """Simply play the given frequency"""
         high_sample = volume_map[volume]
 
-        while time_ms * 32 > self.buf_size:
-            time_ms -= self.buf_size // 32
-            written_samples = self.gen_square_wave(freq, self.buf_size // 32, high_sample)
-            self._output.write(self._mv[0:written_samples])
+        #while time_ms * 64 > self.buf_size:
+        #    time_ms -= self.buf_size // 64
+        #    written_samples = self.gen_square_wave(freq, self.buf_size // 64, high_sample)
+        #    self._output.write(self._mv[0:written_samples])
 
-        written_samples = self.gen_square_wave(freq, time_ms, high_sample)
+        written_samples = self.gen_square_wave(freq, time_ms, high_sample, self.buf_size //2)
         self._output.write(self._mv[0:written_samples])
         
     @micropython.native 
@@ -301,12 +319,12 @@ class Beeper:
         """Simply play the two given frequencies"""
         high_sample = volume_map[volume]
 
-        while time_ms * 32 > self.buf_size:
-            time_ms -= self.buf_size // 32
-            written_samples = self.double_square_wave(freq, freq2, self.buf_size // 32, high_sample)
-            self._output.write(self._mv[0:written_samples])
+#         while time_ms * 64 > self.buf_size:
+#             time_ms -= self.buf_size // 64
+#             written_samples = self.double_square_wave(freq, freq2, self.buf_size // 64, high_sample)
+#             self._output.write(self._mv[0:written_samples])
 
-        written_samples = self.double_square_wave(freq, freq2, time_ms, high_sample)
+        written_samples = self.double_square_wave(freq, freq2, time_ms, high_sample, self.buf_size//2)
         self._output.write(self._mv[0:written_samples])
     
     @micropython.native
@@ -314,12 +332,12 @@ class Beeper:
         """Simply play the three given frequencies"""
         high_sample = volume_map[volume]
 
-        while time_ms * 32 > self.buf_size:
-            time_ms -= self.buf_size // 32
-            written_samples = self.triple_square_wave(freq, freq2, freq3, self.buf_size // 32, high_sample)
-            self._output.write(self._mv[0:written_samples])
+#         while time_ms * 64 > self.buf_size:
+#             time_ms -= self.buf_size // 64
+#             written_samples = self.triple_square_wave(freq, freq2, freq3, self.buf_size // 64, high_sample)
+#             self._output.write(self._mv[0:written_samples])
 
-        written_samples = self.triple_square_wave(freq, freq2, freq3, time_ms, high_sample)
+        written_samples = self.triple_square_wave(freq, freq2, freq3, time_ms, high_sample, self.buf_size//2)
         self._output.write(self._mv[0:written_samples])
     
     @micropython.native
@@ -361,27 +379,37 @@ class Beeper:
 if __name__ == "__main__":
     import time
     beep = Beeper()
-
-    beep.play((
-        ('C3'),
-        ('D3'),
-        ('E3'),
-        ('F3'),
-        ('G3'),
-        ('A3'),
-        ('B3'),
-        ), 100, 3)
-    time.sleep(1)
-    beep.play((
-        ('G3'),
-        ('G3','C3'),
-        ('G3','C3','E3'),
-        ('C3','E3','A3'),
-        ('C3','E3','A3'),
-        ('C3','E3','A3'),
-        ), 400, 3)
-    time.sleep(1)
-    beep.play((('C4','C5','C3'),('B3','B3','B3'),('A3','A3','A3'),('A3','A3','A3'),('B3','B3','B3')),400,3)
+    
+    #print(sorted(tone_map.keys(), key=(lambda item: ''.join(list(reversed(item))).replace('S',item[0]) ) ))
+    #beep.play(('F3','A3','C3'), 80, 4)
+    beep.play(
+        ('C3',
+        ('C4'),
+        ('C4','E3'),
+        ('C4','E4'),
+        ('C4','E4','G3'),
+        ('C4','E4','G4'),
+        ('C4','E4','G4'),
+        ),40,4)
+#     beep.play(
+#         ('C3',
+#         ('C3'),
+#         ('C3','E3'),
+#         ('C3','E3','G3'),
+#         ('C4','E4','G4'),
+#         ('C4','E4','G4'),
+#         ('C4','E4','G4'),
+#         ('C4','E4','G4')
+#         ),40,4)
+#     beep.play('A4', 500, 2)
+#     time.sleep(1)
+#     beep.play('C6', 500, 2)
+#     time.sleep(1)
+#     beep.play((
+#         'C6', 'CS6', 'D6', 'DS6', 'E6', 'F6', 'FS6', 'G6', 'GS6','A6', 'AS6', 'B6'
+#         ), 200, 3)
+#     time.sleep(1)
+#     beep.play((('C4','C5','C3'),('B3','B3','B3'),('A3','A3','A3'),('A3','A3','A3'),('B3','B3','B3')),400,3)
     
 
 

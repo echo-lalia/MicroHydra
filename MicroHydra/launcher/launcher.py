@@ -8,14 +8,16 @@ from font import vga1_8x16 as fontsmall
 from font import vga2_16x32 as font
 from lib.mhconfig import Config
 
-
+#bump up our clock speed so the UI feels smoother (240mhz is the max officially supported, but the default is 160mhz)
+machine.freq(240_000_000)
 
 """
 
-VERSION: 0.9
+VERSION: 0.10
 
 CHANGES:
-    Created files.py and HyDE.py, modified main.py to allow multiple paths.
+    Added lib.HydraMenu, rebuilt settings.py,
+    updated beeper for MicroPython 1.23 
     
 This program is designed to be used in conjunction with "main.py" apploader, to select and launch MPy apps.
 
@@ -221,11 +223,6 @@ def time_24_to_12(hour_24,minute):
 
 
 def main_loop():
-    global beep
-    #bump up our clock speed so the UI feels smoother (240mhz is the max officially supported, but the default is 160mhz)
-    machine.freq(240_000_000)
-    
-    
     # load our config asap to support other processes
     config = Config()
         
@@ -310,12 +307,11 @@ def main_loop():
     
     #starupp sound
     if config['ui_sound']:
-        beep.play(('C3',
-                   ('F3'),
-                   ('A3'),
-                   ('F3','A3','C3'),
-                   ('F3','A3','C3')),130,config['volume'])
-        
+        beep.play(
+            ('C3',
+            ('C4','E4','G4'),
+            ('C4','E4','G4'),
+            ),40,config['volume'])
         
     #init diplsay
     tft.fill_rect(-40,0,280, _DISPLAY_HEIGHT, config['bg_color'])
@@ -334,25 +330,23 @@ def main_loop():
                 app_selector_index += 1
                 
                 #animation:
-
                 scroll_direction = 1
                 current_vscsad = _TARGET_VSCSAD
+                
                 if config['ui_sound']:
-                    beep.play((("C5","D4"),"A4"), 80, config['volume'])
+                    beep.play((("D3",'F3'),"A3"), 20, config['volume'])
 
                 
             elif "," in new_keys: # left arrow
                 app_selector_index -= 1
                 
                 #animation:
-                
                 scroll_direction = -1
-                
                 #this prevents multiple scrolls from messing up the animation
                 current_vscsad = _TARGET_VSCSAD
                 
                 if config['ui_sound']:
-                    beep.play((("B3","C5"),"A4"), 80, config['volume'])
+                    beep.play((("C3","E3"),"G3"), 20, config['volume'])
                 
             
         
@@ -365,7 +359,7 @@ def main_loop():
                     if config['ui_sound'] == 0: # currently muted, then unmute
                         config['ui_sound'] = True
                         force_redraw_display = True
-                        beep.play(("C4","G4","G4"), 100, config['volume'])
+                        beep.play(("C3","E3","G3",("C4","E4","G4"),("C4","E4","G4")), 80, config['volume'])
                         
                     else: # currently unmuted, then mute
                         config['ui_sound'] = False
@@ -376,7 +370,7 @@ def main_loop():
                     app_selector_index = 0
                     current_vscsad = 42 # forces scroll animation triggers
                     if config['ui_sound']:
-                        beep.play(('F3','A3','C3'),100,config['volume'])
+                        beep.play(('C4','E4','G4'),80,config['volume'])
                         
                 else: # ~~~~~~~~~~~~~~~~~~~ LAUNCH THE APP! ~~~~~~~~~~~~~~~~~~~~
                     
