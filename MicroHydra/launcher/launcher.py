@@ -61,7 +61,6 @@ def scan_apps(sd):
 
     main_directory = os.listdir("/")
     
-    
     # if the sd card is not mounted, we need to mount it.
     if "sd" not in main_directory:
         try:
@@ -102,55 +101,41 @@ def scan_apps(sd):
 
 
     # if everything above worked, sdcard should be mounted (if available), and both app directories should exist. now look inside to find our apps:
-    main_app_list = os.listdir("/apps")
+    main_app_list = list(os.ilistdir("/apps"))
     sd_app_list = []
 
     if "sd" in main_directory:
         try:
-            sd_app_list = os.listdir("/sd/apps")
+            sd_app_list = list(os.ilistdir("/sd/apps"))
         except OSError as e:
             print(e)
             print("SDCard mounted but cant be opened; assuming it's been removed. Unmounting /sd.")
             os.umount('/sd')
 
 
-
+    
     # now lets collect some separate app names and locations
     app_names = []
     app_paths = {}
-
+    
     for entry in main_app_list:
-        if entry.endswith(".py"):
-            this_name = entry[:-3]
+        this_name, this_path = get_app_paths(entry, "/apps/")
+        if this_name:
             
-            # the purpose of this check is to prevent dealing with duplicated apps.
-            # if multiple apps share the same name, then we will simply use the app found most recently. 
             if this_name not in app_names:
-                app_names.append( this_name ) # for pretty display
-            
-            app_paths[f"{this_name}"] = f"/apps/{entry}"
-
-        elif entry.endswith(".mpy"):
-            this_name = entry[:-4]
-            if this_name not in app_names:
-                app_names.append( this_name )
-            app_paths[f"{this_name}"] = f"/apps/{entry}"
-            
-            
+                app_names.append(this_name)
+                
+            app_paths[this_name] = this_path
+        
     for entry in sd_app_list:
-        if entry.endswith(".py"): #repeat for sdcard
-            this_name = entry[:-3]
+        this_name, this_path = get_app_paths(entry, "/sd/apps/")
+        if this_name:
             
             if this_name not in app_names:
-                app_names.append( this_name )
+                app_names.append(this_name)
+                
+            app_paths[this_name] = this_path
             
-            app_paths[f"{this_name}"] = f"/sd/apps/{entry}"
-            
-        elif entry.endswith(".mpy"):
-            this_name = entry[:-4]
-            if this_name not in app_names:
-                app_names.append( this_name )
-            app_paths[f"{this_name}"] = f"/sd/apps/{entry}"
             
     #sort alphabetically without uppercase/lowercase discrimination:
     app_names.sort(key=lambda element: element.lower())
@@ -171,7 +156,33 @@ def scan_apps(sd):
     return app_names, app_paths, sd
 
 
-
+def get_app_paths(ientry, current_dir):
+    # process results of ilistdir to capture app paths. 
+    _DIR_FLAG = const(16384)
+    _FILE_FLAG = const(32768)
+    
+    entry = ientry[0]
+    is_dir = (ientry[1] == _DIR_FLAG)
+    
+    app_name = None
+    app_path = None
+    
+    if entry.endswith(".py"):
+        app_name = entry[:-3]
+        app_path = current_dir + app_name
+    elif entry.endswith(".mpy"):
+        app_name = entry[:-4]
+        app_path = current_dir + app_name
+        
+    elif is_dir:
+        # check for apps as module folders
+        dir_content = os.listdir(current_dir + entry)
+        if "__init__.py" in dir_content or "__init__.mpy" in dir_content:
+            app_name = entry
+            app_path = current_dir + entry
+    
+    return app_name, app_path
+    
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Function Definitions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
