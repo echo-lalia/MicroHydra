@@ -17,7 +17,10 @@ VERSION: 0.10
 
 CHANGES:
     Added lib.HydraMenu, rebuilt settings.py,
-    updated beeper for MicroPython 1.23 
+    updated beeper for MicroPython 1.23,
+    added support for apps as folders,
+    added tab support to HyDE,
+    
     
 This program is designed to be used in conjunction with "main.py" apploader, to select and launch MPy apps.
 
@@ -486,7 +489,7 @@ def main_loop():
             #scroll bar
             scrollbar_width = 240 // len(app_names)
             tft.fill_rect((scrollbar_width * app_selector_index),133,scrollbar_width,2,config.palette[2])
-            tft.hline(scrollbar_width * app_selector_index, 132, scrollbar_width, config.palette[0])
+            tft.hline(scrollbar_width * app_selector_index, 132, scrollbar_width, config.palette[3])
             
             #clock
             _,_,_, hour_24, minute, _,_,_ = time.localtime()
@@ -543,12 +546,12 @@ def main_loop():
                 elif current_app_text == "Files":
                     # Reusing the sd icon for files to save ram. This feels very inelegant, but it works for now.
                     # I'd like to redo all of this at some point. 
-                    tft.bitmap_icons(icons, icons.SDCARD, (config['bg_color'],config.palette[4]),104, 36)
-                    tft.fill_rect(111,37,20,6,config.palette[4])
-                    tft.fill_rect(106,50,4,6,config.palette[4])
-                    tft.text(font, "/", center_text_x("/")-1, 40, config['ui_color'], config.palette[4])
+                    tft.bitmap_icons(icons, icons.SDCARD, (config['bg_color'],config.palette[5]),104, 36)
+                    tft.fill_rect(111,37,20,6,config.palette[5])
+                    tft.fill_rect(106,50,4,6,config.palette[5])
+                    tft.text(font, "/", center_text_x("/")-1, 40, config.palette[1], config['ui_color'])
                     tft.fill_rect(111,68,16,4,config.palette[1])
-                    tft.vline(110, 60,6,config.palette[4])
+                    tft.vline(110, 60,6,config.palette[5])
                         
                 elif current_app_text == "Reload Apps":
                     tft.bitmap_icons(icons, icons.RELOAD, (config['bg_color'],config['ui_color']),104, 36)
