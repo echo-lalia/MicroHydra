@@ -1011,8 +1011,6 @@ class ST7789:
             buffer[i + 1] = color >> 8
         
         self.blit_buffer(buffer,x,y,width,height,key=key)
-        #self._set_window(x, y, to_col, to_row)
-        #self._write(None, buffer)
 
     def bitmap_icons(self, bitmap_module, bitmap, color, x, y, invert_colors=False):
         """
@@ -1081,7 +1079,6 @@ class ST7789:
             x (int): column to start writing
             y (int): row to start writing
             fg (int): foreground color, optional, defaults to WHITE
-            bg (int): background color, optional, defaults to None
         """
         if self.needs_swap:
             fg = swap_bytes(fg)

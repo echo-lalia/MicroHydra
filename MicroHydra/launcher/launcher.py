@@ -17,7 +17,10 @@ VERSION: 0.10
 
 CHANGES:
     Added lib.HydraMenu, rebuilt settings.py,
-    updated beeper for MicroPython 1.23 
+    updated beeper for MicroPython 1.23,
+    added support for apps as folders,
+    added tab support to HyDE,
+    
     
 This program is designed to be used in conjunction with "main.py" apploader, to select and launch MPy apps.
 
@@ -61,7 +64,6 @@ def scan_apps(sd):
 
     main_directory = os.listdir("/")
     
-    
     # if the sd card is not mounted, we need to mount it.
     if "sd" not in main_directory:
         try:
@@ -102,55 +104,41 @@ def scan_apps(sd):
 
 
     # if everything above worked, sdcard should be mounted (if available), and both app directories should exist. now look inside to find our apps:
-    main_app_list = os.listdir("/apps")
+    main_app_list = list(os.ilistdir("/apps"))
     sd_app_list = []
 
     if "sd" in main_directory:
         try:
-            sd_app_list = os.listdir("/sd/apps")
+            sd_app_list = list(os.ilistdir("/sd/apps"))
         except OSError as e:
             print(e)
             print("SDCard mounted but cant be opened; assuming it's been removed. Unmounting /sd.")
             os.umount('/sd')
 
 
-
+    
     # now lets collect some separate app names and locations
     app_names = []
     app_paths = {}
-
+    
     for entry in main_app_list:
-        if entry.endswith(".py"):
-            this_name = entry[:-3]
+        this_name, this_path = get_app_paths(entry, "/apps/")
+        if this_name:
             
-            # the purpose of this check is to prevent dealing with duplicated apps.
-            # if multiple apps share the same name, then we will simply use the app found most recently. 
             if this_name not in app_names:
-                app_names.append( this_name ) # for pretty display
-            
-            app_paths[f"{this_name}"] = f"/apps/{entry}"
-
-        elif entry.endswith(".mpy"):
-            this_name = entry[:-4]
-            if this_name not in app_names:
-                app_names.append( this_name )
-            app_paths[f"{this_name}"] = f"/apps/{entry}"
-            
-            
+                app_names.append(this_name)
+                
+            app_paths[this_name] = this_path
+        
     for entry in sd_app_list:
-        if entry.endswith(".py"): #repeat for sdcard
-            this_name = entry[:-3]
+        this_name, this_path = get_app_paths(entry, "/sd/apps/")
+        if this_name:
             
             if this_name not in app_names:
-                app_names.append( this_name )
+                app_names.append(this_name)
+                
+            app_paths[this_name] = this_path
             
-            app_paths[f"{this_name}"] = f"/sd/apps/{entry}"
-            
-        elif entry.endswith(".mpy"):
-            this_name = entry[:-4]
-            if this_name not in app_names:
-                app_names.append( this_name )
-            app_paths[f"{this_name}"] = f"/sd/apps/{entry}"
             
     #sort alphabetically without uppercase/lowercase discrimination:
     app_names.sort(key=lambda element: element.lower())
@@ -171,7 +159,33 @@ def scan_apps(sd):
     return app_names, app_paths, sd
 
 
-
+def get_app_paths(ientry, current_dir):
+    # process results of ilistdir to capture app paths. 
+    _DIR_FLAG = const(16384)
+    _FILE_FLAG = const(32768)
+    
+    entry = ientry[0]
+    is_dir = (ientry[1] == _DIR_FLAG)
+    
+    app_name = None
+    app_path = None
+    
+    if entry.endswith(".py"):
+        app_name = entry[:-3]
+        app_path = current_dir + app_name
+    elif entry.endswith(".mpy"):
+        app_name = entry[:-4]
+        app_path = current_dir + app_name
+        
+    elif is_dir:
+        # check for apps as module folders
+        dir_content = os.listdir(current_dir + entry)
+        if "__init__.py" in dir_content or "__init__.mpy" in dir_content:
+            app_name = entry
+            app_path = current_dir + entry
+    
+    return app_name, app_path
+    
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Function Definitions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -301,9 +315,6 @@ def main_loop():
     
     scroll_direction = 0 #1 for right, -1 for left, 0 for center
     refresh_timer = 0
-    
-    #init the beeper!
-    #beep = beeper.Beeper()
     
     #starupp sound
     if config['ui_sound']:
@@ -478,7 +489,7 @@ def main_loop():
             #scroll bar
             scrollbar_width = 240 // len(app_names)
             tft.fill_rect((scrollbar_width * app_selector_index),133,scrollbar_width,2,config.palette[2])
-            tft.hline(scrollbar_width * app_selector_index, 132, scrollbar_width, config.palette[0])
+            tft.hline(scrollbar_width * app_selector_index, 132, scrollbar_width, config.palette[3])
             
             #clock
             _,_,_, hour_24, minute, _,_,_ = time.localtime()
@@ -531,6 +542,16 @@ def main_loop():
                         tft.text(font, "On", center_text_x("On"), 36, config['ui_color'], config['bg_color'])
                     else:
                         tft.text(font, "Off", center_text_x("Off"), 36, config.palette[3], config['bg_color'])
+                        
+                elif current_app_text == "Files":
+                    # Reusing the sd icon for files to save ram. This feels very inelegant, but it works for now.
+                    # I'd like to redo all of this at some point. 
+                    tft.bitmap_icons(icons, icons.SDCARD, (config['bg_color'],config.palette[5]),104, 36)
+                    tft.fill_rect(111,37,20,6,config.palette[5])
+                    tft.fill_rect(106,50,4,6,config.palette[5])
+                    tft.text(font, "/", center_text_x("/")-1, 40, config.palette[1], config['ui_color'])
+                    tft.fill_rect(111,68,16,4,config.palette[1])
+                    tft.vline(110, 60,6,config.palette[5])
                         
                 elif current_app_text == "Reload Apps":
                     tft.bitmap_icons(icons, icons.RELOAD, (config['bg_color'],config['ui_color']),104, 36)

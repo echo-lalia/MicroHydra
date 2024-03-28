@@ -174,6 +174,10 @@ class Menu:
 
     def update_scroll_bar(self):
         max_screen_index = len(self.items) - self.per_page
+        
+        if max_screen_index <= 0:
+            return
+        
         scrollbar_height = _DISPLAY_HEIGHT // max_screen_index
         scrollbar_position = math.floor((_DISPLAY_HEIGHT - scrollbar_height) * (self.setting_screen_index / max_screen_index))
         
@@ -315,10 +319,8 @@ class DoItem(MenuItem):
     def draw(self):
         if self.selected:
             draw_centered_text(f"< {self.text} >", _DISPLAY_WIDTH_CENTER, self.y_pos, CONFIG.palette[5], font=FONT)
-            #DISPLAY.bitmap_text(FONT, TEXT, _DISPLAY_WIDTH_CENTER - get_text_center(TEXT, FONT), self.y_pos, CONFIG['ui_color'])
         else:
             draw_centered_text(self.text, _DISPLAY_WIDTH_CENTER, self.y_pos, CONFIG.palette[4], font=FONT)
-            #DISPLAY.bitmap_text(FONT, self.text, _DISPLAY_WIDTH_CENTER - get_text_center(self.text, FONT), self.y_pos, CONFIG.palette[4])
         DISPLAY.hline(0, self.y_pos, _DISPLAY_WIDTH, CONFIG.palette[2])
         DISPLAY.hline(0, self.y_pos+_FONT_HEIGHT-1, _DISPLAY_WIDTH, CONFIG.palette[0])
     
@@ -403,7 +405,8 @@ class RGBItem(MenuItem):
             play_sound(("A3","F3","C3"), time_ms=30)
             self.menu.in_submenu = False
             self.in_item = False
-            #self.menu.draw()
+            if self.instant_callback:
+                self.instant_callback(self, mh.combine_color565(self.value[0],self.value[1],self.value[2]))
             return True
             
         self.in_item = True
@@ -501,6 +504,8 @@ class IntItem(MenuItem):
             self.menu.in_submenu = False
             self.in_item = False
             self.menu.draw()
+            if self.instant_callback:
+                self.instant_callback(self, self.value)
             return
             
         self.in_item = True
@@ -692,11 +697,8 @@ def draw_left_text(text:str, y_pos:int, selected):
     if selected:
         draw_big_text(text, _LEFT_TEXT_UNSELECTED_X, y_pos, CONFIG.palette[0])
         draw_big_text('>'+text, _LEFT_TEXT_SELECTED_X, y_pos, CONFIG.palette[5])
-#         DISPLAY.bitmap_text(FONT, text, _LEFT_TEXT_UNSELECTED_X, y_pos, CONFIG.palette[0])
-#         DISPLAY.bitmap_text(FONT, '>'+text, _LEFT_TEXT_SELECTED_X, y_pos, CONFIG.palette[5])
     else:
         draw_big_text(text, _LEFT_TEXT_UNSELECTED_X, y_pos, CONFIG.palette[4])
-#         DISPLAY.bitmap_text(FONT, text, _LEFT_TEXT_UNSELECTED_X, y_pos, CONFIG.palette[4])
 
 def draw_right_text(text:str, y_pos:int, selected=False):
     x = _RIGHT_TEXT_X - (len(text)*_SMALL_FONT_WIDTH_HALF)
@@ -705,16 +707,8 @@ def draw_right_text(text:str, y_pos:int, selected=False):
          x = ((_DISPLAY_WIDTH // 2) + _RIGHT_TEXT_X_OFFSET)
     if selected:
         draw_small_text(text, x, y_pos+_RIGHT_TEXT_Y, CONFIG.palette[4])
-#         if PY_COMPATIBILITY:
-#             DISPLAY.text(SMALL_FONT, text, x, y_pos+_RIGHT_TEXT_Y, CONFIG.palette[4])
-#         else:
-#             DISPLAY.text(text, x, y_pos+_RIGHT_TEXT_Y, CONFIG.palette[4])
     else:
         draw_small_text(text, x, y_pos+_RIGHT_TEXT_Y, CONFIG.palette[3])
-#         if PY_COMPATIBILITY:
-#             DISPLAY.text(SMALL_FONT, text, x, y_pos+_RIGHT_TEXT_Y, CONFIG.palette[3])
-#         else:
-#             DISPLAY.text(text, x, y_pos+_RIGHT_TEXT_Y, CONFIG.palette[3])
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Sound Functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def play_sound(notes, time_ms=80):
