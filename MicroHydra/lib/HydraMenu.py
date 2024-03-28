@@ -405,7 +405,8 @@ class RGBItem(MenuItem):
             play_sound(("A3","F3","C3"), time_ms=30)
             self.menu.in_submenu = False
             self.in_item = False
-            #self.menu.draw()
+            if self.instant_callback:
+                self.instant_callback(self, mh.combine_color565(self.value[0],self.value[1],self.value[2]))
             return True
             
         self.in_item = True
@@ -503,6 +504,8 @@ class IntItem(MenuItem):
             self.menu.in_submenu = False
             self.in_item = False
             self.menu.draw()
+            if self.instant_callback:
+                self.instant_callback(self, self.value)
             return
             
         self.in_item = True
