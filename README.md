@@ -1,6 +1,16 @@
-
-<img alt="Static Badge" src="https://img.shields.io/badge/Apps-purple?link=https%3A%2F%2Fgithub.com%2Fecho-lalia%2FMicroHydra-Apps"> &nbsp;&nbsp;&nbsp; <img alt="Static Badge" src="https://img.shields.io/badge/Firmware-purple?link=https%3A%2F%2Fgithub.com%2Fecho-lalia%2Fmicrohydra-frozen"> &nbsp;&nbsp;&nbsp; 
-![GitHub License](https://img.shields.io/github/license/echo-lalia/Cardputer-MicroHydra?color=darkslateblue)  &nbsp;&nbsp;&nbsp; ![GitHub Repo stars](https://img.shields.io/github/stars/echo-lalia/Cardputer-MicroHydra?style=flat&color=darkslateblue)
+<p align="center">
+    <a href="https://github.com/echo-lalia/MicroHydra-Apps" alt="Apps">
+        <img src="https://img.shields.io/badge/Apps-purple" /></a>
+ &nbsp;&nbsp;
+    <a href="https://github.com/echo-lalia/microhydra-frozen" alt="MicroHydra Firmware">
+        <img src="https://img.shields.io/badge/Firmware-purple" /></a>
+  &nbsp;&nbsp;
+    <a href="https://github.com/echo-lalia/Cardputer-MicroHydra?tab=GPL-3.0-1-ov-file" alt="License">
+        <img src="https://img.shields.io/github/license/echo-lalia/Cardputer-MicroHydra?color=darkslateblue" /></a>
+  &nbsp;&nbsp;
+    <a href="https://github.com/echo-lalia/Cardputer-MicroHydra" alt="Likes">
+        <img src="https://img.shields.io/github/stars/echo-lalia/Cardputer-MicroHydra?style=flat&color=darkslateblue" /></a>
+</p>
 
 
 # Cardputer-MicroHydra
