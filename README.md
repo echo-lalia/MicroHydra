@@ -5,6 +5,9 @@
     <a href="https://github.com/echo-lalia/microhydra-frozen" alt="MicroHydra Firmware">
         <img src="https://img.shields.io/badge/Firmware-purple" /></a>
   &nbsp;&nbsp;
+    <a href="https://github.com/echo-lalia/Cardputer-MicroHydra/wiki" alt="Wiki">
+        <img src="https://img.shields.io/badge/Wiki-slateblue" /></a>
+  &nbsp;&nbsp;
     <a href="https://github.com/echo-lalia/Cardputer-MicroHydra?tab=GPL-3.0-1-ov-file" alt="License">
         <img src="https://img.shields.io/github/license/echo-lalia/Cardputer-MicroHydra?color=darkslateblue" /></a>
   &nbsp;&nbsp;
