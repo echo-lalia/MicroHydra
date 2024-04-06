@@ -1,3 +1,21 @@
+<p align="center">
+    <a href="https://github.com/echo-lalia/MicroHydra-Apps" alt="Apps">
+        <img src="https://img.shields.io/badge/Apps-purple" /></a>
+ &nbsp;&nbsp;
+    <a href="https://github.com/echo-lalia/microhydra-frozen" alt="MicroHydra Firmware">
+        <img src="https://img.shields.io/badge/Firmware-purple" /></a>
+  &nbsp;&nbsp;
+    <a href="https://github.com/echo-lalia/Cardputer-MicroHydra/wiki" alt="Wiki">
+        <img src="https://img.shields.io/badge/Wiki-slateblue" /></a>
+  &nbsp;&nbsp;
+    <a href="https://github.com/echo-lalia/Cardputer-MicroHydra?tab=GPL-3.0-1-ov-file" alt="License">
+        <img src="https://img.shields.io/github/license/echo-lalia/Cardputer-MicroHydra?color=darkslateblue" /></a>
+  &nbsp;&nbsp;
+    <a href="https://github.com/echo-lalia/Cardputer-MicroHydra" alt="Likes">
+        <img src="https://img.shields.io/github/stars/echo-lalia/Cardputer-MicroHydra?style=flat&color=darkslateblue" /></a>
+</p>
+
+
 # Cardputer-MicroHydra
 MicroHydra is a simple MicroPython based app launcher designed for the M5Stack Cardputer.
 
@@ -120,7 +138,8 @@ The G0 button is on the back edge of the Cardputer, and there's another G0 butto
 In "target port" you should now see a device with a name like "USB JTAG". Set the options in the window like this:
 ![image](https://github.com/echo-lalia/Cardputer-MicroHydra/assets/108598670/06022ade-a5c3-4b95-be50-d086f963eb6f)   
 And click Install   
-*note: version 1.23+ is recommended currently, as it contains an important bugfix affecting MicroHydra's audio*
+*note: version 1.23+ is recommended currently, as it contains an important bugfix affecting MicroHydra's audio*   
+*You can also flash the MicroHydra Firmware '.bin' from this menu.*
 
 If installing didn't start, check that the correct device is selected, and it's in bootloader mode.   
 

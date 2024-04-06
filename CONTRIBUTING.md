@@ -4,6 +4,8 @@ MicroHydra started with very fast and chaotic developnment, designed by one pers
 
 Now that there are multiple people interested in implementing new features and improvements to MH, as well as people designing apps to be used with MH, I thought it would be best to create some contribution guidelines to help us work together more easily, and prevent things from getting broken haphazardly. 
 
+**Note:** *These guidelines only apply to the main MicroHydra program. There are no restrictions to the design or functionality of apps for MH.*
+
 <br/>
 <br/>
 <br/>
@@ -17,7 +19,7 @@ This will aide in communication with other contributors for this project, by cre
 Try keeping it to one issue at a time, and make sure you're testing the changes you make as you go. Sometimes the behavior can differ when run directly from Thonny, vs running on the device on its own.
 
 ### Test your changes on a normal MicroPython install
-Because MicroHydra is indended to be capable of running uncompiled, on a plain install of MicroPython, it's important that it be tested like this, as well.   
+Because MicroHydra is indended to be capable of running uncompiled, on a plain install of MicroPython, it's important that it be tested like this, as well.
 The code will generally use less memory and be more stable when compiled, so it's important that the changes it be tested uncompiled, on it's own (not through thonny / REPL) on a regular MicroPython install.   
 If it works like that, it should usually work even better once compiled. If for any reason you are unable to test it yourself, or you would like a second opinion on it, let me know. 
 
@@ -59,17 +61,28 @@ I've abandonded some really cool features for the launcher due to stablity reaso
 <br/>
 
 
-## Code, comments, and formatting
+## Code Style
 
 *As mentioned above, MicroHydra was originally created quickly and messily. Not all of these suggestions are fully implemented in existing code, but these are goals for future code in MicroHydra.* 
+
+#### Tabs or Spaces?
+I started MicroHydra with spaces for indentation, as that is the standard method that came with my editor. However, I have come to prefer tabs for [accessibility](https://adamtuttle.codes/blog/2021/tabs-vs-spaces-its-an-accessibility-issue/) reasons.   
+I was planning on totally replacing all the space-indents with tab characters because of this. However, I stopped myself because there were already contributors working on this project, and I did not want to cause further issues/confusion because of this change. Especially because some people who wish to contribute to MicroHydra are new programmers, and requiring contributors to change their editors settings before working on MH, would just be an additional barrier.   
+So, for now, I am adopting an intentionally relaxed stance on indentation for MicroHydra. As long as you do not mix tabs/spaces in a single file, you can choose whichever you prefer. 
+
+#### Naming Conventions
+For a quick reference, this is the current (intended) state of MH's variable naming style:
+```
+modulename
+_NAMED_CONSTANT
+GLOBAL_VARIABLE
+ClassName
+function_name
+regular_variable
+```
+This is mostly a (simplified) reflection of [PEP 8](https://peps.python.org/pep-0008/) standards. However, with the intentional change of using a leading underscore in the name of a constant. This is because MicroPython supports [*'real'* constants](https://docs.micropython.org/en/latest/develop/optimizations.html#variables) through the use of the `const` keyword + that leading underscore.
+
 
 #### Comment heavily!
 As MicroHydra is intended to be accessible and approachable, I highly recommend using many comments in your code! It takes only a small amount of extra storage, uses no memory at all, and makes your code much more understandable for beginners.   
 I'm a particular fan of using large, flashy, blocks of comments to split code into sections, and adding comments which explain why one piece of code might be using a different approach than you would first expect. 
-
-#### Be mindful of unneeded object creation, and memory fragmentation
- - Memory fragmentation can be an issue with MicroPython, but can be improved by [avoiding unnecessary object creation])(https://docs.micropython.org/en/latest/reference/constrained.html#execution-phase), and sometimes with [controlled garbage collection](https://docs.micropython.org/en/latest/library/gc.html)
- - Using an underscore alongside the 'const()' declaration for a MicroPython constant [prevents it from being allocated, and saves memory](https://docs.micropython.org/en/latest/develop/optimizations.html#variables), but also prevent them from being accessed as a global variable, or from outside the module they are declared in.
-
-*For more, take a look at the MicroPython documentation for [speed](https://docs.micropython.org/en/latest/reference/speed_python.html#maximising-micropython-speed), [memory managment](https://docs.micropython.org/en/latest/develop/memorymgt.html), and [optimizations](https://docs.micropython.org/en/latest/develop/optimizations.html)*
-
