@@ -16,6 +16,13 @@ VERSION: 0.11
 
 CHANGES:
     Overhaul launcher.py! (FINALLY)
+    - overhauled scrolling graphics to use a framebuffer, now the statusbar doesn't blink out on scroll
+    - broke code up into smaller functions to save memory (and make it easier to read!)
+    - added key-repeater logic from settings.py
+    - added custom 'st7789hybrid.py' for launcher-specific use
+    - replaced bitmap icons with vector icons to save memory
+    
+    Added log output on launch failure to main.py
     
     
 This program is designed to be used in conjunction with "main.py" apploader, to select and launch MPy apps.
