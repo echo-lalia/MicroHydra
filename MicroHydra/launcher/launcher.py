@@ -1,9 +1,8 @@
-
-import time, os, math, ntptime, network, framebuf
+import time, os, math, ntptime, network, framebuf, array
 from lib import keyboard, beeper, battlevel
 import machine
 from launcher import st7789hybrid as st7789
-from launcher.icons import icons, battery
+from launcher.icons import battery
 from font import vga1_8x16 as fontsmall
 from font import vga2_16x32 as font
 from lib.mhconfig import Config
@@ -60,6 +59,14 @@ _ICON_WIDTH = const(32)
 _ICON_FBUF_WIDTH = const(_FONT_WIDTH*3) # wide enough to fit the word "off"
 
 _SCROLL_ANIMATION_TIME = const(400)
+
+
+# icon definitions:
+_SD_ICON = const("a2,30,3,31,27,31,28,30,28,1,27,0,6,0,5,1,5,7,2,10,2,13,4,15,4,16,2,18ut,a7,2,7,6,8,6,8,2bf,a10,2,10,6,11,6,11,2bf,a13,2,13,6,14,6,14,2bf,a16,1,16,6,17,6,17,1bf,a19,2,19,6,20,6,20,2bf,a22,1,22,6,23,6,23,1bf,a25,2,25,6,26,6,26,2bf,a11,24,13,24,13,25,14,25,14,27,13,27,13,28,11,28bf,a9,24,7,24,6,25,6,26,9,26,9,27,8,28,6,28bf,a8,25uf,a7,27uf,")
+_FLASH_ICON = const("a1,2,1,3,0,4,0,27,1,29,4,31,27,31,30,29,30,28,31,27,31,4,30,2,27,0,4,0uf,a8,8,8,23,23,23,23,8uf,a10,10,10,21,21,21,21,10ut")
+_SETTINGS_ICON = const("a15,0,16,0,19,4,20,4,22,2,23,2,24,3,25,7,26,8,28,7,29,8,28,11,27,12,31,15,31,16,27,19,29,22,29,23,28,24,24,24,24,28,23,29,22,29,19,27,16,31,15,31,12,27,11,28,9,29,8,29,7,28,8,26,6,24,3,24,2,23,2,22,4,20,4,19,2,17,1,17,0,16,0,15,4,12,2,9,2,8,3,7,6,8,8,6,7,3,8,2,9,2,11,4,12,4ut,a11,7,11,8,16,14,25,14,25,12,22,8,18,6,13,6bt,a16,17,11,24,12,25,19,25,23,22,25,19,25,17bt,a14,15,14,16,9,22,8,22,6,18,6,13,8,9,9,9bt,")
+_REFRESH_ICON = const("a12,27,9,26,5,22,3,19,3,12,5,8,8,5,12,3,18,3,21,4,24,6,27,10,28,13,28,18,25,23uf,a20,18,29,27,20,27ut,a19,25,14,26bf")
+_FILES_ICON = const("a0,3,1,2,9,2,12,5,29,5,30,6,30,8,31,9,28,28,27,29,1,29,0,28ut,a1,4,1,19,2,10,4,8,30,8,29,8,29,7,28,6,12,6,10,5,8,3,2,3bt")
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GLOBALS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -122,10 +129,10 @@ SCROLL_DIRECTION = 0
 IS_SCROLLING = True
 ICON_UPDATED = False
 
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Finding Apps ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 def scan_apps():
     global SD, APP_NAMES, APP_PATHS
     # first we need a list of apps located on the flash or SDCard
@@ -258,7 +265,7 @@ def get_app_paths(ientry, current_dir):
 
 def launch_app(app_path):
     RTC.memory(app_path)
-    print(f"Launching '{app_path}...'")
+    print(f"Launching '{app_path}'...")
     # reset clock speed to default. 
     machine.freq(160_000_000)
     time.sleep_ms(10)
@@ -277,16 +284,16 @@ def center_text_x(text, char_width = 16):
 
 def ease_out_cubic(x):
     return 1 - ((1 - x) ** 3)
-        
+    
 def time_24_to_12(hour_24,minute):
     ampm = 'am'
     if hour_24 >= 12:
         ampm = 'pm'
-        
+    
     hour_12 = hour_24 % 12
     if hour_12 == 0:
         hour_12 = 12
-        
+    
     time_string = f"{hour_12}:{'{:02d}'.format(minute)}"
     return time_string, ampm
 
@@ -295,6 +302,11 @@ def play_sound(notes,time_ms=40):
         BEEP.play(notes,time_ms,CONFIG['volume'])
 
 
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Graphics Functions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        
 def draw_statusbar(t=None):
     global LASTDRAWN_MINUTE
     
@@ -359,7 +371,6 @@ def draw_scrollbar():
         + _SCROLLBAR_PADDING
         )
 
-    
     # blackout:
     DISPLAY.fill_rect(_SCROLLBAR_PADDING, _SCROLLBAR_Y, _SCROLLBAR_FULL_WIDTH, _SCROLLBAR_HEIGHT, CONFIG.palette[1])
     
@@ -426,9 +437,9 @@ def draw_app_selector():
         
     # finally, draw app name(s)
     DISPLAY.blit_buffer(NAME_FBUF, 0, _APPNAME_Y, _DISPLAY_WIDTH, _FONT_HEIGHT)
-    
-    
-    
+
+
+
 def start_scroll(direct=1):
     global SCROLL_DIRECTION, SCROLL_START_MS, IS_SCROLLING, ICON_UPDATED
     SCROLL_DIRECTION = direct
@@ -454,7 +465,31 @@ def animate_scroll() -> int:
         )
     
     
-    
+def unpack_shape(string):
+    # this weird little function takes the memory-efficient 'packed' shape definition, and unpacks it to a valid arg tuple for DISPLAY.polygon
+    unpacked = (
+        "shape=("
+        + string.replace(
+        'u', ")),CONFIG['ui_color']"
+        ).replace(
+        'b', ")),CONFIG['bg_color']"
+        ).replace(
+        'a', "(8,0,array.array('h', ("
+        ).replace(
+        't', ',True)'
+        ).replace(
+        'f', ',False)'
+        )
+        + ")"
+        )
+    exec(unpacked)
+    return shape
+
+def draw_icon(icon_def):
+    shape = unpack_shape(icon_def)
+    for poly in shape:
+        DISPLAY.polygon(*poly, fbuf=ICON_FBUF)
+
 def draw_icon_fbuf():
     
     _ICON_CENTERED_X = const((_ICON_FBUF_WIDTH - _ICON_WIDTH) // 2)
@@ -479,25 +514,18 @@ def draw_icon_fbuf():
                 CONFIG.palette[3])
             
     elif current_app_text == "Files":
-        # Reusing the sd icon for files to save ram. This feels very inelegant, but it works for now.
-        # I'd like to redo all of this at some point. 
-        DISPLAY.bitmap_icons(icons, icons.SDCARD, (CONFIG['bg_color'],CONFIG.palette[5]),_ICON_CENTERED_X, 0, fbuf=ICON_FBUF)
-        ICON_FBUF.rect(7, 2, 20, 6, CONFIG.palette[5], True)
-        ICON_FBUF.rect(2, 15, 4, 6, CONFIG.palette[5], True)
-        DISPLAY.fbuf_bitmap_text(font, ICON_FBUF, "/", _ICON_ONECHAR_X, 40, CONFIG.palette[1])
-        ICON_FBUF.rect(7, 33, 16, 4,CONFIG.palette[1], True)
-        ICON_FBUF.vline(6, 25, 6, CONFIG.palette[5])
+        draw_icon(_FILES_ICON)
             
     elif current_app_text == "Reload Apps":
-        DISPLAY.bitmap_icons(icons, icons.RELOAD, (CONFIG['bg_color'],CONFIG['ui_color']),_ICON_CENTERED_X, 0, fbuf=ICON_FBUF)
+        draw_icon(_REFRESH_ICON)
         
     elif current_app_text == "Settings":
-        DISPLAY.bitmap_icons(icons, icons.GEAR, (CONFIG['bg_color'],CONFIG['ui_color']),_ICON_CENTERED_X, 0, fbuf=ICON_FBUF)
+        draw_icon(_SETTINGS_ICON)
         
     elif APP_PATHS[APP_NAMES[APP_SELECTOR_INDEX]][:3] == "/sd":
-        DISPLAY.bitmap_icons(icons, icons.SDCARD, (CONFIG['bg_color'],CONFIG['ui_color']),_ICON_CENTERED_X, 0, fbuf=ICON_FBUF)
+        draw_icon(_SD_ICON)
     else:
-        DISPLAY.bitmap_icons(icons, icons.FLASH, (CONFIG['bg_color'],CONFIG['ui_color']),_ICON_CENTERED_X, 0, fbuf=ICON_FBUF)
+        draw_icon(_FLASH_ICON)
     
 def draw_name_fbuf(x=0):
     current_app_text = APP_NAMES[APP_SELECTOR_INDEX]
@@ -567,15 +595,52 @@ def try_sync_clock():
     else:
         CONNECT_WIFI_ATTEMPTS += 1
 
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Key Repeater: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_KEY_HOLD_MS = const(600)
+_KEY_REPEAT_MS = const(80)
+_KEY_REPEAT_DELTA = const(_KEY_HOLD_MS - _KEY_REPEAT_MS)
+
+class KeyRepeater:
+    """
+    KeyRepeater tracks the time since a key was pressed, and repeats keypresses at a specified interval.
+    """
+    def __init__(self):
+        self.tracker = {}
+        
+    def update_keys(self, keylist):
+        tracked_keys = self.tracker.keys()
+        time_now = time.ticks_ms()
+                
+        # add new keys to tracker
+        for key in keylist:
+            if key not in tracked_keys:
+                self.tracker[key] = time.ticks_ms()
+        
+        
+        for key in tracked_keys:
+            # remove keys that arent being pressed from tracker
+            if key not in KB.key_state:
+                self.tracker.pop(key)
+            
+            # test if keys have been held long enough to repeat
+            elif time.ticks_diff(time_now, self.tracker[key]) >= _KEY_HOLD_MS:
+                keylist.append(key)
+                self.tracker[key] = time.ticks_ms() - _KEY_REPEAT_DELTA
+        
+        return keylist
+    
+    
+    
 #--------------------------------------------------------------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main Loop: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #--------------------------------------------------------------------------------------------------
-
-
 def main_loop():
-    global APP_SELECTOR_INDEX, PREV_SELECTOR_INDEX, SYNCING_CLOCK
+    global APP_SELECTOR_INDEX, PREV_SELECTOR_INDEX, SYNCING_CLOCK, IS_SCROLLING, ICON_UPDATED
     
     # scan apps asap to populate app names/paths and SD
     scan_apps()
@@ -598,17 +663,7 @@ def main_loop():
                 print("wifi_sync_rtc had this error when connecting:",e)
     
     new_keys = []
-    
-    
-    #nonscroll_elements_displayed = False
-    
-    #force_redraw_display = True
-    
-    #this is used as a flag to tell a future loop to redraw the frame mid-scroll animation
-    #elayed_redraw = False
-    
-    #scroll_direction = 0 #1 for right, -1 for left, 0 for center
-    #refresh_timer = 0
+    repeater = KeyRepeater()
     
     #starupp sound
     play_sound(
@@ -625,18 +680,14 @@ def main_loop():
     draw_scrollbar()
     draw_statusbar()
     draw_icon_fbuf()
-#     timer = machine.Timer(0)
-#     timer.init(
-#         mode = machine.Timer.PERIODIC,
-#         period = 5000,
-#         callback = draw_statusbar
-#         )
     
     while True:
         
         
         # ----------------------- check for key presses on the keyboard. Only if they weren't already pressed. --------------------------
         new_keys = KB.get_new_keys()
+        new_keys = repeater.update_keys(new_keys)
+        
         if new_keys:
             
             # ~~~~~~ check if the arrow keys are newly pressed ~~~~~
@@ -660,9 +711,9 @@ def main_loop():
                 start_scroll(-1)
                 
                 play_sound((("C3","E3"),"G3"), 20)
-                
-            
-        
+
+
+
             # ~~~~~~~~~~ check if GO or ENTER are pressed ~~~~~~~~~~
             if "GO" in new_keys or "ENT" in new_keys:
                 
@@ -671,16 +722,22 @@ def main_loop():
                     
                     if CONFIG['ui_sound'] == 0: # currently muted, then unmute
                         CONFIG['ui_sound'] = True
-                        #force_redraw_display = True
+                        draw_icon_fbuf()
+                        IS_SCROLLING = True
+
                         play_sound(("C3","E3","G3",("C4","E4","G4"),("C4","E4","G4")), 80)
                         
                     else: # currently unmuted, then mute
                         CONFIG['ui_sound'] = False
-                        #force_redraw_display = True
+                        draw_icon_fbuf()
+                        IS_SCROLLING = True
                 
                 elif APP_NAMES[APP_SELECTOR_INDEX] == "Reload Apps":
                     scan_apps()
                     APP_SELECTOR_INDEX = 0
+                    start_scroll(-1)
+                    draw_scrollbar()
+                    
                     play_sound(('C4','E4','G4'),80)
                         
                 else: # ~~~~~~~~~~~~~~~~~~~ LAUNCH THE APP! ~~~~~~~~~~~~~~~~~~~~
@@ -694,9 +751,9 @@ def main_loop():
                     machine.Pin(38, machine.Pin.OUT).value(0) #backlight off
                     DISPLAY.spi.deinit()
                     
-                    if sd != None:
+                    if SD != None:
                         try:
-                            sd.deinit()
+                            SD.deinit()
                         except:
                             print("Tried to deinit SDCard, but failed.")
                             
@@ -707,7 +764,7 @@ def main_loop():
             else: # keyboard shortcuts!
                 for key in new_keys:
                     # jump to letter:
-                    if len(key) == 1 and key in 'abcdefghijklmnopqrstuvwxyz1234567890': # filter special keys and repeated presses
+                    if len(key) == 1 and key in 'abcdefghijklmnopqrstuvwxyz1234567890': # filter special keys
                             #search for that letter in the app list
                             for idx in range(len(APP_NAMES)):
                                 # this lets us scan starting at the current APP_SELECTOR_INDEX
@@ -725,21 +782,16 @@ def main_loop():
                                     play_sound(("G3"), 100)
                                     draw_scrollbar()
                                     break
-    
-        #time.sleep_ms(4) #this loop runs about 3000 times a second without sleeps. The sleeps actually help things feel smoother.
-        
-        
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main Graphics: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main Graphics: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         
         if time.localtime()[4] != LASTDRAWN_MINUTE:
             draw_statusbar()
-            
-        draw_app_selector()
         
-        #reset vars for next loop
-        #force_redraw_display = False
+        draw_app_selector()
             
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ WIFI and RTC: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
