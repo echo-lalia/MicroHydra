@@ -65,7 +65,7 @@ _ICON_WIDTH = const(32)
 
 _ICON_FBUF_WIDTH = const(_FONT_WIDTH*3) # wide enough to fit the word "off"
 
-_SCROLL_ANIMATION_TIME = const(400)
+_SCROLL_ANIMATION_TIME = const(300)
 
 
 # icon definitions:
@@ -251,10 +251,10 @@ def get_app_paths(ientry, current_dir):
     
     if entry.endswith(".py"):
         app_name = entry[:-3]
-        app_path = current_dir + app_name
+        app_path = current_dir + entry
     elif entry.endswith(".mpy"):
         app_name = entry[:-4]
-        app_path = current_dir + app_name
+        app_path = current_dir + entry
         
     elif is_dir:
         # check for apps as module folders
@@ -363,23 +363,25 @@ def draw_statusbar(t=None):
     
 def draw_scrollbar():
     _MIN_SCROLLBAR_WIDTH = const(20)
-    _SCROLLBAR_HEIGHT = const(3)
-    _SCROLLBAR_PADDING = const(5)
+    _SCROLLBAR_HEIGHT = const(4)
+    _SCROLLBAR_PADDING = const(6)
     
-    _SCROLLBAR_FILL_HEIGHT = const(_SCROLLBAR_HEIGHT-1)
+    _SCROLLBAR_FILL_HEIGHT = const(_SCROLLBAR_HEIGHT-2)
     _SCROLLBAR_Y = const(_DISPLAY_HEIGHT-_SCROLLBAR_HEIGHT)
     _SCROLLBAR_FILL_Y = const(_SCROLLBAR_Y+1)
     _SCROLLBAR_FULL_WIDTH = const(_DISPLAY_WIDTH-(_SCROLLBAR_PADDING*2))
     
+    _SCROLLBAR_SHADOW_Y = const(_DISPLAY_HEIGHT-1)
+    
     scrollbar_width = max(_SCROLLBAR_FULL_WIDTH // len(APP_NAMES), _MIN_SCROLLBAR_WIDTH)
-    scrollbar_x = (
-        ((_SCROLLBAR_FULL_WIDTH // len(APP_NAMES))
+    scrollbar_x = math.floor(
+        ((_SCROLLBAR_FULL_WIDTH / len(APP_NAMES))
         * APP_SELECTOR_INDEX)
         + _SCROLLBAR_PADDING
         )
 
     # blackout:
-    DISPLAY.fill_rect(_SCROLLBAR_PADDING, _SCROLLBAR_Y, _SCROLLBAR_FULL_WIDTH, _SCROLLBAR_HEIGHT, CONFIG.palette[1])
+    DISPLAY.fill_rect(0, _SCROLLBAR_Y, _DISPLAY_WIDTH, _SCROLLBAR_HEIGHT, CONFIG.palette[1])
     
     # draw fill:
     DISPLAY.fill_rect(
@@ -387,9 +389,9 @@ def draw_scrollbar():
         scrollbar_width, _SCROLLBAR_FILL_HEIGHT,
         CONFIG.palette[2])
     
-    # draw highlight:
-    DISPLAY.hline(
-        scrollbar_x, _SCROLLBAR_Y, scrollbar_width, CONFIG.palette[3])
+    # draw highlight and shadow:
+    DISPLAY.hline(scrollbar_x, _SCROLLBAR_Y, scrollbar_width, CONFIG.palette[3])
+    DISPLAY.hline(scrollbar_x, _SCROLLBAR_SHADOW_Y, scrollbar_width, CONFIG.palette[0])
     
 def draw_app_selector():
     global ICON_UPDATED, IS_SCROLLING
@@ -397,7 +399,8 @@ def draw_app_selector():
     _BLIT_NAME_WIDTH = const(_DISPLAY_WIDTH-1) # TODO: trim this down
     _BLIT_NAME_Y_END = const(_APPNAME_Y+_FONT_HEIGHT-1)
     
-    _BLIT_ICON_X_START = const((_DISPLAY_WIDTH // 2) - (_ICON_FBUF_WIDTH // 2))
+    _ICON_FBUF_WIDTH_HALF = const(_ICON_FBUF_WIDTH // 2)
+    _BLIT_ICON_X_START = const((_DISPLAY_WIDTH // 2) - _ICON_FBUF_WIDTH_HALF)
     _BLIT_ICON_SECOND_X = const(_BLIT_ICON_X_START-_DISPLAY_WIDTH)
     _BLIT_ICON_X_END = const(_BLIT_ICON_X_START + _ICON_FBUF_WIDTH)
     _BLIT_ICON_Y_END = const(_ICON_Y + _ICON_HEIGHT)
@@ -412,33 +415,35 @@ def draw_app_selector():
     
     draw_name_fbuf(x)
     
-    if not ICON_UPDATED and abs(x) > _DISPLAY_WIDTH_HALF:
-        draw_icon_fbuf()
-        ICON_UPDATED = True
-    
     if x == 0:
         DISPLAY.blit_buffer(ICON_FBUF, _BLIT_ICON_X_START, _ICON_Y, _ICON_FBUF_WIDTH, _ICON_HEIGHT)
-        
+
     else:
-        # calc icon position first so we can erase around it
-        icon_x2 = _BLIT_ICON_X_START+x
+        icon_center = _DISPLAY_WIDTH_HALF+x
         
-        icon_x = icon_x2+_DISPLAY_WIDTH if SCROLL_DIRECTION > 0 else icon_x2-_DISPLAY_WIDTH
-        icon_end_x = icon_x + _ICON_FBUF_WIDTH
+        # if icon has scrolled out of view:
+        if not 0 < icon_center < _DISPLAY_WIDTH:
+            
+            # switch to new icon and wrap icon around the other end
+            if not ICON_UPDATED:
+                draw_icon_fbuf()
+                ICON_UPDATED = True
+            
+            icon_center %= _DISPLAY_WIDTH
+            
+        icon_start = icon_center - _ICON_FBUF_WIDTH_HALF
+        icon_end = icon_start + _ICON_FBUF_WIDTH
         
         # erase to left of icon
-        if icon_x > 0:
-            DISPLAY.fill_rect(0, _ICON_Y, icon_x, _ICON_HEIGHT, CONFIG.palette[1])
+        if icon_start > 0:
+            DISPLAY.fill_rect(0, _ICON_Y, icon_start, _ICON_HEIGHT, CONFIG.palette[1])
         # erase to right of icon
-        if icon_end_x < _DISPLAY_WIDTH:
-            DISPLAY.fill_rect(icon_end_x, _ICON_Y, _DISPLAY_WIDTH - icon_end_x, _ICON_HEIGHT+1, CONFIG.palette[1])
+        if icon_end < _DISPLAY_WIDTH:
+            DISPLAY.fill_rect(icon_end, _ICON_Y, _DISPLAY_WIDTH - icon_end, _ICON_HEIGHT+1, CONFIG.palette[1])
         
-        DISPLAY.blit_buffer(ICON_FBUF, icon_x2, _ICON_Y, _ICON_FBUF_WIDTH, _ICON_HEIGHT)
-        
-        # draw second/dissapearing icon
         DISPLAY.blit_buffer(
             ICON_FBUF,
-            icon_x,
+            icon_start,
             _ICON_Y,
             _ICON_FBUF_WIDTH, _ICON_HEIGHT)
         
@@ -471,7 +476,6 @@ def animate_scroll() -> int:
         fac * _DISPLAY_WIDTH if SCROLL_DIRECTION < 0 else fac * -_DISPLAY_WIDTH
         )
     
-    
 def unpack_shape(string):
     # this weird little function takes the memory-efficient 'packed' shape definition, and unpacks it to a valid arg tuple for DISPLAY.polygon
     unpacked = (
@@ -496,6 +500,12 @@ def draw_icon(icon_def):
     shape = unpack_shape(icon_def)
     for poly in shape:
         DISPLAY.polygon(*poly, fbuf=ICON_FBUF)
+
+def draw_default_icon(current_app_path):
+    if current_app_path.startswith("/sd"):
+        draw_icon(_SD_ICON)
+    else:
+        draw_icon(_FLASH_ICON)
 
 def draw_icon_fbuf():
     
@@ -529,10 +539,27 @@ def draw_icon_fbuf():
     elif current_app_text == "Settings":
         draw_icon(_SETTINGS_ICON)
         
-    elif APP_PATHS[APP_NAMES[APP_SELECTOR_INDEX]][:3] == "/sd":
-        draw_icon(_SD_ICON)
     else:
-        draw_icon(_FLASH_ICON)
+        # check if custom icon exists!
+        current_app_path = APP_PATHS[current_app_text]
+        try:
+            if ((not (current_app_path.endswith('.py')
+                or current_app_path.endswith('.mpy')) )
+                and '__icon__.txt' in os.listdir(current_app_path)):
+                
+                # try drawing custom icon
+                with open(current_app_path + '/__icon__.txt', 'r') as icon_file:
+                    draw_icon(icon_file.read())
+                    
+            else:
+                draw_default_icon(APP_PATHS[current_app_text])
+        
+        except Exception as e:
+            print(f"Icon could not be read: {e}")
+            DISPLAY.fbuf_bitmap_text(
+                font, ICON_FBUF, "ERR",
+                0, 0,
+                CONFIG.rgb_colors[0])
     
 def draw_name_fbuf(x=0):
     current_app_text = APP_NAMES[APP_SELECTOR_INDEX]
