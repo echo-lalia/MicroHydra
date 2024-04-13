@@ -27,15 +27,16 @@ if app_path.startswith("/sd"):
         os.mount(sd, '/sd')
         path.append('/sd/apps')
     except OSError:
-        print("Couldn't mount SDCard!")
+        with open('log.txt', 'a') as log:
+            log.write(f"Couldn't mount SDCard!\n")
 
 # import the requested app!
 try:
     __import__(app_path)
 except Exception as e:
     with open('log.txt', 'a') as log:
-        log.write(f"Tried to launch {app_path}, but failed: {e}\n")
+        log.write(f"Tried to launch '{app_path}', but failed: '{e}'\n")
     try:
         __import__("/launcher/launcher.py")
     except ImportError:
-        print("App launcher couldn't be imported!")
+        print("Launcher couldn't be imported")

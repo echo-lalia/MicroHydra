@@ -1,5 +1,5 @@
 import time, os, math, ntptime, network, framebuf, array
-from lib import keyboard, beeper, battlevel
+from lib import smartkeyboard, beeper, battlevel
 import machine
 from launcher import st7789hybrid as st7789
 from launcher.icons import battery
@@ -116,7 +116,7 @@ ICON_FBUF = framebuf.FrameBuffer(
 
 BEEP = beeper.Beeper()
 CONFIG = Config()
-KB = keyboard.KeyBoard()
+KB = smartkeyboard.KeyBoard(config=CONFIG)
 SD = None
 RTC = machine.RTC()
 BATT = battlevel.Battery()
@@ -633,38 +633,38 @@ def try_sync_clock():
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Key Repeater: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-_KEY_HOLD_MS = const(600)
-_KEY_REPEAT_MS = const(80)
-_KEY_REPEAT_DELTA = const(_KEY_HOLD_MS - _KEY_REPEAT_MS)
-
-class KeyRepeater:
-    """
-    KeyRepeater tracks the time since a key was pressed, and repeats keypresses at a specified interval.
-    """
-    def __init__(self):
-        self.tracker = {}
-        
-    def update_keys(self, keylist):
-        tracked_keys = self.tracker.keys()
-        time_now = time.ticks_ms()
-                
-        # add new keys to tracker
-        for key in keylist:
-            if key not in tracked_keys:
-                self.tracker[key] = time.ticks_ms()
-        
-        
-        for key in tracked_keys:
-            # remove keys that arent being pressed from tracker
-            if key not in KB.key_state:
-                self.tracker.pop(key)
-            
-            # test if keys have been held long enough to repeat
-            elif time.ticks_diff(time_now, self.tracker[key]) >= _KEY_HOLD_MS:
-                keylist.append(key)
-                self.tracker[key] = time.ticks_ms() - _KEY_REPEAT_DELTA
-        
-        return keylist
+# _KEY_HOLD_MS = const(600)
+# _KEY_REPEAT_MS = const(80)
+# _KEY_REPEAT_DELTA = const(_KEY_HOLD_MS - _KEY_REPEAT_MS)
+# 
+# class KeyRepeater:
+#     """
+#     KeyRepeater tracks the time since a key was pressed, and repeats keypresses at a specified interval.
+#     """
+#     def __init__(self):
+#         self.tracker = {}
+#         
+#     def update_keys(self, keylist):
+#         tracked_keys = self.tracker.keys()
+#         time_now = time.ticks_ms()
+#                 
+#         # add new keys to tracker
+#         for key in keylist:
+#             if key not in tracked_keys:
+#                 self.tracker[key] = time.ticks_ms()
+#         
+#         
+#         for key in tracked_keys:
+#             # remove keys that arent being pressed from tracker
+#             if key not in KB.key_state:
+#                 self.tracker.pop(key)
+#             
+#             # test if keys have been held long enough to repeat
+#             elif time.ticks_diff(time_now, self.tracker[key]) >= _KEY_HOLD_MS:
+#                 keylist.append(key)
+#                 self.tracker[key] = time.ticks_ms() - _KEY_REPEAT_DELTA
+#         
+#         return keylist
     
     
     
@@ -697,7 +697,7 @@ def main_loop():
                 print("wifi_sync_rtc had this error when connecting:",e)
     
     new_keys = []
-    repeater = KeyRepeater()
+#     repeater = KeyRepeater()
     
     #starupp sound
     play_sound(
@@ -720,7 +720,7 @@ def main_loop():
         
         # ----------------------- check for key presses on the keyboard. Only if they weren't already pressed. --------------------------
         new_keys = KB.get_new_keys()
-        new_keys = repeater.update_keys(new_keys)
+        #new_keys = repeater.update_keys(new_keys)
         
         if new_keys:
             

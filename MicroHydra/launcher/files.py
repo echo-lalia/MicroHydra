@@ -1,4 +1,4 @@
-from lib import st7789fbuf, mhconfig, mhoverlay, keyboard, beeper
+from lib import st7789fbuf, mhconfig, mhoverlay, smartkeyboard, beeper
 from font import vga2_16x32 as font
 import os, machine, time, math
 
@@ -29,8 +29,6 @@ FILE_HANDLERS = {
 
 
 
-kb = keyboard.KeyBoard()
-
 tft = st7789fbuf.ST7789(
     machine.SPI(
         1,baudrate=40000000,sck=machine.Pin(36),mosi=machine.Pin(35),miso=None),
@@ -45,6 +43,7 @@ tft = st7789fbuf.ST7789(
     )
 
 config = mhconfig.Config()
+kb = smartkeyboard.KeyBoard(config=config)
 overlay = mhoverlay.UI_Overlay(config, kb, display_fbuf=tft)
 beep = beeper.Beeper()
 
