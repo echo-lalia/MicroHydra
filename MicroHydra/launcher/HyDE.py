@@ -242,9 +242,9 @@ def is_numeric(string):
 #string formatter
 def remove_line_breaks(line):
     if line.endswith('\r') or line.endswith('\n'):
-        line = line[:-2]
+        line = line[:-1]
     if line.endswith('\r') or line.endswith('\n'):
-        line = line[:-2]
+        line = line[:-1]
     return line
 
 def replace_tabs(line):
