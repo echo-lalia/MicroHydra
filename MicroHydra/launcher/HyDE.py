@@ -40,6 +40,7 @@ _ALPHA_CLASS = const(7)
 _DIGIT_CLASS = const(8)
 _DOT_CLASS = const(9)
 _SPACE_CLASS = const(1)
+_INDENT_CLASS = const(2)
 _OTHER_CLASS = const(4)
 
 # rarely used whitespace chars are repurposed to denote converted tab/space indents
@@ -207,7 +208,7 @@ def run_file_here(filepath, overlay, editor):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~ String formatting/classification: ~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def classify_char(char):
+def classify_char(char) -> int:
     """Classify char types for comparison. Returns an int representing the type."""
     if char == None:
         return _NONE_CLASS
@@ -219,10 +220,12 @@ def classify_char(char):
         return _DOT_CLASS
     elif char.isspace():
         return _SPACE_CLASS
+    elif char == _INDENT_SYM:
+        return _INDENT_CLASS
     return _OTHER_CLASS
 
 
-def is_var(string):
+def is_var(string) -> bool:
     """Check if string could be a variable name."""
     for idx, char in enumerate(string):
         if idx == 0:
@@ -522,8 +525,9 @@ class Editor:
                     
     def get_current_indentation(self):
         current_line, _ = self.split_line_at_cursor()
-        # if current_line is indented at all
-        if current_line and current_line[0].isspace():
+        
+        # if current_line is indented at all:
+        if current_line and current_line[0] == _INDENT_SYM:
             return segment_from_str(current_line,0)
         return ""
         
@@ -575,7 +579,7 @@ class Editor:
     def insert_tab(self):
         """insert a tab at the cursor"""
         l_line, r_line = self.split_line_at_cursor()
-        #char = _TAB_INDENT_SYM if use_tabs else _SPACE_INDENT_SYM
+        
         self.lines[self.cursor_index[1]] = l_line + _INDENT_SYM + r_line
         self.move_right()
     
@@ -585,7 +589,7 @@ class Editor:
         
         # auto indent
         if l_line.endswith(':'):
-            indent = self.get_current_indentation() + "    "
+            indent = self.get_current_indentation() + _INDENT_SYM
             r_line = indent + r_line
             indent_count = len(indent)
         else:
@@ -604,20 +608,19 @@ class Editor:
     def backspace(self):
         """delete a character at the cursor"""
         l_line, r_line = self.split_line_at_cursor()
+        
+        # if cursor at start of line, delete line:
         if not l_line and self.cursor_index[1] > 0:
             self.lines[self.cursor_index[1] - 1] += r_line
             self.lines = self.lines[:self.cursor_index[1]] + self.lines[self.cursor_index[1] + 1:]
             self.move_left()
             self.cursor_index[0] -= len(r_line)
+            
+        # else, delete one char:
         else:
-            if len(l_line) >= 4 and l_line.isspace():
-                self.lines[self.cursor_index[1]] = l_line[:len(l_line)-4] + r_line
-                self.cursor_index[0] = max(0,self.cursor_index[0] - 3)
-                self.move_left()
-
-            else:
-                self.lines[self.cursor_index[1]] = l_line[:len(l_line)-1] + r_line
-                self.move_left()
+            self.lines[self.cursor_index[1]] = l_line[:-1] + r_line
+            self.move_left()
+            
         self.display_to_cursor_x()
         
         
