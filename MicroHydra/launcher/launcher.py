@@ -21,9 +21,12 @@ CHANGES:
     - added key-repeater logic from settings.py
     - added custom 'st7789hybrid.py' for launcher-specific use
     - replaced bitmap icons with vector icons to save memory
+    - added support for app icons
     
     Added log output on launch failure to main.py
-    
+    Improved copy/paste in Files app
+    Added smartkeyboard to lib
+    general bugfixes
     
 This program is designed to be used in conjunction with "main.py" apploader, to select and launch MPy apps.
 
