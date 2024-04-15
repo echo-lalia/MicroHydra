@@ -12,7 +12,7 @@ machine.freq(240_000_000)
 
 """
 
-VERSION: 0.11
+VERSION: 1.0
 
 CHANGES:
     Overhaul launcher.py! (FINALLY)
