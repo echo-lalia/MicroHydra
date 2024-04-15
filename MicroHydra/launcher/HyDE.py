@@ -7,7 +7,7 @@ import os, time, sys
 from esp32 import NVS
 
 # increased freq makes fancy text drawing faster. This may not be necessary if fancytext function is optimized
-machine.freq(240000000)
+machine.freq(240_000_000)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constants: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _DISPLAY_WIDTH = const(240)
@@ -19,7 +19,7 @@ _DISPLAY_LINES = const(10)
 _DISPLAY_PADDING = const(1) # padding between lines
 
 _LEFT_PADDING = const(8)
-_LEFT_RULE = const(5)
+_LEFT_RULE = const(6)
 _INDENT_RULE_OFFSET = const(_LEFT_RULE - _LEFT_PADDING)
 
 _RIGHT_TEXT_FADE = const(_DISPLAY_WIDTH - 8)
@@ -42,9 +42,10 @@ _DOT_CLASS = const(9)
 _SPACE_CLASS = const(1)
 _OTHER_CLASS = const(4)
 
-# rarely used whitespace chars are used to denote converted tab/space indents
-_SPACE_INDENT_SYM = const(' ')
-_TAB_INDENT_SYM = const(' ')
+# rarely used whitespace chars are repurposed to denote converted tab/space indents
+_INDENT_SYM = const(' ')
+# _SPACE_INDENT_SYM = const(' ')
+# _TAB_INDENT_SYM = const(' ')
 _SPACE_INDENT = const('    ')
 _TAB_INDENT = const('	')
 
@@ -75,12 +76,9 @@ config = mhconfig.Config()
 nvs = NVS("HyDE")
 
 # load config option to use tabs/spaces
-use_tabs = True
-try:
-    use_tabs = bool(nvs.get_i32("use_tabs"))
-except:
-    nvs.set_i32("use_tabs",0)
-    nvs.commit()
+use_tabs = False
+
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Generate color palette: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def shift_color565_hue(color, shift):
@@ -99,7 +97,6 @@ def shift_color565_hue(color, shift):
 str_color = shift_color565_hue(config.palette[5], -0.4)
 dark_str_color = shift_color565_hue(config.palette[3], -0.2)
 
-# num_color = shift_color565_hue(config.palette[5], -0.5)
 num_color = shift_color565_hue(
     mhconfig.mix_color565(config.palette[1], config.palette[5], mix_factor=0.95, hue_mix_fac=0, sat_mix_fac=0.95),
     -0.15
@@ -107,14 +104,18 @@ num_color = shift_color565_hue(
 
 op_color = mhconfig.mix_color565(config.palette[1], config.palette[5], mix_factor=0.9, hue_mix_fac=0.7, sat_mix_fac=0.8)
 
-# keyword_color = shift_color565_hue(config.palette[5], -0.3)
 keyword_color = mhconfig.mix_color565(config.palette[1], config.palette[5], mix_factor=1, hue_mix_fac=0.3, sat_mix_fac=0.7)
 
-#comment_color = shift_color565_hue(config.palette[3], -0.2)
 comment_color = mhconfig.mix_color565(config.palette[1], config.palette[5], mix_factor=0.5, hue_mix_fac=0, sat_mix_fac=0.1)
 dark_comment_color = mhconfig.mix_color565(config.palette[1], config.palette[5], mix_factor=0.25, hue_mix_fac=0, sat_mix_fac=0.1)
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Functions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Function defs: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 def file_options(target_file,overlay,editor):
     """Give file options menu"""
     _OPTIONS = (("Back", "Save", "Tab...", "Run...", "Exit..."))
@@ -201,6 +202,11 @@ def run_file_here(filepath, overlay, editor):
     except Exception as e:
         overlay.error(f"File closed with error: {e}")
 
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~ String formatting/classification: ~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 def classify_char(char):
     """Classify char types for comparison. Returns an int representing the type."""
     if char == None:
@@ -215,6 +221,7 @@ def classify_char(char):
         return _SPACE_CLASS
     return _OTHER_CLASS
 
+
 def is_var(string):
     """Check if string could be a variable name."""
     for idx, char in enumerate(string):
@@ -227,6 +234,7 @@ def is_var(string):
             if not (char.isalpha() or char == "_" or char.isdigit()):
                 return False
     return True
+
 
 def is_numeric(string):
     """Check if string is numeric. Support for "_" and "." """
@@ -247,24 +255,36 @@ def remove_line_breaks(line):
         line = line[:-1]
     return line
 
+
 def replace_tabs(line):
-    # replace tabs with fake tab
+    """replace tabs with fake tab"""
     tab_syms = ''
     while line.startswith(_TAB_INDENT):
         line = line[1:]
-        tab_syms += _TAB_INDENT_SYM
+        tab_syms += _INDENT_SYM
     return tab_syms + line
 
+
 def replace_space_indents(line):
-    # replace space indents with fake tab
+    """replace space indents with fake tab"""
     space_syms = ''
     while line.startswith(' '):
         # we must handle cases where less than 4 spaces are used, but we expect 4.
         for _ in range(4):
             if line.startswith(' '):
                 line = line[1:]
-        space_syms += _SPACE_INDENT_SYM
+        space_syms += _INDENT_SYM
     return space_syms + line
+
+
+def auto_set_tabs(lines):
+    for line in lines:
+        if line.startswith(_TAB_INDENT):
+            return True
+        elif line.startswith(_SPACE_INDENT):
+            return False
+    return None
+
 
 def clean_line(line):
     line = remove_line_breaks(line)
@@ -273,10 +293,38 @@ def clean_line(line):
     return line
 
 
-
 def format_display_line(line):
-    line = line.replace(_SPACE_INDENT_SYM, ' ').replace(_TAB_INDENT_SYM, ' ')
+    line = line.replace(_INDENT_SYM, ' ')
     return line
+
+
+def segment_from_str(string, index):
+    """Extract word segment from index, based on classify_char"""
+    output_str = ""
+    start_class = classify_char(string[index])
+    idx = index  
+    while idx < len(string): # look right
+        if (classify_char(string[idx]) == start_class 
+            )or (start_class == _ALPHA_CLASS and classify_char(string[idx]) == _DIGIT_CLASS # allow numbers on vars
+            )or (start_class == _DOT_CLASS and classify_char(string[idx]) == _DIGIT_CLASS # allow numbers to start with a "."
+            )or (start_class == _DIGIT_CLASS and classify_char(string[idx]) == _DOT_CLASS): # allow numbers with "." at the end or middle
+            
+            output_str += string[idx]
+            idx += 1
+        else: break
+    idx = index - 1
+    while idx >= 0: # look left
+        if classify_char(string[idx]) == start_class:
+            output_str = string[idx] + output_str
+            idx -= 1
+        else: break
+    return output_str
+    
+    
+    
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Graphics Functions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def draw_small_line(line,x,y,fade=0):
     """apply special styling to a small line and display it."""
@@ -319,44 +367,21 @@ def draw_small_line(line,x,y,fade=0):
         if string_char == "END": string_char = None
         x += 8
 
-def segment_from_str(string, index):
-    """Extract word segment from index, based on classify_char"""
-    output_str = ""
-    start_class = classify_char(string[index])
-    idx = index  
-    while idx < len(string): # look right
-        if (classify_char(string[idx]) == start_class 
-            )or (start_class == _ALPHA_CLASS and classify_char(string[idx]) == _DIGIT_CLASS # allow numbers on vars
-            )or (start_class == _DOT_CLASS and classify_char(string[idx]) == _DIGIT_CLASS # allow numbers to start with a "."
-            )or (start_class == _DIGIT_CLASS and classify_char(string[idx]) == _DOT_CLASS): # allow numbers with "." at the end or middle
-            
-            output_str += string[idx]
-            idx += 1
-        else: break
-    idx = index - 1
-    while idx >= 0: # look left
-        if classify_char(string[idx]) == start_class:
-            output_str = string[idx] + output_str
-            idx -= 1
-        else: break
-    return output_str
-    
+
 def draw_rule(x,y,small=False, highlight=False):
     tft.vline(
-        x+5,y,
+        x+6,y,
         _SMALL_TEXT_HEIGHT if small else _TEXT_HEIGHT,
         config.palette[1] if highlight else config.palette[0]
         )
 
+
 def draw_rules(line,x,y,small=False,highlight=False):
-    while line.startswith(_TAB_INDENT_SYM):
-        line = line[1:]
-        draw_rule(x+1,y)
-        x += 8
-    while line.startswith(_SPACE_INDENT_SYM):
+    while line.startswith(_INDENT_SYM):
         line = line[1:]
         draw_rule(x,y,small=small,highlight=highlight)
         x += 8
+
 
 def draw_fancy_line(line, x, y, highlight=False, trim=True):
     """apply special styling to a line and display it."""
@@ -447,7 +472,13 @@ def draw_fancy_line(line, x, y, highlight=False, trim=True):
         
         x += 8
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Editor Class: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+#--------------------------------------------------------------------------------------------------
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Editor Class: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#--------------------------------------------------------------------------------------------------
 class Editor:
     #class to handle our text editor display and state
     def __init__(self, overlay):
@@ -544,8 +575,8 @@ class Editor:
     def insert_tab(self):
         """insert a tab at the cursor"""
         l_line, r_line = self.split_line_at_cursor()
-        char = _TAB_INDENT_SYM if use_tabs else _SPACE_INDENT_SYM
-        self.lines[self.cursor_index[1]] = l_line + char + r_line
+        #char = _TAB_INDENT_SYM if use_tabs else _SPACE_INDENT_SYM
+        self.lines[self.cursor_index[1]] = l_line + _INDENT_SYM + r_line
         self.move_right()
     
     def insert_line(self):
@@ -728,8 +759,7 @@ class Editor:
         with open(filepath,"w") as file:
             for line in self.lines:
                 line = line.replace(
-                    _TAB_INDENT_SYM, _TAB_INDENT).replace(
-                    _SPACE_INDENT_SYM, _SPACE_INDENT
+                    _INDENT_SYM, _TAB_INDENT if use_tabs else _SPACE_INDENT 
                     )
                 file.write(line + "\r\n")
     
@@ -754,8 +784,11 @@ class Editor:
         
         
         
+#--------------------------------------------------------------------------------------------------
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main Loop: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main_loop():
-    global str_color, dark_str_color, keyword_color, comment_color, dark_comment_color
+    global str_color, dark_str_color, keyword_color, comment_color, dark_comment_color, use_tabs
     
     tft.fill(config['bg_color'])
     overlay = mhoverlay.UI_Overlay(config, kb, display_fbuf=tft)
@@ -781,6 +814,18 @@ def main_loop():
     #for when file empty
     if not editor.lines:
         editor.lines = ['']
+        
+    # set 'use tabs' option based on first indent found in file.
+    use_tabs = auto_set_tabs(editor.lines)
+    # if 'auto_set_tabs' returned None, use stored value instead
+    if use_tabs == None:
+        try:
+            use_tabs = bool(nvs.get_i32("use_tabs"))
+        except:
+            use_tabs = False
+            nvs.set_i32("use_tabs",0)
+            nvs.commit()
+    
         
     for idx, line in enumerate(editor.lines):
         editor.lines[idx] = clean_line(line)
