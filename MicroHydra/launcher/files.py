@@ -230,6 +230,9 @@ def ext_options(overlay):
         
         source = f"{source_path}/{file_name}".replace('//','/')
         dest = f"{cwd}/{file_name}".replace('//','/')
+
+        if source == dest:
+            dest = f"{cwd}/{file_name}.bak".replace('//','/')
         
         with open(source,"rb") as old_file:
             with open(dest, "wb") as new_file:
