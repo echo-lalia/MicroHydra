@@ -1,4 +1,4 @@
-from lib import st7789fbuf, mhconfig, mhoverlay, keyboard, beeper
+from lib import st7789fbuf, mhconfig, mhoverlay, smartkeyboard, beeper
 from font import vga2_16x32 as font
 import os, machine, time, math
 
@@ -29,8 +29,6 @@ FILE_HANDLERS = {
 
 
 
-kb = keyboard.KeyBoard()
-
 tft = st7789fbuf.ST7789(
     machine.SPI(
         1,baudrate=40000000,sck=machine.Pin(36),mosi=machine.Pin(35),miso=None),
@@ -45,10 +43,14 @@ tft = st7789fbuf.ST7789(
     )
 
 config = mhconfig.Config()
+kb = smartkeyboard.KeyBoard(config=config)
 overlay = mhoverlay.UI_Overlay(config, kb, display_fbuf=tft)
 beep = beeper.Beeper()
 
 sd = None
+
+# copied_file = None
+clipboard = None
 
 def mount_sd():
     global sd
@@ -189,7 +191,14 @@ def parse_files():
 def ext_options(overlay):
     """Create popup with options for new file or directory."""
     cwd = os.getcwd()
-    option = overlay.popup_options(("New Directory", "New File", "Refresh"), title=f"{cwd}:")
+    
+    options = ["Paste", "New Directory", "New File", "Refresh", "Exit to launcher"]
+    
+    if clipboard == None:
+        # dont give the paste option if there's nothing to paste.
+        options.pop(0)
+    
+    option = overlay.popup_options(options, title=f"{cwd}:")
     if option == "New Directory":
         play_sound(("D3"), 30)
         name = overlay.text_entry(title="Directory name:", blackout_bg=True)
@@ -198,6 +207,7 @@ def ext_options(overlay):
             os.mkdir(name)
         except Exception as e:
             overlay.error(e)
+            
     elif option == "New File":
         play_sound(("B3"), 30)
         name = overlay.text_entry(title="File name:", blackout_bg=True)
@@ -207,13 +217,38 @@ def ext_options(overlay):
                 newfile.write("")
         except Exception as e:
             overlay.error(e)
+            
     elif option == "Refresh":
         play_sound(("B3","G3","D3"), 30)
-        os.sync()
         mount_sd()
+        os.sync()
+        
+    elif option == "Paste":
+        play_sound(("D3","G3","D3"), 30)
+        
+        source_path, file_name = clipboard
+        
+        source = f"{source_path}/{file_name}".replace('//','/')
+        dest = f"{cwd}/{file_name}".replace('//','/')
+        
+        with open(source,"rb") as old_file:
+            with open(dest, "wb") as new_file:
+                while True:
+                    l = old_file.read(512)
+                    if not l: break
+                    new_file.write(l)
+    
+    elif option == "Exit to launcher":
+        overlay.draw_textbox("Exiting...", _DISPLAY_WIDTH//2, _DISPLAY_HEIGHT//2)
+        tft.show()
+        rtc = machine.RTC()
+        rtc.memory('')
+        machine.reset()
 
 def file_options(file, overlay):
     """Create popup with file options for given file."""
+    global clipboard
+    
     options = ("open", "copy", "rename", "delete")
     option = overlay.popup_options(options, title=f'"{file}":')
     
@@ -221,14 +256,16 @@ def file_options(file, overlay):
         play_sound(("G3"), 30)
         open_file(file)
     elif option == "copy":
-        new_name = overlay.text_entry(start_value=file, title=f"Rename '{file}':", blackout_bg=True)
+        # store copied file to clipboard
+        clipboard = (os.getcwd(), file)
+#         new_name = overlay.text_entry(start_value=file, title=f"Rename '{file}':", blackout_bg=True)
         play_sound(("D3","G3","D3"), 30)
-        with open(file,"rb") as source:
-            with open(new_name, "wb") as dest:
-                while True:
-                    l = source.read(512)
-                    if not l: break
-                    dest.write(l)
+#         with open(file,"rb") as source:
+#             with open(new_name, "wb") as dest:
+#                 while True:
+#                     l = source.read(512)
+#                     if not l: break
+#                     dest.write(l)
         
     elif option == "rename":
         play_sound(("B3"), 30)
@@ -287,7 +324,7 @@ def main_loop(tft, kb, config, overlay):
             elif key == ".":
                 view.down()
                 play_sound(("D3","B3"), 30)
-            elif key == "ENT" or key == "GO":
+            elif key == "ENT" or key == "SPC":
                 play_sound(("G3","B3","D3"), 30)
                 selection_name = file_list[view.cursor_index]
                 if selection_name == "/.../": # new file
@@ -325,6 +362,13 @@ def main_loop(tft, kb, config, overlay):
                 view.dir_dict = dir_dict
                 view.cursor_index = 0
                 view.view_index = 0
+                
+            elif key == "GO":
+                    ext_options(overlay)
+                    file_list, dir_dict = parse_files()
+                    view.items = file_list
+                    view.dir_dict = dir_dict
+                    view.clamp_cursor()
         
         view.draw()
         tft.show()

@@ -16,7 +16,7 @@ if machine.reset_cause() != machine.PWRON_RESET: #if this was not a power reset,
         app_path = paths[0]
     else:
         rtc.memory("/launcher/launcher.py") # for when we reset again
-        
+
 #add apps directory to PATH
 path.append('/apps')
 
@@ -27,13 +27,16 @@ if app_path.startswith("/sd"):
         os.mount(sd, '/sd')
         path.append('/sd/apps')
     except OSError:
-        print("Could not mount SDCard!")
+        with open('log.txt', 'a') as log:
+            log.write(f"Couldn't mount SDCard!\n")
 
+# import the requested app!
 try:
     __import__(app_path)
 except Exception as e:
-    print(f"Tried to launch {app_path}, but failed: {e}")    
+    with open('log.txt', 'a') as log:
+        log.write(f"Tried to launch '{app_path}', but failed: '{e}'\n")
     try:
         __import__("/launcher/launcher.py")
     except ImportError:
-        print("App launcher couldn't be imported!")
+        print("Launcher couldn't be imported")
