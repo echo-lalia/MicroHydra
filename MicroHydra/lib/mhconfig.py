@@ -242,6 +242,9 @@ class Config:
         try:
             with open("config.json", "r") as conf:
                 self.config = json.loads(conf.read())
+                # in case config schema was updated, local config should be also updated
+                for key, value in DEFAULT_CONFIG.items():
+                    self.config[key] = self.config.get(key, value)
         except:
             print("could not load settings from config.json. reloading default values.")
             with open("config.json", "w") as conf:
