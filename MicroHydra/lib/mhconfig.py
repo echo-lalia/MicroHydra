@@ -1,11 +1,21 @@
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ CONSTANT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-DEFAULT_CONFIG = {"ui_color":53243, "bg_color":4421, "ui_sound":True, "volume":2, "wifi_ssid":'', "wifi_pass":'', 'sync_clock':True, 'timezone':0}
+DEFAULT_CONFIG = {"ui_color": 53243,
+                  "bg_color": 4421,
+                  "ui_sound": True,
+                  "volume": 2,
+                  "wifi_ssid": '',
+                  "wifi_pass": '',
+                  "sync_clock": True,
+                  "24h_clock": False,
+                  "timezone": 0}
+
 
 def mix(val2, val1, fac=0.5):
     """Mix two values to the weight of fac"""
     output = (val1 * fac) + (val2 * (1.0 - fac))
     return output
+
 
 def mix_angle_float(angle1, angle2, factor=0.5):
     """take two angles as floats (range 0.0 to 1.0) and average them to the weight of factor.
@@ -20,6 +30,7 @@ def mix_angle_float(angle1, angle2, factor=0.5):
     blended = (angle1 + angular_distance * factor) % 1
 
     return blended
+
 
 def separate_color565(color):
     """
@@ -69,7 +80,6 @@ def rgb_to_hsv(r, g, b):
     return h, s, v
 
 
-
 def hsv_to_rgb(h, s, v):
     '''
     Convert an RGB float to an HSV float.
@@ -82,7 +92,7 @@ def hsv_to_rgb(h, s, v):
     p = v*(1.0 - s)
     q = v*(1.0 - s*f)
     t = v*(1.0 - s*(1.0-f))
-    i = i%6
+    i = i % 6
     if i == 0:
         return v, t, p
     if i == 1:
@@ -96,7 +106,7 @@ def hsv_to_rgb(h, s, v):
     if i == 5:
         return v, p, q
     # Cannot get here
-    
+
 
 def mix_color565(color1, color2, mix_factor=0.5, hue_mix_fac=None, sat_mix_fac=None):
     """
@@ -107,83 +117,89 @@ def mix_color565(color1, color2, mix_factor=0.5, hue_mix_fac=None, sat_mix_fac=N
         hue_mix_fac = mix_factor
     if sat_mix_fac == None:
         sat_mix_fac = mix_factor
-        
-    #separate to components
-    r1,g1,b1 = separate_color565(color1)
-    r2,g2,b2 = separate_color565(color2)
-    #convert to float 0.0 to 1.0
-    r1 /= 31; r2 /= 31
-    g1 /= 63; g2 /= 63
-    b1 /= 31; b2 /= 31
-    #convert to hsv 0.0 to 1.0
-    h1,s1,v1 = rgb_to_hsv(r1,g1,b1)
-    h2,s2,v2 = rgb_to_hsv(r2,g2,b2)
-    
-    #mix the hue angle
-    hue = mix_angle_float(h1,h2,factor=hue_mix_fac)
-    #mix the rest
+
+    # separate to components
+    r1, g1, b1 = separate_color565(color1)
+    r2, g2, b2 = separate_color565(color2)
+    # convert to float 0.0 to 1.0
+    r1 /= 31
+    r2 /= 31
+    g1 /= 63
+    g2 /= 63
+    b1 /= 31
+    b2 /= 31
+    # convert to hsv 0.0 to 1.0
+    h1, s1, v1 = rgb_to_hsv(r1, g1, b1)
+    h2, s2, v2 = rgb_to_hsv(r2, g2, b2)
+
+    # mix the hue angle
+    hue = mix_angle_float(h1, h2, factor=hue_mix_fac)
+    # mix the rest
     sat = mix(s1, s2, sat_mix_fac)
     val = mix(v1, v2, mix_factor)
-    
-    #convert back to rgb floats
-    red,green,blue = hsv_to_rgb(hue,sat,val)
-    #convert back to 565 range
+
+    # convert back to rgb floats
+    red, green, blue = hsv_to_rgb(hue, sat, val)
+    # convert back to 565 range
     red = int(red * 31)
     green = int(green * 63)
     blue = int(blue * 31)
-    
-    return combine_color565(red,green,blue)
+
+    return combine_color565(red, green, blue)
 
 
-
-def darker_color565(color,mix_factor=0.5):
+def darker_color565(color, mix_factor=0.5):
     """
     Get the darker version of a 565 color.
     """
-    #separate to components
-    r,g,b = separate_color565(color)
-    #convert to float 0.0 to 1.0
-    r /= 31; g /= 63; b /= 31
-    #convert to hsv 0.0 to 1.0
-    h,s,v = rgb_to_hsv(r,g,b)
-    
-    #higher sat value is percieved as darker
+    # separate to components
+    r, g, b = separate_color565(color)
+    # convert to float 0.0 to 1.0
+    r /= 31
+    g /= 63
+    b /= 31
+    # convert to hsv 0.0 to 1.0
+    h, s, v = rgb_to_hsv(r, g, b)
+
+    # higher sat value is percieved as darker
     s *= 1 + mix_factor
     v *= 1 - mix_factor
-    
-    #convert back to rgb floats
-    r,g,b = hsv_to_rgb(h,s,v)
-    #convert back to 565 range
+
+    # convert back to rgb floats
+    r, g, b = hsv_to_rgb(h, s, v)
+    # convert back to 565 range
     r = int(r * 31)
     g = int(g * 63)
     b = int(b * 31)
-    
-    return combine_color565(r,g,b)
+
+    return combine_color565(r, g, b)
 
 
-def lighter_color565(color,mix_factor=0.2):
+def lighter_color565(color, mix_factor=0.2):
     """
     Get the lighter version of a 565 color.
     """
-    #separate to components
-    r,g,b = separate_color565(color)
-    #convert to float 0.0 to 1.0
-    r /= 31; g /= 63; b /= 31
-    #convert to hsv 0.0 to 1.0
-    h,s,v = rgb_to_hsv(r,g,b)
-    
-    #higher sat value is percieved as darker
+    # separate to components
+    r, g, b = separate_color565(color)
+    # convert to float 0.0 to 1.0
+    r /= 31
+    g /= 63
+    b /= 31
+    # convert to hsv 0.0 to 1.0
+    h, s, v = rgb_to_hsv(r, g, b)
+
+    # higher sat value is percieved as darker
     s *= 1 - (mix_factor / 2)
     v *= 1 + mix_factor
-    
-    #convert back to rgb floats
-    r,g,b = hsv_to_rgb(h,s,v)
-    #convert back to 565 range
+
+    # convert back to rgb floats
+    r, g, b = hsv_to_rgb(h, s, v)
+    # convert back to 565 range
     r = int(r * 31)
     g = int(g * 63)
     b = int(b * 31)
-    
-    return combine_color565(r,g,b)
+
+    return combine_color565(r, g, b)
 
 
 def color565_shiftred(color, mix_factor=0.4, hue_mix_fac=0.8, sat_mix_fac=0.8):
@@ -193,7 +209,7 @@ def color565_shiftred(color, mix_factor=0.4, hue_mix_fac=0.8, sat_mix_fac=0.8):
     """
     _RED = const(63488)
     return mix_color565(color, _RED, mix_factor, hue_mix_fac, sat_mix_fac)
-    
+
 
 def color565_shiftgreen(color, mix_factor=0.1, hue_mix_fac=0.4, sat_mix_fac=0.1):
     """
@@ -203,6 +219,7 @@ def color565_shiftgreen(color, mix_factor=0.1, hue_mix_fac=0.4, sat_mix_fac=0.1)
     _GREEN = const(2016)
     return mix_color565(color, _GREEN, mix_factor, hue_mix_fac, sat_mix_fac)
 
+
 def color565_shiftblue(color, mix_factor=0.1, hue_mix_fac=0.4, sat_mix_fac=0.2):
     """
     Simple convenience function which shifts a color toward blue.
@@ -211,6 +228,8 @@ def color565_shiftblue(color, mix_factor=0.1, hue_mix_fac=0.4, sat_mix_fac=0.2):
     return mix_color565(color, _BLUE, mix_factor, hue_mix_fac, sat_mix_fac)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Config Class ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 class Config:
     def __init__(self):
         """
@@ -223,19 +242,22 @@ class Config:
         try:
             with open("config.json", "r") as conf:
                 self.config = json.loads(conf.read())
+                # in case config schema was updated, local config should be also updated
+                for key, value in DEFAULT_CONFIG.items():
+                    self.config[key] = self.config.get(key, value)
         except:
             print("could not load settings from config.json. reloading default values.")
             with open("config.json", "w") as conf:
                 self.config = DEFAULT_CONFIG
                 conf.write(json.dumps(self.config))
         # storing just the vals from the config lets us check later if any values have been modified
-        self.initial_values = tuple( self.config.values() )
+        self.initial_values = tuple(self.config.values())
         # generate an extended color palette
         self.generate_palette()
 
     def save(self):
         """If the config has been modified, save it to config.json"""
-        if tuple( self.config.values() ) != self.initial_values:
+        if tuple(self.config.values()) != self.initial_values:
             import json
             with open("config.json", "w") as conf:
                 conf.write(json.dumps(self.config))
@@ -247,32 +269,28 @@ class Config:
         ui_color = self.config['ui_color']
         bg_color = self.config['bg_color']
         mid_color = mix_color565(bg_color, ui_color, 0.5)
-        
-            
+
         self.palette = (
-            darker_color565(bg_color), # darker bg color
-            bg_color, # bg color
-            mix_color565(bg_color, ui_color, 0.25), # low-mid color
-            mid_color, # mid color
-            mix_color565(bg_color, ui_color, 0.75), # high-mid color
-            ui_color, # ui color
-            lighter_color565(ui_color), # lighter ui color
-            )
-        
+            darker_color565(bg_color),  # darker bg color
+            bg_color,  # bg color
+            mix_color565(bg_color, ui_color, 0.25),  # low-mid color
+            mid_color,  # mid color
+            mix_color565(bg_color, ui_color, 0.75),  # high-mid color
+            ui_color,  # ui color
+            lighter_color565(ui_color),  # lighter ui color
+        )
+
         # Generate a further expanded palette, based on UI colors, shifted towards primary display colors.
         self.rgb_colors = (
-            color565_shiftred(lighter_color565(bg_color)), # red color
-            color565_shiftgreen(mid_color), # green color
-            color565_shiftblue(darker_color565(mid_color)) # blue color
-            )
-        
+            color565_shiftred(lighter_color565(bg_color)),  # red color
+            color565_shiftgreen(mid_color),  # green color
+            color565_shiftblue(darker_color565(mid_color))  # blue color
+        )
+
     def __getitem__(self, key):
         # get item passthrough
         return self.config[key]
-    
+
     def __setitem__(self, key, new_val):
         # item assignment passthrough
         self.config[key] = new_val
-    
-
-
