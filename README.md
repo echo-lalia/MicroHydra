@@ -19,7 +19,9 @@
 # Cardputer-MicroHydra
 MicroHydra is a simple MicroPython based app launcher designed for the M5Stack Cardputer.
 
-![ezgif-2-c755779e82](https://github.com/echo-lalia/Cardputer-MicroHydra/assets/108598670/a0782c5d-5633-489a-a5eb-f6b4e83803ef)
+<p align="center">
+  <img src="https://github.com/echo-lalia/Cardputer-MicroHydra/assets/108598670/15b78e4b-64fc-433a-86d3-979362abd9ab" alt="Microhydra Banner"/>
+</p>
 
 
 This program is still in development, and not all features are fully realized.
@@ -169,3 +171,7 @@ Navigate to the folder where you downloaded this repository, and into the "Micro
 Once the files are transferred over to the Cardputer, you can test it out by disconnecting it, and powering it on. If everything is working, you should see the main launcher open up!
 
 If you have any issues, feel free to reach out. MH is still growing, and I'm interested to hear of any trouble it might be giving you. 
+
+<p align="center">
+  <img src="https://github.com/echo-lalia/Cardputer-MicroHydra/assets/108598670/a0782c5d-5633-489a-a5eb-f6b4e83803ef" alt="Demo GIF"/>
+</p>
