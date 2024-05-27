@@ -1,3 +1,5 @@
+import json
+from lib.palette import Palette
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ CONSTANT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 DEFAULT_CONFIG = {"ui_color": 53243,
@@ -227,6 +229,39 @@ def color565_shiftblue(color, mix_factor=0.1, hue_mix_fac=0.4, sat_mix_fac=0.2):
     _BLUE = const(31)
     return mix_color565(color, _BLUE, mix_factor, hue_mix_fac, sat_mix_fac)
 
+
+# # Palette class
+# class Palette:
+#     def __init__(self, size=32, use_tiny_buf=False):
+#         self.buf = bytearray(size)
+#         self.use_tiny_buf = use_tiny_buf
+# 
+# 
+#     def __len__(self) -> int:
+#         return len(self.buf) // 2
+# 
+# 
+#     @micropython.viper
+#     def __setitem__(self, key:int, new_val:int):
+#         buf_ptr = ptr16(self.buf)
+#         buf_ptr[key] = new_val
+# 
+# 
+#     @micropython.viper
+#     def __getitem__(self, key:int) -> int:
+#         # if using tiny buf, the color should be the index for the color
+#         if self.use_tiny_buf:
+#             return key
+# 
+#         buf_ptr = ptr16(self.buf)
+#         return buf_ptr[key]
+#     
+#     
+#     def __iter__(self):
+#         for i in range(len(self)):
+#             yield self[i]
+
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Config Class ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -237,7 +272,6 @@ class Config:
         The goal of this class is to prevent internal-MicroHydra scripts from reimplementing the same code repeatedly,
         and to provide easy to read methods for apps to access MicroHydra config values.
         """
-        import json
         # initialize the config object with the values from config.json
         try:
             with open("config.json", "r") as conf:
@@ -269,16 +303,27 @@ class Config:
         ui_color = self.config['ui_color']
         bg_color = self.config['bg_color']
         mid_color = mix_color565(bg_color, ui_color, 0.5)
-
-        self.palette = (
-            darker_color565(bg_color),  # darker bg color
-            bg_color,  # bg color
-            mix_color565(bg_color, ui_color, 0.25),  # low-mid color
-            mid_color,  # mid color
-            mix_color565(bg_color, ui_color, 0.75),  # high-mid color
-            ui_color,  # ui color
-            lighter_color565(ui_color),  # lighter ui color
-        )
+        
+        self.palette = Palette()
+        
+        # self.palette[0] = 0 # black
+        self.palette[15] = 65535 # white
+        
+        # user colors
+        for i in range(1, 15):
+            fac = (i - 1) / 13
+            self.palette[i] = mix_color565(bg_color, ui_color, fac)
+        
+        
+#         self.palette = (
+#             darker_color565(bg_color),  # darker bg color
+#             bg_color,  # bg color
+#             mix_color565(bg_color, ui_color, 0.25),  # low-mid color
+#             mid_color,  # mid color
+#             mix_color565(bg_color, ui_color, 0.75),  # high-mid color
+#             ui_color,  # ui color
+#             lighter_color565(ui_color),  # lighter ui color
+#         )
 
         # Generate a further expanded palette, based on UI colors, shifted towards primary display colors.
         self.rgb_colors = (
