@@ -7,17 +7,18 @@ import framebuf
 import array
 from lib import smartkeyboard, beeper, battlevel
 import machine
-from launcher import st7789hybrid as st7789
-from launcher.icons import battery
-from font import vga1_8x16 as fontsmall
+from lib import display
+from launcher.icons import battery, appicons
+# from font import vga1_8x16 as fontsmall
 from font import vga2_16x32 as font
 from lib.mhconfig import Config
+
 
 # bump up our clock speed so the UI feels smoother (240mhz is the max officially supported, but the default is 160mhz)
 machine.freq(240_000_000)
 
-"""
 
+"""
 VERSION: 1.0
 
 CHANGES:
@@ -72,20 +73,20 @@ _SMALLFONT_HEIGHT = const(16)
 _ICON_HEIGHT = const(32)
 _ICON_WIDTH = const(32)
 
-_ICON_FBUF_WIDTH = const(_FONT_WIDTH*3)  # wide enough to fit the word "off"
+# _ICON_FBUF_WIDTH = const(_FONT_WIDTH*3)  # wide enough to fit the word "off"
 
 _SCROLL_ANIMATION_TIME = const(300)
 
 
 # icon definitions:
-_SD_ICON = const("a2,30,3,31,27,31,28,30,28,1,27,0,6,0,5,1,5,7,2,10,2,13,4,15,4,16,2,18ut,a7,2,7,6,8,6,8,2bf,a10,2,10,6,11,6,11,2bf,a13,2,13,6,14,6,14,2bf,a16,1,16,6,17,6,17,1bf,a19,2,19,6,20,6,20,2bf,a22,1,22,6,23,6,23,1bf,a25,2,25,6,26,6,26,2bf,a11,24,13,24,13,25,14,25,14,27,13,27,13,28,11,28bf,a9,24,7,24,6,25,6,26,9,26,9,27,8,28,6,28bf,a8,25uf,a7,27uf,")
-_FLASH_ICON = const(
-    "a1,2,1,3,0,4,0,27,1,29,4,31,27,31,30,29,30,28,31,27,31,4,30,2,27,0,4,0uf,a8,8,8,23,23,23,23,8uf,a10,10,10,21,21,21,21,10ut")
-_SETTINGS_ICON = const("a15,0,16,0,19,4,20,4,22,2,23,2,24,3,25,7,26,8,28,7,29,8,28,11,27,12,31,15,31,16,27,19,29,22,29,23,28,24,24,24,24,28,23,29,22,29,19,27,16,31,15,31,12,27,11,28,9,29,8,29,7,28,8,26,6,24,3,24,2,23,2,22,4,20,4,19,2,17,1,17,0,16,0,15,4,12,2,9,2,8,3,7,6,8,8,6,7,3,8,2,9,2,11,4,12,4ut,a11,7,11,8,16,14,25,14,25,12,22,8,18,6,13,6bt,a16,17,11,24,12,25,19,25,23,22,25,19,25,17bt,a14,15,14,16,9,22,8,22,6,18,6,13,8,9,9,9bt,")
-_REFRESH_ICON = const(
-    "a12,27,9,26,5,22,3,19,3,12,5,8,8,5,12,3,18,3,21,4,24,6,27,10,28,13,28,18,25,23uf,a20,18,29,27,20,27ut,a19,25,14,26bf")
-_FILES_ICON = const(
-    "a0,3,1,2,9,2,12,5,29,5,30,6,30,8,31,9,28,28,27,29,1,29,0,28ut,a1,4,1,19,2,10,4,8,30,8,29,8,29,7,28,6,12,6,10,5,8,3,2,3bt")
+# _SD_ICON = const("a2,30,3,31,27,31,28,30,28,1,27,0,6,0,5,1,5,7,2,10,2,13,4,15,4,16,2,18ut,a7,2,7,6,8,6,8,2bf,a10,2,10,6,11,6,11,2bf,a13,2,13,6,14,6,14,2bf,a16,1,16,6,17,6,17,1bf,a19,2,19,6,20,6,20,2bf,a22,1,22,6,23,6,23,1bf,a25,2,25,6,26,6,26,2bf,a11,24,13,24,13,25,14,25,14,27,13,27,13,28,11,28bf,a9,24,7,24,6,25,6,26,9,26,9,27,8,28,6,28bf,a8,25uf,a7,27uf,")
+# _FLASH_ICON = const(
+#     "a1,2,1,3,0,4,0,27,1,29,4,31,27,31,30,29,30,28,31,27,31,4,30,2,27,0,4,0uf,a8,8,8,23,23,23,23,8uf,a10,10,10,21,21,21,21,10ut")
+# _SETTINGS_ICON = const("a15,0,16,0,19,4,20,4,22,2,23,2,24,3,25,7,26,8,28,7,29,8,28,11,27,12,31,15,31,16,27,19,29,22,29,23,28,24,24,24,24,28,23,29,22,29,19,27,16,31,15,31,12,27,11,28,9,29,8,29,7,28,8,26,6,24,3,24,2,23,2,22,4,20,4,19,2,17,1,17,0,16,0,15,4,12,2,9,2,8,3,7,6,8,8,6,7,3,8,2,9,2,11,4,12,4ut,a11,7,11,8,16,14,25,14,25,12,22,8,18,6,13,6bt,a16,17,11,24,12,25,19,25,23,22,25,19,25,17bt,a14,15,14,16,9,22,8,22,6,18,6,13,8,9,9,9bt,")
+# _REFRESH_ICON = const(
+#     "a12,27,9,26,5,22,3,19,3,12,5,8,8,5,12,3,18,3,21,4,24,6,27,10,28,13,28,18,25,23uf,a20,18,29,27,20,27ut,a19,25,14,26bf")
+# _FILES_ICON = const(
+#     "a0,3,1,2,9,2,12,5,29,5,30,6,30,8,31,9,28,28,27,29,1,29,0,28ut,a1,4,1,19,2,10,4,8,30,8,29,8,29,7,28,6,12,6,10,5,8,3,2,3bt")
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GLOBALS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -104,28 +105,30 @@ except RuntimeError as e:
         print(micropython.mem_info())
 
 # init driver for the graphics
-DISPLAY = st7789.ST7789(
-    machine.SPI(1, baudrate=40000000, sck=machine.Pin(
-        36), mosi=machine.Pin(35), miso=None),
-    _DISPLAY_HEIGHT,
-    _DISPLAY_WIDTH,
-    reset=machine.Pin(33, machine.Pin.OUT),
-    cs=machine.Pin(37, machine.Pin.OUT),
-    dc=machine.Pin(34, machine.Pin.OUT),
-    backlight=machine.Pin(38, machine.Pin.OUT),
-    rotation=1,
-    color_order=st7789.BGR
-)
-DISPLAY.vscrdef(20, 240, 40)
+# DISPLAY = st7789.ST7789(
+#     machine.SPI(1, baudrate=40000000, sck=machine.Pin(
+#         36), mosi=machine.Pin(35), miso=None),
+#     _DISPLAY_HEIGHT,
+#     _DISPLAY_WIDTH,
+#     reset=machine.Pin(33, machine.Pin.OUT),
+#     cs=machine.Pin(37, machine.Pin.OUT),
+#     dc=machine.Pin(34, machine.Pin.OUT),
+#     backlight=machine.Pin(38, machine.Pin.OUT),
+#     rotation=1,
+#     color_order=st7789.BGR
+# )
+DISPLAY = display.Display(use_tiny_buf=True)
 
-NAME_FBUF = framebuf.FrameBuffer(
-    bytearray(_FONT_HEIGHT * _DISPLAY_WIDTH * 2),
-    _DISPLAY_WIDTH, _FONT_HEIGHT, framebuf.RGB565,
-)
-ICON_FBUF = framebuf.FrameBuffer(
-    bytearray(_ICON_HEIGHT * _ICON_FBUF_WIDTH * 2),
-    _ICON_FBUF_WIDTH, _ICON_HEIGHT, framebuf.RGB565,
-)
+# DISPLAY.vscrdef(20, 240, 40)
+
+# NAME_FBUF = framebuf.FrameBuffer(
+#     bytearray(_FONT_HEIGHT * _DISPLAY_WIDTH * 2),
+#     _DISPLAY_WIDTH, _FONT_HEIGHT, framebuf.RGB565,
+# )
+# ICON_FBUF = framebuf.FrameBuffer(
+#     bytearray(_ICON_HEIGHT * _ICON_FBUF_WIDTH * 2),
+#     _ICON_FBUF_WIDTH, _ICON_HEIGHT, framebuf.RGB565,
+# )
 
 BEEP = beeper.Beeper()
 CONFIG = Config()
@@ -352,32 +355,33 @@ def draw_statusbar(t=None):
     else:
         formatted_time, ampm = time_24_to_12(hour_24, minute)
         DISPLAY.text(
-            fontsmall, ampm,
-            _CLOCK_AMPM_X_OFFSET + (len(formatted_time)
-                                    * _SMALLFONT_WIDTH), _CLOCK_AMPM_Y,
-            CONFIG.palette[3], CONFIG.palette[2])
+            ampm,
+            (
+            _CLOCK_AMPM_X_OFFSET
+            + (len(formatted_time)
+            * _SMALLFONT_WIDTH
+            )),
+            _CLOCK_AMPM_Y,
+            CONFIG.palette[3],
+            )
 
     DISPLAY.text(
-        fontsmall, formatted_time,
+        formatted_time,
         _CLOCK_X, _CLOCK_Y,
-        CONFIG.palette[4], CONFIG.palette[2])
+        CONFIG.palette[4],
+        )
 
     LASTDRAWN_MINUTE = minute
 
     # battery
     batt_lvl = BATT.read_level()
-    if batt_lvl == 3:
-        DISPLAY.bitmap_icons(
-            battery, battery.FULL, (CONFIG.palette[2], CONFIG.palette[4]), _BATTERY_X, _BATTERY_Y)
-    elif batt_lvl == 2:
-        DISPLAY.bitmap_icons(
-            battery, battery.HIGH, (CONFIG.palette[2], CONFIG.palette[4]), _BATTERY_X, _BATTERY_Y)
-    elif batt_lvl == 1:
-        DISPLAY.bitmap_icons(
-            battery, battery.LOW, (CONFIG.palette[2], CONFIG.palette[4]), _BATTERY_X, _BATTERY_Y)
-    else:
-        DISPLAY.bitmap_icons(
-            battery, battery.EMPTY, (CONFIG.palette[2], CONFIG.rgb_colors[0]), _BATTERY_X, _BATTERY_Y)
+    DISPLAY.bitmap(
+        battery,
+        _BATTERY_X,
+        _BATTERY_Y,
+        index=batt_lvl,
+        palette=[CONFIG.palette[3], CONFIG.palette[6]],
+        )
 
 
 def draw_scrollbar():
@@ -422,60 +426,52 @@ def draw_app_selector():
 
     _BLIT_NAME_WIDTH = const(_DISPLAY_WIDTH-1)  # TODO: trim this down
     _BLIT_NAME_Y_END = const(_APPNAME_Y+_FONT_HEIGHT-1)
-
-    _ICON_FBUF_WIDTH_HALF = const(_ICON_FBUF_WIDTH // 2)
-    _BLIT_ICON_X_START = const((_DISPLAY_WIDTH // 2) - _ICON_FBUF_WIDTH_HALF)
-    _BLIT_ICON_SECOND_X = const(_BLIT_ICON_X_START-_DISPLAY_WIDTH)
-    _BLIT_ICON_X_END = const(_BLIT_ICON_X_START + _ICON_FBUF_WIDTH)
-    _BLIT_ICON_Y_END = const(_ICON_Y + _ICON_HEIGHT)
+    
+    _TOTAL_SELECTOR_HEIGHT = const((_APPNAME_Y + _FONT_HEIGHT) - _ICON_Y)
 
     if not IS_SCROLLING:
         time.sleep_ms(5)
         return
 
-    _TOTAL_SELECTOR_HEIGHT = const((_APPNAME_Y + _FONT_HEIGHT) - _ICON_Y)
 
     x = animate_scroll()
 
-    draw_name_fbuf(x)
+    draw_app_name(x)
+    draw_app_icon(x)
 
-    if x == 0:
-        DISPLAY.blit_buffer(ICON_FBUF, _BLIT_ICON_X_START,
-                            _ICON_Y, _ICON_FBUF_WIDTH, _ICON_HEIGHT)
+#     else:
+    icon_center = _DISPLAY_WIDTH_HALF+x
 
-    else:
-        icon_center = _DISPLAY_WIDTH_HALF+x
+#     # if icon has scrolled out of view:
+#     if not 0 < icon_center < _DISPLAY_WIDTH:
+# 
+#         # switch to new icon and wrap icon around the other end
+#         if not ICON_UPDATED:
+#             
+#             ICON_UPDATED = True
+# 
+#         icon_center %= _DISPLAY_WIDTH
 
-        # if icon has scrolled out of view:
-        if not 0 < icon_center < _DISPLAY_WIDTH:
+    icon_start = icon_center - _ICON_WIDTH // 2
+    icon_end = icon_start + _ICON_WIDTH
 
-            # switch to new icon and wrap icon around the other end
-            if not ICON_UPDATED:
-                draw_icon_fbuf()
-                ICON_UPDATED = True
+    # erase to left of icon
+    if icon_start > 0:
+        DISPLAY.fill_rect(0, _ICON_Y, icon_start,
+                          _ICON_HEIGHT, CONFIG.palette[1])
+    # erase to right of icon
+    if icon_end < _DISPLAY_WIDTH:
+        DISPLAY.fill_rect(icon_end, _ICON_Y, _DISPLAY_WIDTH -
+                          icon_end, _ICON_HEIGHT+1, CONFIG.palette[1])
 
-            icon_center %= _DISPLAY_WIDTH
-
-        icon_start = icon_center - _ICON_FBUF_WIDTH_HALF
-        icon_end = icon_start + _ICON_FBUF_WIDTH
-
-        # erase to left of icon
-        if icon_start > 0:
-            DISPLAY.fill_rect(0, _ICON_Y, icon_start,
-                              _ICON_HEIGHT, CONFIG.palette[1])
-        # erase to right of icon
-        if icon_end < _DISPLAY_WIDTH:
-            DISPLAY.fill_rect(icon_end, _ICON_Y, _DISPLAY_WIDTH -
-                              icon_end, _ICON_HEIGHT+1, CONFIG.palette[1])
-
-        DISPLAY.blit_buffer(
-            ICON_FBUF,
-            icon_start,
-            _ICON_Y,
-            _ICON_FBUF_WIDTH, _ICON_HEIGHT)
+#     DISPLAY.blit_buffer(
+#         ICON_FBUF,
+#         icon_start,
+#         _ICON_Y,
+#         _ICON_FBUF_WIDTH, _ICON_HEIGHT)
 
     # finally, draw app name(s)
-    DISPLAY.blit_buffer(NAME_FBUF, 0, _APPNAME_Y, _DISPLAY_WIDTH, _FONT_HEIGHT)
+#     DISPLAY.blit_buffer(NAME_FBUF, 0, _APPNAME_Y, _DISPLAY_WIDTH, _FONT_HEIGHT)
 
 
 def start_scroll(direct=1):
@@ -505,96 +501,133 @@ def animate_scroll() -> int:
     )
 
 
-def unpack_shape(string):
-    # this weird little function takes the memory-efficient 'packed' shape definition, and unpacks it to a valid arg tuple for DISPLAY.polygon
-    unpacked = (
-        "shape=("
-        + string.replace(
-            'u', ")),CONFIG['ui_color']"
-        ).replace(
-            'b', ")),CONFIG['bg_color']"
-        ).replace(
-            'a', "(8,0,array.array('h', ("
-        ).replace(
-            't', ',True)'
-        ).replace(
-            'f', ',False)'
+# def unpack_shape(string):
+#     # this weird little function takes the memory-efficient 'packed' shape definition, and unpacks it to a valid arg tuple for DISPLAY.polygon
+#     unpacked = (
+#         "shape=("
+#         + string.replace(
+#             'u', ")),CONFIG['ui_color']"
+#         ).replace(
+#             'b', ")),CONFIG['bg_color']"
+#         ).replace(
+#             'a', "(8,0,array.array('h', ("
+#         ).replace(
+#             't', ',True)'
+#         ).replace(
+#             'f', ',False)'
+#         )
+#         + ")"
+#     )
+#     exec(unpacked)
+#     return shape
+# 
+# 
+# def draw_icon(icon_def):
+#     shape = unpack_shape(icon_def)
+#     for poly in shape:
+#         DISPLAY.polygon(*poly)
+# 
+#
+
+# 
+# def draw_default_icon(current_app_path):
+#     if current_app_path.startswith("/sd"):
+#         draw_icon(_SD_ICON)
+#     else:
+#         draw_icon(_FLASH_ICON)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ICONS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_FLASH_ICON_IDX = const(0)
+_SD_ICON_IDX = const(1)
+_GEAR_ICON_IDX = const(2)
+_REFRESH_ICON_IDX = const(3)
+_FILE_ICON_IDX = const(4)
+
+_ICON_CENTERED_X = const(_DISPLAY_WIDTH_HALF - (_ICON_WIDTH // 2))
+_ICON_OFF_X = const(_DISPLAY_WIDTH_HALF - ((_FONT_WIDTH * 3) // 2))
+
+def _draw_icon(index):
+    DISPLAY.bitmap(
+        appicons,
+        _ICON_CENTERED_X,
+        _ICON_Y,
+        index=index,
+        palette=[CONFIG.palette[2], CONFIG.palette[7]],
         )
-        + ")"
-    )
-    exec(unpacked)
-    return shape
 
 
-def draw_icon(icon_def):
-    shape = unpack_shape(icon_def)
-    for poly in shape:
-        DISPLAY.polygon(*poly, fbuf=ICON_FBUF)
-
-
-def draw_default_icon(current_app_path):
-    if current_app_path.startswith("/sd"):
-        draw_icon(_SD_ICON)
-    else:
-        draw_icon(_FLASH_ICON)
-
-
-def draw_icon_fbuf():
-
-    _ICON_CENTERED_X = const((_ICON_FBUF_WIDTH - _ICON_WIDTH) // 2)
-    _ICON_ONECHAR_X = const((_ICON_FBUF_WIDTH//2) - (_FONT_WIDTH // 2))
-
+def draw_app_icon(x=0):
     current_app_text = APP_NAMES[APP_SELECTOR_INDEX]
 
     # blackout old icon
-    DISPLAY.fill(CONFIG.palette[1], fbuf=ICON_FBUF)
+#     DISPLAY.rect(
+#         0,
+#         _ICON_Y,
+#         _DISPLAY_WIDTH,
+#         _ICON_HEIGHT,
+#         CONFIG.palette[2],
+#         )
 
     # special menu options for settings
     if current_app_text == "UI Sound":
         if CONFIG['ui_sound']:
-            DISPLAY.fbuf_bitmap_text(
-                font, ICON_FBUF, "On",
-                _ICON_CENTERED_X, 0,
-                CONFIG.palette[5])
+            DISPLAY.text(
+                "On",
+                _ICON_CENTERED_X,
+                _ICON_Y,
+                CONFIG.palette[8],
+                font=font
+                )
         else:
             DISPLAY.fbuf_bitmap_text(
-                font, ICON_FBUF, "Off",
-                0, 0,
-                CONFIG.palette[3])
+                "Off",
+                _ICON_OFF_X,
+                _ICON_Y,
+                CONFIG.palette[5],
+                font=font
+                )
 
     elif current_app_text == "Files":
-        draw_icon(_FILES_ICON)
+        _draw_icon(_FILE_ICON_IDX)
 
     elif current_app_text == "Reload Apps":
-        draw_icon(_REFRESH_ICON)
+        _draw_icon(_REFRESH_ICON_IDX)
 
     elif current_app_text == "Settings":
-        draw_icon(_SETTINGS_ICON)
-
+        _draw_icon(_GEAR_ICON_IDX)
+    
     else:
-        # check if custom icon exists!
         current_app_path = APP_PATHS[current_app_text]
-        try:
-            if ((not (current_app_path.endswith('.py')
-                or current_app_path.endswith('.mpy')))
-                    and '__icon__.txt' in os.listdir(current_app_path)):
+        if current_app_path.startswith("/sd"):
+            _draw_icon(_SD_ICON_IDX)
+        else:
+            _draw_icon(_FLASH_ICON_IDX)
+    
+#     else:
+#         # check if custom icon exists!
+#         current_app_path = APP_PATHS[current_app_text]
+#         try:
+#             if ((not (current_app_path.endswith('.py')
+#                 or current_app_path.endswith('.mpy')))
+#                     and '__icon__.txt' in os.listdir(current_app_path)):
+# 
+#                 # try drawing custom icon
+#                 with open(current_app_path + '/__icon__.txt', 'r') as icon_file:
+#                     draw_icon(icon_file.read())
+# 
+#             else:
+#                 draw_default_icon(APP_PATHS[current_app_text])
+# 
+#         except Exception as e:
+#             print(f"Icon could not be read: {e}")
+#             DISPLAY.text(
+#                 "ERR",
+#                 0, 0,
+#                 CONFIG.palette[11],
+#                 font=font)
 
-                # try drawing custom icon
-                with open(current_app_path + '/__icon__.txt', 'r') as icon_file:
-                    draw_icon(icon_file.read())
 
-            else:
-                draw_default_icon(APP_PATHS[current_app_text])
-
-        except Exception as e:
-            print(f"Icon could not be read: {e}")
-            DISPLAY.fbuf_bitmap_text(
-                font, ICON_FBUF, "ERR",
-                0, 0,
-                CONFIG.rgb_colors[0])
-
-
-def draw_name_fbuf(x=0):
+def draw_app_name(x=0):
     current_app_text = APP_NAMES[APP_SELECTOR_INDEX]
 
     # crop text for display
@@ -602,29 +635,32 @@ def draw_name_fbuf(x=0):
         current_app_text = current_app_text[:12] + "..."
 
     # blackout the old text
-    DISPLAY.fill(CONFIG['bg_color'], fbuf=NAME_FBUF)
+    DISPLAY.rect(0, _APPNAME_Y, _DISPLAY_WIDTH, _FONT_HEIGHT, CONFIG.palette[2], fill=True)
 
     # draw new text
     if x:
         prev_app_text = APP_NAMES[PREV_SELECTOR_INDEX]
 
-        DISPLAY.fbuf_bitmap_text(
-            font, NAME_FBUF, prev_app_text,
-            center_text_x(prev_app_text)+x, 0,
-            CONFIG['ui_color'])
+        DISPLAY.text(
+            prev_app_text,
+            center_text_x(prev_app_text) + x,
+            _APPNAME_Y,
+            CONFIG.palette[8],
+            font=font)
 
-        DISPLAY.fbuf_bitmap_text(
-            font, NAME_FBUF, current_app_text,
-            _DISPLAY_WIDTH+center_text_x(current_app_text)+x if SCROLL_DIRECTION > 0 else -
-            _DISPLAY_WIDTH+center_text_x(current_app_text)+x,
-            # center_text_x(current_app_text)+x,
-            0,
-            CONFIG['ui_color'])
+        DISPLAY.text(
+            current_app_text,
+            _DISPLAY_WIDTH+ center_text_x(current_app_text) + x if SCROLL_DIRECTION > 0 \
+            else -_DISPLAY_WIDTH + center_text_x(current_app_text) + x,
+            _APPNAME_Y,
+            CONFIG.palette[8],
+            font=font)
     else:
-        DISPLAY.fbuf_bitmap_text(
-            font, NAME_FBUF, current_app_text,
-            center_text_x(current_app_text)+x, 0,
-            CONFIG['ui_color'])
+        DISPLAY.text(
+            current_app_text,
+            center_text_x(current_app_text)+x, _APPNAME_Y,
+            CONFIG.palette[8],
+            font=font)
 
 
 def try_sync_clock():
@@ -667,41 +703,6 @@ def try_sync_clock():
         CONNECT_WIFI_ATTEMPTS += 1
 
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Key Repeater: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# _KEY_HOLD_MS = const(600)
-# _KEY_REPEAT_MS = const(80)
-# _KEY_REPEAT_DELTA = const(_KEY_HOLD_MS - _KEY_REPEAT_MS)
-#
-# class KeyRepeater:
-#     """
-#     KeyRepeater tracks the time since a key was pressed, and repeats keypresses at a specified interval.
-#     """
-#     def __init__(self):
-#         self.tracker = {}
-#
-#     def update_keys(self, keylist):
-#         tracked_keys = self.tracker.keys()
-#         time_now = time.ticks_ms()
-#
-#         # add new keys to tracker
-#         for key in keylist:
-#             if key not in tracked_keys:
-#                 self.tracker[key] = time.ticks_ms()
-#
-#
-#         for key in tracked_keys:
-#             # remove keys that arent being pressed from tracker
-#             if key not in KB.key_state:
-#                 self.tracker.pop(key)
-#
-#             # test if keys have been held long enough to repeat
-#             elif time.ticks_diff(time_now, self.tracker[key]) >= _KEY_HOLD_MS:
-#                 keylist.append(key)
-#                 self.tracker[key] = time.ticks_ms() - _KEY_REPEAT_DELTA
-#
-#         return keylist
-
 
 # --------------------------------------------------------------------------------------------------
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -742,14 +743,14 @@ def main_loop():
          ))
 
     # init diplsay
-    DISPLAY.fill(CONFIG['bg_color'])
+    DISPLAY.fill(CONFIG.palette[2])
     DISPLAY.fill_rect(0, 0, _DISPLAY_WIDTH,
-                      _STATUSBAR_HEIGHT, CONFIG.palette[2])
-    DISPLAY.hline(0, _STATUSBAR_HEIGHT, _DISPLAY_WIDTH, CONFIG.palette[0])
+                      _STATUSBAR_HEIGHT, CONFIG.palette[4])
+    DISPLAY.hline(0, _STATUSBAR_HEIGHT, _DISPLAY_WIDTH, CONFIG.palette[1])
 
     draw_scrollbar()
     draw_statusbar()
-    draw_icon_fbuf()
+    draw_app_icon()
 
     while True:
 
@@ -788,7 +789,7 @@ def main_loop():
 
                     if CONFIG['ui_sound'] == 0:  # currently muted, then unmute
                         CONFIG['ui_sound'] = True
-                        draw_icon_fbuf()
+#                         draw_app_icon()
                         IS_SCROLLING = True
 
                         play_sound(
@@ -796,7 +797,7 @@ def main_loop():
 
                     else:  # currently unmuted, then mute
                         CONFIG['ui_sound'] = False
-                        draw_icon_fbuf()
+#                         draw_app_icon()
                         IS_SCROLLING = True
 
                 elif APP_NAMES[APP_SELECTOR_INDEX] == "Reload Apps":
@@ -859,6 +860,7 @@ def main_loop():
             draw_statusbar()
 
         draw_app_selector()
+        DISPLAY.show()
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ WIFI and RTC: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

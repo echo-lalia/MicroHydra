@@ -974,61 +974,73 @@ if __name__ == "__main__":
         color_order=BGR,
         use_tiny_buf=False
         )
-        
     
-    tft.fill(palette[3])
+    
+    tft.fill(0)
     
     
     current_text = 'Hello, world!'
     
-    counter = 0
-    while True:
-        counter += 1
-        
-        x = ping_pong(counter, _DISPLAY_WIDTH - (len(current_text) * _SMALL_CHAR_WIDTH))
-        y = ping_pong(counter, _DISPLAY_HEIGHT - 16)
-        clr_idx = ping_pong(counter // 4, 15)
-
+    for i in range(16):
+        x = 0 if i < 8 else _DISPLAY_WIDTH_HALF
+        y = (i % 8) * 16
         tft.text(
             font=fontsmall,
             text=current_text,
             # center text on x axis:
-            x=x, 
+            x=x + 4, 
             y=y,
-            color=palette[clr_idx]
+            color=palette[i]
             )
-        
-        x2 = ping_pong((counter * 2) // 3, _DISPLAY_WIDTH - (len(current_text) * _CHAR_WIDTH))
-        y2 = ping_pong((counter * 2) // 3, _DISPLAY_HEIGHT - 32)
-        clr_idx2 = ping_pong(counter // 8, 15)
-
-        tft.text(
-            font=font,
-            text=current_text,
-            # center text on x axis:
-            x=x2, 
-            y=y2,
-            color=palette[clr_idx2]
-            )
-    
-        # write framebuffer to display
-        tft.show()
-        
-        # blackout for next frame
-        tft.text(
-            font=fontsmall,
-            text=current_text,
-            # center text on x axis:
-            x=x, 
-            y=y,
-            color=palette[3]
-            )
-        
-        tft.text(
-            font=font,
-            text=current_text,
-            # center text on x axis:
-            x=x2, 
-            y=y2,
-            color=palette[3]
-            )
+    tft.show()
+#     counter = 0
+#     while True:
+#         counter += 1
+#         
+#         x = ping_pong(counter, _DISPLAY_WIDTH - (len(current_text) * _SMALL_CHAR_WIDTH))
+#         y = ping_pong(counter, _DISPLAY_HEIGHT - 16)
+#         clr_idx = ping_pong(counter // 4, 15)
+# 
+#         tft.text(
+#             font=fontsmall,
+#             text=current_text,
+#             # center text on x axis:
+#             x=x, 
+#             y=y,
+#             color=palette[clr_idx]
+#             )
+#         
+#         x2 = ping_pong((counter * 2) // 3, _DISPLAY_WIDTH - (len(current_text) * _CHAR_WIDTH))
+#         y2 = ping_pong((counter * 2) // 3, _DISPLAY_HEIGHT - 32)
+#         clr_idx2 = ping_pong(counter // 8, 15)
+# 
+#         tft.text(
+#             font=font,
+#             text=current_text,
+#             # center text on x axis:
+#             x=x2, 
+#             y=y2,
+#             color=palette[clr_idx2]
+#             )
+#     
+#         # write framebuffer to display
+#         tft.show()
+#         
+#         # blackout for next frame
+#         tft.text(
+#             font=fontsmall,
+#             text=current_text,
+#             # center text on x axis:
+#             x=x, 
+#             y=y,
+#             color=palette[3]
+#             )
+#         
+#         tft.text(
+#             font=font,
+#             text=current_text,
+#             # center text on x axis:
+#             x=x2, 
+#             y=y2,
+#             color=palette[3]
+#             )
