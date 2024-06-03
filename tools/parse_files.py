@@ -1,21 +1,41 @@
+"""
+MicroHydra file parser is a script inspired by PlatformIO,
+designed to enable multiplatform development for MicroHydra.
+
+This script pulls source code from /src and turns it into 
+device-specific MicroHydra code for the each defined device.
+
+Device definitions are stored in /devices, in json format.
+
+Hydra Constants:
+- Constants declared with the "_MH_" prefix, and
+  which match a platform-specific value from the device json.
+- Are replaced automatically with their device specific value.
+- Initial value can be anything (for testing purposes).
+Example:
+`_MH_DISPLAY_WIDTH = const(240)`
+
+Hydra Conditionals:
+- Conditional 'if' statements that can include or exclude a block of code
+  based on a given feature.
+- Can also be used to match a device name, or whether or not a module is "frozen".
+- Follow this syntax: `# mh_if {feature}:` or `# mh_if not {feature}:`
+- Are closed with this syntax: `# mh_end_if`
+- If the entire conditional is commented out, 
+  automatically uncomments it (for easier development)
+Example:
+```
+# mh_if touchscreen:
+enable_touch = True,
+# mh_end_if
+```
+"""
+
 import os
 import json
 import argparse
 import re
 from pathlib import Path
-
-
-class bcolors:
-    """Small helper for print output coloring."""
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 
 # argparser stuff:
@@ -38,9 +58,6 @@ DEST_PATH = SCRIPT_ARGS.dest
 
 # set defaults for args not given:
 CWD = os.getcwd()
-
-print("\n")
-print(f"CWD: {bcolors.OKBLUE}{CWD}{bcolors.ENDC}")
 
 if SOURCE_PATH is None:
     SOURCE_PATH = os.path.join(CWD, 'src')
@@ -74,6 +91,8 @@ def main():
             devices.append(Device(filename))
 
     # print status information
+    print("\n")
+    print(f"CWD: {bcolors.OKBLUE}{CWD}{bcolors.ENDC}")
     print(f"Parsing files in {bcolors.OKBLUE}{SOURCE_PATH}{bcolors.ENDC}")
     print(f"Destination: {bcolors.OKBLUE}{DEST_PATH}{bcolors.ENDC}")
     print(f"Found devices: {bcolors.OKCYAN}{devices}{bcolors.ENDC}")
@@ -92,6 +111,19 @@ def main():
                 file_parser.save(DEST_PATH, device)
             else:
                 file_parser.save_unparsable_file(DEST_PATH, device)
+
+
+class bcolors:
+    """Small helper for print output coloring."""
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 
 class Device:
@@ -168,6 +200,7 @@ class FileParser:
         else:
             return None
 
+
     @staticmethod
     def replace_constant_value(line, new_value) -> str:
         """Replace the value of constant in given line with a new value."""
@@ -193,7 +226,7 @@ class FileParser:
 
     def parse_constants(self, device):
         """Read constants from device description, and replace constants in lines with device constants"""
-        for line in self.lines:
+        for idx, line in enumerate(self.lines):
             # check if it looks like a constant first, so we can warn
             if self._looks_like_constant(line):
                 const_name = self._get_constant_name(line)
@@ -201,16 +234,7 @@ class FileParser:
                 if const_name in device.constants.keys():
                     # replace the valid Hydra constant!
                     new_value = device.constants[const_name]
-                    try:
-                        line = self.replace_constant_value(line, new_value)
-                    except IndexError:
-                        print(
-                            f"{bcolors.WARNING}WARNING: FileParser failed to replace constant in line: \n"
-                            f"{line}\n"
-                            f"Make sure constant is all in one line, and ensure opening/closing parenthesis match.{bcolors.ENDC}"
-                            )
-
-                    print(f"Found MH constant: {const_name}")
+                    self.lines[idx] = self.replace_constant_value(line, new_value)
 
                 else:
                     print(f"{bcolors.WARNING}WARNING: '{const_name}' "
@@ -218,11 +242,45 @@ class FileParser:
                           f"{bcolors.ENDC}"
                           )
 
+    @staticmethod
+    def _is_hydra_conditional(line:str) -> bool:
+        """Check if line contains a hydra conditional statement."""
+        if "#" in line and "mh_if" in line:
+            found_comment = False
+            while line:
+                if line.startswith('#'):
+                    found_comment = True
+                elif found_comment and line.startswith('mh_if'):
+                    return True
+                elif found_comment and (not line[0].isspace()):
+                    return False
+                line = line[1:]
+        return False
+
+
+    @staticmethod
+    def _is_conditional_end(line:str) -> bool:
+        """Check if line contains a conditional end."""
+        if "#" in line and "mh_end_if" in line:
+            found_comment = False
+            while line:
+                if line.startswith('#'):
+                    found_comment = True
+                elif found_comment and line.startswith('mh_end_if'):
+                    return True
+                elif found_comment and (not line[0].isspace()):
+                    return False
+                line = line[1:]
+        return False
 
 
     def parse_conditionals(self, device, frozen=False):
         """Find conditional statements to include or exclude from lines based on device features/name"""
-        pass
+        for idx, line in enumerate(self.lines):
+            if self._is_hydra_conditional(line):
+                pass
+        
+
 
     def save_unparsable_file(self, dest_path, device):
         """For file types that shouldn't be modified, just copy instead."""
@@ -233,6 +291,7 @@ class FileParser:
         with open(self.path, 'rb') as source_file:
             with open(dest_path, 'wb') as new_file:
                 new_file.write(source_file.read())
+
 
     def save(self, dest_path, device):
         """Save modified contents to given destination."""

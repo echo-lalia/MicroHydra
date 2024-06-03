@@ -19,9 +19,6 @@
         "i2s_speaker", 
         "pdm_microphone", 
         "ir_blaster", 
-        "ir_receiver", 
-        "touchscreen", 
-        "trackball", 
         "wifi", 
         "bluetooth"
         ]

@@ -51,8 +51,8 @@ from lib import display
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ _CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-_MH_DISPLAY_WIDTH = const(240)
-_MH_DISPLAY_HEIGHT = const((135)
+_MH_DISPLAY_WIDTH = const(0+0+0+0)
+_MH_DISPLAY_HEIGHT = const(1+2+3+4)
 _MH_FAKE_EXAMPLE_CONST = const(0)
 
 _DISPLAY_WIDTH = const(240)
