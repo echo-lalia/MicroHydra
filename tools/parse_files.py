@@ -20,6 +20,7 @@ Hydra Conditionals:
   based on a given feature.
 - Can also be used to match a device name, or whether or not a module is "frozen".
 - Follow this syntax: `# mh_if {feature}:` or `# mh_if not {feature}:`
+- elif supported using `# mh_else_if {feature}:`
 - Are closed with this syntax: `# mh_end_if`
 - If the entire conditional is commented out, 
   automatically uncomments it (for easier development)
@@ -245,7 +246,9 @@ class FileParser:
     @staticmethod
     def _is_hydra_conditional(line:str) -> bool:
         """Check if line contains a hydra conditional statement."""
-        if "#" in line and "mh_if" in line:
+        if "#" in line \
+        and "mh_if" in line \
+        and ":" in line:
             found_comment = False
             while line:
                 if line.startswith('#'):
@@ -259,14 +262,32 @@ class FileParser:
 
 
     @staticmethod
-    def _is_conditional_end(line:str) -> bool:
-        """Check if line contains a conditional end."""
-        if "#" in line and "mh_end_if" in line:
+    def _is_conditional_else(line:str) -> bool|str:
+        """Check if line is an else OR elif statement."""
+        if "#" in line and "mh_else" in line:
             found_comment = False
             while line:
                 if line.startswith('#'):
                     found_comment = True
-                elif found_comment and line.startswith('mh_end_if'):
+                elif found_comment and line.startswith('mh_else_if'):
+                    return "mh_else_if"
+                elif found_comment and line.startswith('mh_else'):
+                    return "mh_else"
+                elif found_comment and (not line[0].isspace()):
+                    return False
+                line = line[1:]
+        return False
+
+
+    @staticmethod
+    def _is_conditional_end(line:str) -> bool:
+        """Check if line contains a conditional end. (INCLUDING else/elif)"""
+        if "#" in line and ("mh_end_if" in line or "mh_else" in line):
+            found_comment = False
+            while line:
+                if line.startswith('#'):
+                    found_comment = True
+                elif found_comment and line.startswith(('mh_end_if', 'mh_else')):
                     return True
                 elif found_comment and (not line[0].isspace()):
                     return False
@@ -274,11 +295,163 @@ class FileParser:
         return False
 
 
+    def _uncomment_conditional(self, start_idx, end_idx):
+        """If a conditional is kept but all elements are commented out, uncomment those!"""
+        relevant_slice = self.lines[start_idx:end_idx + 1]
+
+        # check if all lines are commented
+        all_commented = True
+        for line in relevant_slice:
+            # remove leading spaces to look for '#'
+            while line and line[0].isspace():
+                line = line[1:]
+            if not line.startswith('#'): 
+                all_commented = False
+                break
+        if not all_commented:
+            return
+        
+        # check if comment has "# " or "#"
+        is_properly_spaced = all(['# ' in line for line in relevant_slice])
+        # if not properly spaced (not using `# <code>`) warn and exit
+        # this is because proper indentation can't be guaranteed 
+        # without consistent spacing.
+        if not is_properly_spaced:
+            print(
+                f"{bcolors.WARNING}WARNING: Couldn't remove comments in lines "
+                f"{start_idx} - {end_idx} due to incorrect spacing in one or more lines. "
+                f"Make sure you include a space after the hash in your comments.{bcolors.ENDC}"
+                )
+            return
+        
+        # assume we can actually remove all the comments, now
+        for i, line in enumerate(relevant_slice):
+            idx = i + start_idx
+            # replace only a single comment in every line (to preserve actual comments)
+            self.lines[idx] = line.replace("# ", "", 1)
+
+    
+    @staticmethod
+    def slice_str_to_char(string:str, stop_char:str) -> str:
+        """Slice a given string from 0 to the given character (not inclusive)."""
+        output = ""
+        while string and not string.startswith(stop_char):
+            output += string[0]
+            string = string[1:]
+        return output
+
+
+    def _handle_expand_else(self, index, feature, has_not, else_type):
+        """
+        Given an index and the previously decoded "if" statement, 
+        expand an else into a new if statement.
+        """
+        target_line = self.lines[index]
+
+        if else_type == "mh_else":
+            # if it's a regular else statment, 
+            # all we have to do is invert the presence of "not"
+            has_not = not has_not
+
+        else:
+            # if it's an elif statement, we should extract the new conditional.
+            *conditional, feature = target_line.replace(":", "", 1).split()
+            has_not = conditional[-1] == "not"
+    
+        # assemble new conditional
+        new_line = self.slice_str_to_char(target_line, "#")
+        not_str = " not" if has_not else ""
+        new_line = f"{new_line}# mh_if{not_str} {feature}:\n"
+        self.lines[index] = new_line
+
+
+    
+    def _process_one_conditional(self, device, frozen=False) -> bool:
+        """
+        Find and process a single Hydra conditional.
+        Returns False if no conditional found,
+        Returns True if conditional is processed. 
+        """
+        # search for the start and end of one conditional
+        cond_start_idx = None
+        cond_line = None
+        cond_end_idx = None
+        # also track how many ifs we've found (to allow nesting)
+        conditional_opens = 0
+
+        for idx, line in enumerate(self.lines):
+
+            if self._is_hydra_conditional(line):
+                conditional_opens += 1
+                if cond_start_idx is None:
+                    cond_start_idx = idx
+                    cond_line = line
+
+            elif cond_start_idx is not None \
+            and self._is_conditional_end(line):
+                conditional_opens -= 1
+                if conditional_opens == 0:
+                    cond_end_idx = idx
+                    break
+
+        if cond_start_idx is None or cond_end_idx is None:
+            return False
+        
+        has_not = False
+        *conditional, feature = cond_line.replace(":", "", 1).split()
+        if conditional[-1] == "not":
+            has_not = True
+
+        keep_section = False
+        if feature == "frozen" and frozen:
+            keep_section = True
+        elif feature in device.features:
+            keep_section = True
+        
+        if has_not:
+            keep_section = not keep_section
+
+        if keep_section:
+            # remove only if and endif
+            self.lines.pop(cond_start_idx)
+            # now lines is 1 shorter:
+            cond_end_idx -= 1
+
+            # expand else/elif statement, or just remove a normal "end if"
+            conditional_else = self._is_conditional_else(self.lines[cond_end_idx])
+            if conditional_else:
+                self._handle_expand_else(cond_end_idx, feature, has_not, conditional_else)
+            else:
+                self.lines.pop(cond_end_idx)
+            # and it's shorter again
+            cond_end_idx -= 1
+
+            # check if all kept lines are commented out. We can uncomment them if they are.
+            self._uncomment_conditional(cond_start_idx, cond_end_idx)
+
+        else:
+            # remove entire section
+            # but if the final line is an elif, just reformat it
+
+            conditional_else = self._is_conditional_else(self.lines[cond_end_idx])
+            if conditional_else:
+                self._handle_expand_else(cond_end_idx, feature, has_not, conditional_else)
+                cond_end_idx -= 1
+            
+            self.lines = self.lines[:cond_start_idx] + self.lines[cond_end_idx + 1:]
+
+        return True
+
+
+
+
+
     def parse_conditionals(self, device, frozen=False):
         """Find conditional statements to include or exclude from lines based on device features/name"""
-        for idx, line in enumerate(self.lines):
-            if self._is_hydra_conditional(line):
-                pass
+        # this syntax is weird, but _process_one_conditional 
+        # returns true until all conditionals are gone.
+        while self._process_one_conditional(device, frozen):
+            pass
         
 
 

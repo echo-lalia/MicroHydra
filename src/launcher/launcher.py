@@ -55,6 +55,14 @@ _MH_DISPLAY_WIDTH = const(0+0+0+0)
 _MH_DISPLAY_HEIGHT = const(1+2+3+4)
 _MH_FAKE_EXAMPLE_CONST = const(0)
 
+# just for testing!
+# mh_if touchscreen:
+print("this device has a touchscreen!")
+# mh_else_if not touchscreen:
+# print("this device has no touchscreen!")
+# # also this is a test comment.
+# mh_end_if
+
 _DISPLAY_WIDTH = const(240)
 _DISPLAY_HEIGHT = const(135)
 
