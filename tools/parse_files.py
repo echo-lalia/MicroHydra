@@ -23,7 +23,9 @@ Hydra Conditionals:
 - elif supported using `# mh_else_if {feature}:`
 - Are closed with this syntax: `# mh_end_if`
 - If the entire conditional is commented out, 
-  automatically uncomments it (for easier development)
+  automatically uncomments it (for easier development/testing)
+- Can be nested, but this is discouraged 
+  (It's hard to read because Python indentation must be maintained)
 Example:
 ```
 # mh_if touchscreen:
@@ -280,14 +282,16 @@ class FileParser:
 
 
     @staticmethod
-    def _is_conditional_end(line:str) -> bool:
-        """Check if line contains a conditional end. (INCLUDING else/elif)"""
-        if "#" in line and ("mh_end_if" in line or "mh_else" in line):
+    def _is_conditional_end(line:str, includes_else=True) -> bool:
+        """Check if line contains a conditional end. 
+        (Includes else/elif by default!)
+        """
+        if "#" in line and ("mh_end_if" in line or ("mh_else" in line and includes_else)):
             found_comment = False
             while line:
                 if line.startswith('#'):
                     found_comment = True
-                elif found_comment and line.startswith(('mh_end_if', 'mh_else')):
+                elif found_comment and includes_else and line.startswith(('mh_end_if', 'mh_else')):
                     return True
                 elif found_comment and (not line[0].isspace()):
                     return False
@@ -300,19 +304,18 @@ class FileParser:
         relevant_slice = self.lines[start_idx:end_idx + 1]
 
         # check if all lines are commented
-        all_commented = True
         for line in relevant_slice:
-            # remove leading spaces to look for '#'
-            while line and line[0].isspace():
-                line = line[1:]
-            if not line.startswith('#'): 
-                all_commented = False
-                break
-        if not all_commented:
-            return
+            # ignore blank lines!
+            if not (line == "" or line.isspace()):
+                # remove leading spaces to look for '#'
+                while line and line[0].isspace():
+                    line = line[1:]
+                if not line.startswith('#'): 
+                    return
         
         # check if comment has "# " or "#"
-        is_properly_spaced = all(['# ' in line for line in relevant_slice])
+        # (again, allow blank lines)
+        is_properly_spaced = all([('# ' in line or line == "" or line.isspace()) for line in relevant_slice])
         # if not properly spaced (not using `# <code>`) warn and exit
         # this is because proper indentation can't be guaranteed 
         # without consistent spacing.
@@ -323,12 +326,23 @@ class FileParser:
                 f"Make sure you include a space after the hash in your comments.{bcolors.ENDC}"
                 )
             return
-        
+
+        # track nested conditionals
+        condition_depth = 0
         # assume we can actually remove all the comments, now
         for i, line in enumerate(relevant_slice):
-            idx = i + start_idx
-            # replace only a single comment in every line (to preserve actual comments)
-            self.lines[idx] = line.replace("# ", "", 1)
+
+            # track nested conditionals
+            if self._is_hydra_conditional(line):
+                condition_depth += 1
+            elif self._is_conditional_end(line, includes_else=False):
+                condition_depth -= 1
+
+            # if not inside a nested conditional, then remove the comments
+            if condition_depth <= 0:
+                idx = i + start_idx
+                # replace only a single comment in every line (to preserve actual comments)
+                self.lines[idx] = line.replace("# ", "", 1)
 
     
     @staticmethod
@@ -393,20 +407,31 @@ class FileParser:
                 if conditional_opens == 0:
                     cond_end_idx = idx
                     break
+                # if this is an "else" statement, then the line also starts a new conditional.
+                if self._is_conditional_else(line):
+                    conditional_opens += 1
 
         if cond_start_idx is None or cond_end_idx is None:
             return False
         
+        # as in, has the "not" keyword
         has_not = False
         *conditional, feature = cond_line.replace(":", "", 1).split()
         if conditional[-1] == "not":
             has_not = True
 
-        keep_section = False
-        if feature == "frozen" and frozen:
+        # keep_section = False
+        # if feature == "frozen" and frozen:
+        #     keep_section = True
+        # elif feature in device.features:
+        #     keep_section = True
+        
+        if (feature == "frozen" and frozen) \
+        or feature in device.features \
+        or feature == device.name:
             keep_section = True
-        elif feature in device.features:
-            keep_section = True
+        else:
+            keep_section = False
         
         if has_not:
             keep_section = not keep_section

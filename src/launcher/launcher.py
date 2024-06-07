@@ -59,8 +59,14 @@ _MH_FAKE_EXAMPLE_CONST = const(0)
 # mh_if touchscreen:
 print("this device has a touchscreen!")
 # mh_else_if not touchscreen:
+
+# mh_if CARDPUTER:
+# print("Specifically, this is a Cardputer!")
+# mh_else:
 # print("this device has no touchscreen!")
 # # also this is a test comment.
+# mh_end_if
+
 # mh_end_if
 
 _DISPLAY_WIDTH = const(240)
