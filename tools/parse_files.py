@@ -46,7 +46,7 @@ import os
 import json
 import argparse
 import re
-from pathlib import Path
+# from pathlib import Path
 import time
 
 
@@ -120,7 +120,7 @@ def main():
     vprint(f"CWD: {bcolors.OKBLUE}{CWD}{bcolors.ENDC}")
     print(f"Parsing files in {bcolors.OKBLUE}{SOURCE_PATH}{bcolors.ENDC}")
     print(f"Destination: {bcolors.OKBLUE}{DEST_PATH}{bcolors.ENDC}")
-    print(f"Found devices: {bcolors.OKCYAN}{devices}{bcolors.ENDC}")
+    vprint(f"Found devices: {bcolors.OKCYAN}{devices}{bcolors.ENDC}")
     print("")
 
     # iterate over every file, and every device
@@ -144,6 +144,16 @@ def main():
 
             # TODO: Add ability to copy to additional "frozen" folder.
             # this way, a separate script can compile and freeze the device specific code.
+    
+    # for each device, copy device-specific source files to output folder
+    for device in devices:
+        device_file_data = get_device_files(device)
+        for dir_entry, file_path in device_file_data:
+            # definition file does not need to be copied over
+            if dir_entry.name != "definition.json":
+                file_parser = FileParser(dir_entry, file_path)
+                file_parser.save_unparsable_file(DEST_PATH, device)
+
 
     print_completed()
 
@@ -512,7 +522,7 @@ class FileParser:
         # returns true until all conditionals are gone.
         while self._process_one_conditional(device, frozen):
             conditionals += 1
-        vprint(f"        {bcolors.OKBLUE}Parsed {conditionals} conditionals.")
+        vprint(f"        {bcolors.OKBLUE}Parsed {conditionals} conditionals.{bcolors.ENDC}")
 
 
     def save_unparsable_file(self, dest_path, device):
@@ -556,8 +566,20 @@ def vprint(text):
 
 
 def print_completed():
+    """Print a handy little completion message"""
     elapsed = time.time() - START_TIME
     print(f"{bcolors.OKBLUE}Files parsed in {elapsed * 1000:.2f}ms.{bcolors.ENDC}")
+
+
+def get_device_files(device):
+    """Fetch the device-specific files for given device."""
+    source_path = os.path.join(DEVICE_PATH, device.name)
+    device_file_data = []
+
+    for dir_entry in os.scandir(source_path):
+        device_file_data += extract_file_data(dir_entry, '')
+
+    return device_file_data
 
 
 # run script
