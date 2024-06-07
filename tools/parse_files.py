@@ -7,12 +7,14 @@ device-specific MicroHydra code for the each defined device.
 
 Device definitions are stored in /devices, in json format.
 
-Hydra Constants:
+Hydra "magic" Constants:
 - Constants declared with the "_MH_" prefix, and
-  which match a platform-specific value from the device json.
+  which match a platform-specific value from the device json definition.
 - Are replaced automatically with their device specific value.
 - Initial value can be anything (for testing purposes).
 Example:
+`_MH_DISPLAY_WIDTH = const(1234)`
+on CARDPUTER becomes:
 `_MH_DISPLAY_WIDTH = const(240)`
 
 Hydra Conditionals:
@@ -29,8 +31,14 @@ Hydra Conditionals:
 Example:
 ```
 # mh_if touchscreen:
-enable_touch = True,
+print("this device has a touchscreen!")
+# mh_else:
+# print("this device has no touchscreen!")
 # mh_end_if
+```
+On CARDPUTER this becomes:
+```
+print("this device has no touchscreen!")
 ```
 """
 
