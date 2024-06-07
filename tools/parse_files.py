@@ -47,7 +47,11 @@ import json
 import argparse
 import re
 from pathlib import Path
+import time
 
+
+# just used for printing the script time on completion:
+START_TIME = time.time()
 
 # argparser stuff:
 PARSER = argparse.ArgumentParser(
@@ -61,11 +65,16 @@ epilog='This program is designed to enable multi-platform support in MicroHydra.
 PARSER.add_argument('-s', '--source', help='Path to MicroHydra source to be parsed.')
 PARSER.add_argument('-D', '--devices', help='Path to device JSON definition folder.')
 PARSER.add_argument('-d', '--dest', help='Destination path for parsed MicroHydra files.')
+PARSER.add_argument('-v', '--verbose', action='store_true')
+PARSER.add_argument('--frozen', action='store_true')
 SCRIPT_ARGS = PARSER.parse_args()
 
 SOURCE_PATH = SCRIPT_ARGS.source
 DEVICE_PATH = SCRIPT_ARGS.devices
 DEST_PATH = SCRIPT_ARGS.dest
+FROZEN = SCRIPT_ARGS.frozen
+VERBOSE = SCRIPT_ARGS.verbose
+
 
 # set defaults for args not given:
 CWD = os.getcwd()
@@ -79,16 +88,21 @@ if DEST_PATH is None:
 
 
 
-with open(os.path.join(DEVICE_PATH, 'default'), 'r', encoding="utf-8") as default_file:
+with open(os.path.join(DEVICE_PATH, 'default.json'), 'r', encoding="utf-8") as default_file:
     default = json.loads(default_file.read())
 DEFAULT_CONSTANTS = default['constants']
 DEFAULT_FEATURES = default['features']
 
 
 
-
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main():
-    """Main script body."""
+    """
+    Main script body.
+    
+    This file is organized such that the "main" logic lives near the top,
+    and all of the functions/classes used here are defined below.
+    """
 
     # parse source files into list of file data
     all_file_data = []
@@ -97,32 +111,44 @@ def main():
 
     # parse devices into list of Device objects
     devices = []
-    for filename in os.listdir(DEVICE_PATH):
-        if filename != 'default':
-            devices.append(Device(filename))
+    for filepath in os.listdir(DEVICE_PATH):
+        if filepath != 'default.json':
+            devices.append(Device(filepath))
 
     # print status information
     print("\n")
-    print(f"CWD: {bcolors.OKBLUE}{CWD}{bcolors.ENDC}")
+    vprint(f"CWD: {bcolors.OKBLUE}{CWD}{bcolors.ENDC}")
     print(f"Parsing files in {bcolors.OKBLUE}{SOURCE_PATH}{bcolors.ENDC}")
     print(f"Destination: {bcolors.OKBLUE}{DEST_PATH}{bcolors.ENDC}")
     print(f"Found devices: {bcolors.OKCYAN}{devices}{bcolors.ENDC}")
-    print("\n")
+    print("")
 
     # iterate over every file, and every device
     for dir_entry, file_path in all_file_data:
         file_parser = FileParser(dir_entry, file_path)
-        print(f"{bcolors.OKGREEN}Parsing {file_parser.relative_path}/{file_parser.name}...{bcolors.ENDC}")
+        vprint(f"{bcolors.OKGREEN}Parsing {file_parser.relative_path}/{file_parser.name}...{bcolors.ENDC}")
 
+        # initialize and parse this file for each device 
         for device in devices:
             if file_parser.can_parse_file():
+                vprint(f"    {bcolors.OKCYAN}{device}{bcolors.ENDC}")
                 file_parser.init_lines()
                 file_parser.parse_constants(device)
                 file_parser.parse_conditionals(device, frozen=False)
                 file_parser.save(DEST_PATH, device)
             else:
+                # This script is only designed for .py files.
+                # unsupported files should just be copied instead.
+                vprint(f"    {bcolors.OKCYAN}copying directly...{bcolors.ENDC}")
                 file_parser.save_unparsable_file(DEST_PATH, device)
 
+            # TODO: Add ability to copy to additional "frozen" folder.
+            # this way, a separate script can compile and freeze the device specific code.
+
+    print_completed()
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Classes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class bcolors:
     """Small helper for print output coloring."""
@@ -141,7 +167,7 @@ class Device:
     """Store/parse device/platform details."""
     def __init__(self, name):
         self.constants = DEFAULT_CONSTANTS.copy()
-        with open(os.path.join(DEVICE_PATH, name), 'r', encoding="utf-8") as device_file:
+        with open(os.path.join(DEVICE_PATH, name, "definition.json"), 'r', encoding="utf-8") as device_file:
             device_def = json.loads(device_file.read())
             self.constants.update(device_def['constants'])
             self.features = device_def['features']
@@ -481,11 +507,12 @@ class FileParser:
 
     def parse_conditionals(self, device, frozen=False):
         """Find conditional statements to include or exclude from lines based on device features/name"""
+        conditionals = 0
         # this syntax is weird, but _process_one_conditional 
         # returns true until all conditionals are gone.
         while self._process_one_conditional(device, frozen):
-            pass
-        
+            conditionals += 1
+        vprint(f"        {bcolors.OKBLUE}Parsed {conditionals} conditionals.")
 
 
     def save_unparsable_file(self, dest_path, device):
@@ -509,6 +536,8 @@ class FileParser:
             file.writelines(self.lines)
 
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Other funcitons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 def extract_file_data(dir_entry, path_dir):
     """Recursively extract DirEntry objects and relative paths for each file in directory."""
     if dir_entry.is_dir():
@@ -518,6 +547,17 @@ def extract_file_data(dir_entry, path_dir):
         return output
     else:
         return [(dir_entry, path_dir)]
+
+
+def vprint(text):
+    """Wrapper for print() that only prints if VERBOSE"""
+    if VERBOSE:
+        print(text)
+
+
+def print_completed():
+    elapsed = time.time() - START_TIME
+    print(f"{bcolors.OKBLUE}Files parsed in {elapsed * 1000:.2f}ms.{bcolors.ENDC}")
 
 
 # run script
