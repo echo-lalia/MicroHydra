@@ -5,6 +5,11 @@ from sys import path
 #default app path is the path to the launcher
 app_path = "/launcher/launcher.py"
 
+# mh_if TDECK:
+# # T-Deck must manually power on its peripherals
+# machine.Pin(10, machine.Pin.OUT).on()
+# mh_end_if
+
 if machine.reset_cause() != machine.PWRON_RESET: #if this was not a power reset, we are probably launching an app!
     rtc = machine.RTC()
     app_path = rtc.memory().decode()

@@ -46,13 +46,3 @@ class Palette:
     def __iter__(self):
         for i in range(len(self)):
             yield self[i]
-
-
-if __name__ == '__main__':
-    palette = Palette()
-    print(palette == Palette())
-    palette.use_tiny_buf = False
-    print(palette.use_tiny_buf)
-    print(palette == Palette())
-    print(palette.use_tiny_buf)
-    

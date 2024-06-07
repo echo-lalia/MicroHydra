@@ -32,7 +32,6 @@ This approach was chosen to reduce the chance of conflicts or memory errors when
 Because MicroPython completely resets between apps, the only "wasted" ram from the app switching process will be from main.py
 
 """
-
 import time
 import os
 import math
@@ -41,38 +40,22 @@ import network
 import framebuf
 import array
 import machine
-import gc
 from launcher.icons import battery, appicons
 from font import vga2_16x32 as font
 from lib import smartkeyboard, beeper, battlevel
 from lib.mhconfig import Config
 from lib import display
+import gc
+
+gc.collect()
+gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ _CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_MH_DISPLAY_WIDTH = const(240)
+_MH_DISPLAY_HEIGHT = const(135)
 
-_MH_DISPLAY_WIDTH = const(0+0+0+0)
-_MH_DISPLAY_HEIGHT = const(1+2+3+4)
-_MH_FAKE_EXAMPLE_CONST = const(0)
-
-# just for testing!
-# mh_if touchscreen:
-print("this device has a touchscreen!")
-# mh_else_if not touchscreen:
-
-# mh_if CARDPUTER:
-# print("Specifically, this is a Cardputer!")
-# mh_else:
-# print("this device has no touchscreen!")
-# # also this is a test comment.
-# mh_end_if
-
-# mh_end_if
-
-_DISPLAY_WIDTH = const(240)
-_DISPLAY_HEIGHT = const(135)
-
-_DISPLAY_WIDTH_HALF = const(_DISPLAY_WIDTH//2)
+_DISPLAY_WIDTH_HALF = const(_MH_DISPLAY_WIDTH//2)
 
 _FONT_WIDTH = const(16)
 _FONT_HEIGHT = const(32)
@@ -84,22 +67,12 @@ _SMALL_FONT_HEIGHT = const(8)
 _ICON_Y = const(36)
 _APPNAME_Y = const(80)
 
-_SCROLL_ANIMATION_TIME = const(200)
-
-
+_SCROLL_ANIMATION_TIME = const(300)
 
 
 
 # bump up our clock speed so the UI feels smoother (240mhz is the max officially supported, but the default is 160mhz)
 machine.freq(240_000_000)
-
-# reserve fbuf immediately to reduce fragmentation
-gc.collect()
-reserved_bytearray = bytearray(
-    (_DISPLAY_HEIGHT * _DISPLAY_WIDTH) // 2 \
-    if (_DISPLAY_WIDTH % 8 == 0) \
-    else (_DISPLAY_HEIGHT * (_DISPLAY_WIDTH + 1)) // 2
-    )
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GLOBALS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -113,19 +86,18 @@ except RuntimeError as e:
     except RuntimeError as e:
         NIC = None
         print("Wifi WLAN object couldnt be created. Gave this error:", e)
-        import micropython
-        print(micropython.mem_info())
 
+# reserve fbuf immediately to reduce fragmentation
+# reserved_bytearray = bytearray(
+#     (_DISPLAY_HEIGHT * _DISPLAY_WIDTH) // 2 \
+#     if (_DISPLAY_WIDTH % 8 == 0) \
+#     else (_DISPLAY_HEIGHT * (_DISPLAY_WIDTH + 1)) // 2
+#     )
 
 DISPLAY = display.Display(
     use_tiny_buf=True,
-    reserved_bytearray=reserved_bytearray
+#     reserved_bytearray=reserved_bytearray
     )
-
-# ICON_FBUF = framebuf.FrameBuffer(
-#     bytearray(_ICON_HEIGHT * _ICON_FBUF_WIDTH * 2),
-#     _ICON_FBUF_WIDTH, _ICON_HEIGHT, framebuf.RGB565,
-# )
 
 BEEP = beeper.Beeper()
 CONFIG = Config()
@@ -144,21 +116,16 @@ APP_SELECTOR_INDEX = 0
 PREV_SELECTOR_INDEX = 0
 LASTDRAWN_MINUTE = -1
 
-# SCROLL_START_MS = 0
-# SCROLL_DIRECTION = 0
-# # IS_SCROLLING = True
-# ICON_UPDATED = False
-
-DRAWN_ICON = None
-
-
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Finding Apps ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def scan_apps():
     global SD, APP_NAMES, APP_PATHS
     # first we need a list of apps located on the flash or SDCard
-
+    
+    gc.collect()
+    gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
+    
     main_directory = os.listdir("/")
 
     # if the sd card is not mounted, we need to mount it.
@@ -336,7 +303,7 @@ _CLOCK_AMPM_PADDING = const(2)
 _CLOCK_AMPM_X_OFFSET = const(_CLOCK_AMPM_PADDING + _CLOCK_X)
 
 _BATTERY_HEIGHT = const(10)
-_BATTERY_X = const(_DISPLAY_WIDTH - 28)
+_BATTERY_X = const(_MH_DISPLAY_WIDTH - 28)
 _BATTERY_Y = const((_STATUSBAR_HEIGHT - 10) // 2)
 
 def draw_statusbar(t=None):
@@ -345,7 +312,7 @@ def draw_statusbar(t=None):
     DISPLAY.fill_rect(
         0,
         _BATTERY_Y,
-        _DISPLAY_WIDTH,
+        _MH_DISPLAY_WIDTH,
         _BATTERY_HEIGHT,
         CONFIG.palette[4]
         )
@@ -404,10 +371,10 @@ _SCROLLBAR_HEIGHT = const(4)
 _SCROLLBAR_PADDING = const(6)
 
 _SCROLLBAR_FILL_HEIGHT = const(_SCROLLBAR_HEIGHT - 2)
-_SCROLLBAR_Y = const(_DISPLAY_HEIGHT - _SCROLLBAR_HEIGHT) # highlight y
+_SCROLLBAR_Y = const(_MH_DISPLAY_HEIGHT - _SCROLLBAR_HEIGHT) # highlight y
 _SCROLLBAR_FILL_Y = const(_SCROLLBAR_Y + 1)
-_SCROLLBAR_SHADOW_Y = const(_DISPLAY_HEIGHT - 1)
-_SCROLLBAR_FULL_WIDTH = const(_DISPLAY_WIDTH - ( _SCROLLBAR_PADDING * 2))
+_SCROLLBAR_SHADOW_Y = const(_MH_DISPLAY_HEIGHT - 1)
+_SCROLLBAR_FULL_WIDTH = const(_MH_DISPLAY_WIDTH - ( _SCROLLBAR_PADDING * 2))
 
 def draw_scrollbar():
     scrollbar_width = max(
@@ -425,7 +392,7 @@ def draw_scrollbar():
     # blackout:
     DISPLAY.fill_rect(
         0, _SCROLLBAR_Y,
-        _DISPLAY_WIDTH, _SCROLLBAR_HEIGHT,
+        _MH_DISPLAY_WIDTH, _SCROLLBAR_HEIGHT,
         CONFIG.palette[2]
         )
 
@@ -447,7 +414,7 @@ def draw_scrollbar():
 
 
 
-_BLIT_NAME_WIDTH = const(_DISPLAY_WIDTH - 1)  # TODO: trim this down
+_BLIT_NAME_WIDTH = const(_MH_DISPLAY_WIDTH - 1)  # TODO: trim this down
 _BLIT_NAME_Y_END = const(_APPNAME_Y + _FONT_HEIGHT - 1)
 
 _TOTAL_SELECTOR_HEIGHT = const((_APPNAME_Y + _FONT_HEIGHT) - _ICON_Y)
@@ -510,7 +477,7 @@ class IconWidget:
         fac = ease_out_cubic(fac)
 
         return math.floor(
-            fac * _DISPLAY_WIDTH if self.direction < 0 else fac * -_DISPLAY_WIDTH
+            fac * _MH_DISPLAY_WIDTH if self.direction < 0 else fac * -_MH_DISPLAY_WIDTH
         )
 
 
@@ -599,7 +566,7 @@ class IconWidget:
         DISPLAY.rect(
             0,
             _ICON_Y,
-            _DISPLAY_WIDTH,
+            _MH_DISPLAY_WIDTH,
             _ICON_HEIGHT,
             CONFIG.palette[2],
             fill=True
@@ -611,10 +578,10 @@ class IconWidget:
             return _DISPLAY_WIDTH_HALF
         x = self._animate_scroll()
         self.prev_x = self.x
-        self.x = (x + _DISPLAY_WIDTH_HALF) % _DISPLAY_WIDTH
+        self.x = (x + _DISPLAY_WIDTH_HALF) % _MH_DISPLAY_WIDTH
 
 
-_APP_NAME_MAX_LEN = const(_DISPLAY_WIDTH // _FONT_WIDTH)
+_APP_NAME_MAX_LEN = const(_MH_DISPLAY_WIDTH // _FONT_WIDTH)
 _APP_NAME_LEN_MINUS_THREE = const(_APP_NAME_MAX_LEN - 3)
 def draw_app_name():
     current_app_text = APP_NAMES[APP_SELECTOR_INDEX]
@@ -624,7 +591,7 @@ def draw_app_name():
         current_app_text = f"{current_app_text[:_APP_NAME_LEN_MINUS_THREE]}..."
 
     # blackout the old text
-    DISPLAY.rect(0, _APPNAME_Y, _DISPLAY_WIDTH, _FONT_HEIGHT, CONFIG.palette[2], fill=True)
+    DISPLAY.rect(0, _APPNAME_Y, _MH_DISPLAY_WIDTH, _FONT_HEIGHT, CONFIG.palette[2], fill=True)
     
     # and draw app name
     DISPLAY.text(
@@ -681,8 +648,8 @@ def try_sync_clock():
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # --------------------------------------------------------------------------------------------------
 def main_loop():
-    global APP_SELECTOR_INDEX, PREV_SELECTOR_INDEX, SYNCING_CLOCK, IS_SCROLLING, ICON_UPDATED
-
+    global APP_SELECTOR_INDEX, PREV_SELECTOR_INDEX, SYNCING_CLOCK
+    gc.collect()
     # scan apps asap to populate app names/paths and SD
     scan_apps()
 
@@ -704,7 +671,6 @@ def main_loop():
                 print("wifi_sync_rtc had this error when connecting:", e)
 
     new_keys = []
-#     repeater = KeyRepeater()
 
     # starupp sound
     play_sound(
@@ -715,16 +681,13 @@ def main_loop():
 
     # init diplsay
     DISPLAY.fill(CONFIG.palette[2])
-    DISPLAY.fill_rect(0, 0, _DISPLAY_WIDTH,
+    DISPLAY.fill_rect(0, 0, _MH_DISPLAY_WIDTH,
                       _STATUSBAR_HEIGHT, CONFIG.palette[4])
-    DISPLAY.hline(0, _STATUSBAR_HEIGHT, _DISPLAY_WIDTH, CONFIG.palette[1])
+    DISPLAY.hline(0, _STATUSBAR_HEIGHT, _MH_DISPLAY_WIDTH, CONFIG.palette[1])
     
     icon = IconWidget()
-
-#     draw_scrollbar()
-#     draw_statusbar()
     icon.force_update()
-#     draw_app_name()
+    
 
     while True:
 
@@ -738,7 +701,6 @@ def main_loop():
             if "/" in new_keys:  # right arrow
                 PREV_SELECTOR_INDEX = APP_SELECTOR_INDEX
                 APP_SELECTOR_INDEX = (APP_SELECTOR_INDEX + 1) % len(APP_NAMES)
-#                 draw_scrollbar()
 
                 # animation:
                 icon.start_scroll(1)
@@ -748,7 +710,6 @@ def main_loop():
             elif "," in new_keys:  # left arrow
                 PREV_SELECTOR_INDEX = APP_SELECTOR_INDEX
                 APP_SELECTOR_INDEX = (APP_SELECTOR_INDEX - 1) % len(APP_NAMES)
-#                 draw_scrollbar()
 
                 # animation:
                 icon.start_scroll(-1)
@@ -761,28 +722,17 @@ def main_loop():
                 # special "settings" app options will have their own behaviour, otherwise launch the app
                 if APP_NAMES[APP_SELECTOR_INDEX] == "UI Sound":
                     CONFIG['ui_sound'] = not CONFIG['ui_sound']
-#                     IS_SCROLLING = True
                     icon.force_update()
 
                     if CONFIG['ui_sound'] == 0:  # currently muted, then unmute
-#                         CONFIG['ui_sound'] = True
-#                         draw_app_icon()
-                        
-
                         play_sound(
                             ("C3", "E3", "G3", ("C4", "E4", "G4"), ("C4", "E4", "G4")), 80)
-
-#                     else:  # currently unmuted, then mute
-                        
-#                         draw_app_icon()
-#                         IS_SCROLLING = True
                         
 
                 elif APP_NAMES[APP_SELECTOR_INDEX] == "Reload Apps":
                     scan_apps()
                     APP_SELECTOR_INDEX = 0
                     icon.start_scroll(-1)
-#                     draw_scrollbar()
 
                     play_sound(('C4', 'E4', 'G4'), 80)
 
@@ -820,9 +770,9 @@ def main_loop():
                             if name.lower().startswith(key) and idx != APP_SELECTOR_INDEX:
                                 # animation:
                                 if APP_SELECTOR_INDEX > idx:
-                                    direction = 1
-                                elif APP_SELECTOR_INDEX < idx:
                                     direction = -1
+                                elif APP_SELECTOR_INDEX < idx:
+                                    direction = 1
                                 else:
                                     direction = 0
                                 # go there!
@@ -831,7 +781,6 @@ def main_loop():
                                 icon.start_scroll(direction)
                                 play_sound(("G3"), 100)
                                 
-#                                 draw_scrollbar()
                                 break
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

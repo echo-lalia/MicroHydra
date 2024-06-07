@@ -58,9 +58,9 @@ This driver supports:
 
 """
 
+from .palette import Palette
 from math import sin, cos, floor, pi, sqrt, pow
 import framebuf, struct, array
-from lib.palette import Palette
 from time import sleep_ms
 
 
@@ -92,8 +92,8 @@ _ST7789_MADCTL_BGR = const(0x08)
 _ST7789_MADCTL_MH = const(0x04)
 _ST7789_MADCTL_RGB = const(0x00)
 
-RGB = 0x00
-BGR = 0x08
+_RGB = const(0x00)
+_BGR = const(0x08)
 
 # Color modes
 _COLOR_MODE_65K = const(0x50)
@@ -103,15 +103,6 @@ _COLOR_MODE_16BIT = const(0x05)
 _COLOR_MODE_18BIT = const(0x06)
 _COLOR_MODE_16M = const(0x07)
 
-# Color definitions
-BLACK = const(0x0000)
-BLUE = const(0x001F)
-RED = const(0xF800)
-GREEN = const(0x07E0)
-CYAN = const(0x07FF)
-MAGENTA = const(0xF81F)
-YELLOW = const(0xFFE0)
-WHITE = const(0xFFFF)
 
 _ENCODE_PIXEL = const(">H")
 _ENCODE_PIXEL_SWAPPED = const("<H")
@@ -136,29 +127,29 @@ _BIT0 = const(0x01)
 # Rotation tables
 #   (madctl, width, height, xstart, ystart, needs_swap)[rotation % 4]
 
-_DISPLAY_240x320 = (
+_DISPLAY_240x320 = const((
     (0x00, 240, 320, 0, 0, False),
     (0x60, 320, 240, 0, 0, False),
     (0xc0, 240, 320, 0, 0, False),
-    (0xa0, 320, 240, 0, 0, False))
+    (0xa0, 320, 240, 0, 0, False)))
 
-_DISPLAY_240x240 = (
+_DISPLAY_240x240 = const((
     (0x00, 240, 240,  0,  0, False),
     (0x60, 240, 240,  0,  0, False),
     (0xc0, 240, 240,  0, 80, False),
-    (0xa0, 240, 240, 80,  0, False))
+    (0xa0, 240, 240, 80,  0, False)))
 
-_DISPLAY_135x240 = (
+_DISPLAY_135x240 = const((
     (0x00, 135, 240, 52, 40, False),
     (0x60, 240, 135, 40, 53, False),
     (0xc0, 135, 240, 53, 40, False),
-    (0xa0, 240, 135, 40, 52, False))
+    (0xa0, 240, 135, 40, 52, False)))
 
-_DISPLAY_128x128 = (
+_DISPLAY_128x128 = const((
     (0x00, 128, 128, 2, 1, False),
     (0x60, 128, 128, 1, 2, False),
     (0xc0, 128, 128, 2, 1, False),
-    (0xa0, 128, 128, 1, 2, False))
+    (0xa0, 128, 128, 1, 2, False)))
 
 # index values into rotation table
 _WIDTH = const(0)
@@ -168,14 +159,14 @@ _YSTART = const(3)
 _NEEDS_SWAP = const(4)
 
 # Supported displays (physical width, physical height, rotation table)
-_SUPPORTED_DISPLAYS = (
+_SUPPORTED_DISPLAYS = const((
     (240, 320, _DISPLAY_240x320),
     (240, 240, _DISPLAY_240x240),
     (135, 240, _DISPLAY_135x240),
-    (128, 128, _DISPLAY_128x128))
+    (128, 128, _DISPLAY_128x128)))
 
 # init tuple format (b'command', b'data', delay_ms)
-_ST7789_INIT_CMDS = (
+_ST7789_INIT_CMDS = const((
     ( b'\x11', b'\x00', 120),               # Exit sleep mode
     ( b'\x13', b'\x00', 0),                 # Turn on the display
     ( b'\xb6', b'\x0a\x82', 0),             # Set display function control
@@ -195,7 +186,7 @@ _ST7789_INIT_CMDS = (
     ( b'\xe1', b'\xd0\x00\x02\x07\x0a\x28\x31\x54\x47\x0e\x1c\x17\x1b\x1e', 0),
     ( b'\x21', b'\x00', 0),                 # Enable display inversion
     ( b'\x29', b'\x00', 120)                # Turn on the display
-)
+))
 
 # fmt: on
 
@@ -231,6 +222,20 @@ class ST7789:
         dc (pin): dc pin **Required**
         cs (pin): cs pin
         backlight(pin): backlight pin
+        reserved_bytearray (bytearray): pre-allocated bytearray to use for framebuffer
+        use_tiny_buf (bool):
+            
+            Whether to use:
+             - A compact framebuffer (uses ~width * height / 2 bytes memory)
+               "GS4_HMSB" mode
+               Requires additional processing to write to display
+               Allows limited colors
+
+             - A normal framebuffer (uses ~width * height * 2 bytes memory)
+               "RGB565" mode
+               Can be written directly to display
+               Allows any color the display can show
+        
         rotation (int):
 
           - 0-Portrait
@@ -250,9 +255,6 @@ class ST7789:
         custom_rotations (tuple): custom rotation definitions
 
           - ((width, height, xstart, ystart, madctl, needs_swap), ...)
-          
-        reserved_bytearray (bytearray): pre-allocated bytearray to use for framebuffer
-
     """
 
     def __init__(
@@ -265,11 +267,12 @@ class ST7789:
         cs=None,
         backlight=None,
         rotation=0,
-        color_order=BGR,
+        color_order='BGR',
         custom_init=None,
         custom_rotations=None,
         reserved_bytearray = None,
         use_tiny_buf = False,
+        **kwargs,
     ):
         """
         Initialize display.
@@ -287,7 +290,7 @@ class ST7789:
             raise ValueError("dc pin is required.")
         
         #init the fbuf
-        if reserved_bytearray == None:
+        if reserved_bytearray is None:
             # use_tiny_fbuf tells us to use a smaller framebuffer (4 bits per pixel rather than 16 bits)
             if use_tiny_buf:
                 # round width up to 8 bits
@@ -310,6 +313,10 @@ class ST7789:
         self.palette = Palette()
         self.palette.use_tiny_buf = self.use_tiny_buf = use_tiny_buf
         
+        # keep track of min/max y vals for writing to display
+        # this speeds up drawing significantly.
+        # only y value is currently used, because framebuffer is stored in horizontal lines,
+        # making y slices much simpler than x slices.
         self._show_y_min = width if (rotation % 2 == 1) else height
         self._show_y_max = 0
         
@@ -323,7 +330,7 @@ class ST7789:
         self.cs = cs
         self.backlight = backlight
         self._rotation = rotation % 4
-        self.color_order = color_order
+        self.color_order = _RGB if color_order == "RGB" else _BGR
         init_cmds = custom_init or _ST7789_INIT_CMDS
         self.hard_reset()
         # yes, twice, once is not always enough
@@ -448,10 +455,12 @@ class ST7789:
         else:
             palette_buf = self.palette.buf
         
-        for y in range(start_y, end_y):
+        #for y in range(start_y, end_y):
+        while start_y < end_y:
             self.spi.write(
-                self._convert_tiny_line(palette_buf, y, width)
+                self._convert_tiny_line(palette_buf, start_y, width)
                 )
+            start_y += 1
         
         if self.cs:
             self.cs.on()
@@ -459,6 +468,10 @@ class ST7789:
 
     @micropython.viper
     def _convert_tiny_line(self, palette_buf, y:int, width:int):
+        """
+        For "_write_tiny_buf"
+        this method outputs a single converted line of the requested size.
+        """
         source_ptr = ptr8(self.fbuf)
         palette = ptr16(palette_buf)
         output_buf = bytearray(width * 2)
@@ -567,7 +580,7 @@ class ST7789:
             self.needs_swap,
         ) = self.rotations[rotation]
 
-        if self.color_order == BGR:
+        if self.color_order == _BGR:
             madctl |= _ST7789_MADCTL_BGR
         else:
             madctl &= ~_ST7789_MADCTL_BGR
@@ -685,7 +698,10 @@ class ST7789:
         """
         self._set_show_min(y, y + height)
         if not isinstance(buffer, framebuf.FrameBuffer):
-            buffer = framebuf.FrameBuffer(buffer, width, height, framebuf.RGB565)
+            buffer = framebuf.FrameBuffer(
+                buffer, width, height,
+                framebuf.GS4_HMSB if self.use_tiny_buf else framebuf.RGB565,
+                )
         
         self.fbuf.blit(buffer, x, y, key, palette)
 
@@ -787,89 +803,95 @@ class ST7789:
 
 
     @micropython.viper
-    @staticmethod
-    def _pack_char(glyphs, idx:int, fg_color:int, bg_color:int, bytes_length:int):
+    def _bitmap_text(self, font, text, x:int, y:int, color:int):
         """
-        Pack a character into a byte array.
-
-        Returns:
-            bytearray: character bitmap in color565 format
-        """
-
-        buffer = bytearray(bytes_length)
-        bitmap = ptr16(buffer)
-        glyph = ptr8(glyphs)
-
-        for i in range(0, bytes_length // 2, 8):
-            byte = glyph[idx]
-            
-            for bit in range(8):
-                bitmap[i + bit] = fg_color if byte & (1 << (7 - bit)) else bg_color
-            idx += 1
-
-        return buffer
-
-
-    @micropython.viper
-    def _bitmap_text(self, font, text, x:int, y:int, color:int=WHITE):
-        """
-        Internal method to draw characters with width of 16 and heights of 16
-        or 32.
+        Internal viper method to draw text.
+        Designed to be envoked using the 'text' method.
 
         Args:
             font (module): font module to use
             text (str): text to write
-            x0 (int): column to start drawing at
-            y0 (int): row to start drawing at
-            color (int): 565 encoded color to use for characters
+            x (int): column to start drawing at
+            y (int): row to start drawing at
+            color (int): encoded color to use for characters
         """
-        
         width = int(font.WIDTH)
         height = int(font.HEIGHT)
-        
         self_width = int(self.width)
         self_height = int(self.height)
         
-        bytes_len = 128 if width < 16 else 256
-        if width < 16:
-            size = height
-            each = 0 if height < 16 else 8
-        else:
-            size = height * 2
-            each = 16
-        passes = height // 8
+        # early return for text off screen
+        if y >= self_height or (y + height) < 0:
+            return
+        
+        glyphs = ptr8(font.FONT)
+        
+        char_px_len = width * height
         
         first = int(font.FIRST)
         last = int(font.LAST)
         
         
-        bg_color = 1 if color == 0 else 0
+        use_tiny_fbuf = bool(self.use_tiny_buf)
+        fbuf16 = ptr16(self.fbuf)
+        fbuf8 = ptr8(self.fbuf)
         
         for char in text:
-            ch = int(ord(char))
+            ch_idx = int(ord(char))
             
-            if first <= ch < last \
-            and x <= self_width \
-            and y <= self_height:
-
-                for line in range(passes):
-                    idx = (ch - first) * size + (each * line)
-                    buffer = self._pack_char(font.FONT, idx, color, bg_color, bytes_len)
-                    self.blit_buffer(buffer, x, y + 8 * line, width, 8,key=bg_color)
+            # only draw chars that exist in font
+            if first <= ch_idx < last:
+                bit_start = ch_idx * char_px_len
+                
+                px_idx = 0
+                while px_idx < char_px_len:
+                    byte_idx = (px_idx + bit_start) // 8
+                    shift_amount = 7 - ((px_idx + bit_start) % 8)
+                    
+                    target_x = x + px_idx % width
+                    target_y = y + px_idx // width
+                    
+                    # dont draw pixels off the screen (ptrs don't check your work!)
+                    if ((glyphs[byte_idx] >> shift_amount) & 0x1) == 1 \
+                    and 0 <= target_x < self_width \
+                    and 0 <= target_y < self_height:
+                        target_px = (target_y * self_width) + target_x
+                        
+                        # I tried putting this if/else before px loop,
+                        # surprisingly, there was not a noticable speed difference,
+                        # and the code was harder to read. So, I put it back.
+                        if use_tiny_fbuf:
+                            # pack 4 bits into 8 bit ptr
+                            target_idx = target_px // 2
+                            dest_shift = ((target_px + 1) % 2) * 4
+                            dest_mask = 0xf0 >> dest_shift
+                            fbuf8[target_idx] = (fbuf8[target_idx] & dest_mask) | (color << dest_shift)
+                        else:
+                            # draw to 16 bits
+                            target_idx = target_px * 2
+                            fbuf16[target_idx] = color
+                    
+                    px_idx += 1
+                    
             x += width
+            # early return for text off screen
+            if x >= self_width:
+                return
 
 
-    def text(self, text, x, y, color=WHITE, font=None):
+    def text(self, text, x, y, color, font=None):
         """
-        Quickly draw text to the display using the FrameBuffer text method.
+        Draw text to the framebuffer.
         
-        This uses the font built into the FrameBuffer class, and so custom fonts are not supported.
+        Text is drawn with no background.
+        If 'font' is None, uses the builtin framebuffer font.
         
         Args:
             text (str): text to write
             x (int): column to start drawing at
             y (int): row to start drawing at
-            color (int): 565 encoded color to use for text
+            color (int): encoded color to use for text
+            font (optional): bitmap font module to use
         """
         color = self._format_color(color)
 
@@ -893,156 +915,85 @@ class ST7789:
                 module
             key (int): colors that match the key will be transparent.
         """
-        width = bitmap.WIDTH
-        height = bitmap.HEIGHT
-        to_col = x + width - 1
-        to_row = y + height - 1
-        if self.width <= to_col or self.height <= to_row:
+        if self.width <= x or self.height <= y:
             return
         
-        self._set_show_min(y, y + height)
-        
-        bitmap_size = height * width
-        buffer_len = bitmap_size * 2
-        bpp = bitmap.BPP
-        bs_bit = bpp * bitmap_size * index  # if index > 0 else 0
         if palette is None:
             palette = bitmap.PALETTE
         
-        #swap colors if needed:
-        for i in range(0,len(palette)):
-            palette[i] = self._format_color(palette[i])
-        
-        buffer = bytearray(buffer_len)
+        self._bitmap(bitmap, x, y, index, key, palette)
 
-        for i in range(0, buffer_len, 2):
-            color_index = 0
-            for _ in range(bpp):
-                color_index = (color_index << 1) | (
-                    (bitmap.BITMAP[bs_bit >> 3] >> (7 - (bs_bit & 7))) & 1
+
+    @micropython.viper
+    def _bitmap(self, bitmap, x:int, y:int, index:int, key:int, palette):
+        
+        width = int(bitmap.WIDTH)
+        height = int(bitmap.HEIGHT)
+        self_width = int(self.width)
+        self_height = int(self.height)
+        
+        palette_len = int(len(palette))
+        bpp = int(bitmap.BPP)
+        bitmap_pixels = height * width
+        starting_bit = bpp * bitmap_pixels * index  # if index > 0 else 0
+        
+        use_tiny_buf = bool(self.use_tiny_buf)
+        
+        self._set_show_min(y, y + height)
+        
+        
+        # format color palette into a pointer
+        palette_buf = bytearray(palette_len * 2)
+        palette_ptr = ptr16(palette_buf)
+        for i in range(palette_len):
+            palette_ptr[i] = int(
+                self._format_color(palette[i])
                 )
-                bs_bit += 1
-
-            color = palette[color_index]
-
-            buffer[i] = color & 0xFF
-            buffer[i + 1] = color >> 8
+        key = int(self._format_color(key))
         
-        self.blit_buffer(buffer,x,y,width,height,key=key)
+        bitmap_ptr = ptr8(bitmap._bitmap)
+        fbuf8 = ptr8(self.fbuf)
+        fbuf16 = ptr16(self.fbuf)
+        
+        bitmask = 0xffff >> (16 - bpp)
+        
+        # iterate over pixels
+        px_idx = 0
+        while px_idx < bitmap_pixels:
+            source_bit = (px_idx * bpp) + starting_bit
+            source_idx = source_bit // 8 
+            source_shift = 7 - (source_bit % 8)
+            
+            # bitmap value is an index in the color palette
+            source = (bitmap_ptr[source_idx] >> source_shift) & bitmask
+            clr = palette_ptr[source]
+            
+            target_x = x + px_idx % width
+            target_y = y + px_idx // width
+            
+            # dont draw pixels off the screen (ptrs don't check your work!)
+            if clr != key \
+            and 0 <= target_x < self_width \
+            and 0 <= target_y < self_height:
+                
+                # convert px coordinate to an index
+                target_px = (target_y * self_width) + target_x
+                
+                if use_tiny_buf:
+                    # writing 4-bit pixels
+                    target_idx = target_px // 2
+                    dest_shift = ((target_px + 1) % 2) * 4
+                    dest_mask = 0xf0 >> dest_shift
+                    fbuf8[target_idx] = (fbuf8[target_idx] & dest_mask) | (clr << dest_shift)
+                else:
+                    # TODO: TEST THIS! (has only been tested for tiny fbuf)
+                    # writing 16-bit pixels
+                    target_idx = target_px * 2
+                    fbuf16[target_idx] = clr
+            
+            px_idx += 1
 
 
     def polygon(self, *args):
+        # TODO: this should handle colors the same way the other methodsx do.
         self.fbuf.poly(*args)
-
-
-        
-if __name__ == "__main__":
-    import machine, time
-    from lib import mhconfig
-    from font import vga2_16x32 as font
-    from font import vga1_8x16 as fontsmall
-    from lib.microhydra import ping_pong
-    
-    machine.freq(160_000_000)
-    
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    _DISPLAY_HEIGHT = const(135)
-    _DISPLAY_WIDTH = const(240)
-    _DISPLAY_WIDTH_HALF = const(_DISPLAY_WIDTH // 2)
-
-    _CHAR_WIDTH = const(16)
-    _CHAR_WIDTH_HALF = const(_CHAR_WIDTH // 2)
-    _SMALL_CHAR_WIDTH = const(8)
-    _SMALL_CHAR_WIDTH_HALF = const(_SMALL_CHAR_WIDTH // 2)
-
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GLOBAL OBJECTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    config = mhconfig.Config()
-    palette = config.palette
-    print(len(palette))
-    print(list(palette))
-
-    # init object for accessing display
-    tft = ST7789(
-        machine.SPI(
-            1,baudrate=40000000,sck=machine.Pin(36),mosi=machine.Pin(35),miso=None),
-        _DISPLAY_HEIGHT,
-        _DISPLAY_WIDTH,
-        reset=machine.Pin(33, machine.Pin.OUT),
-        cs=machine.Pin(37, machine.Pin.OUT),
-        dc=machine.Pin(34, machine.Pin.OUT),
-        backlight=machine.Pin(38, machine.Pin.OUT),
-        rotation=1,
-        color_order=BGR,
-        use_tiny_buf=False
-        )
-    
-    
-    tft.fill(0)
-    
-    
-    current_text = 'Hello, world!'
-    
-    for i in range(16):
-        x = 0 if i < 8 else _DISPLAY_WIDTH_HALF
-        y = (i % 8) * 16
-        tft.text(
-            font=fontsmall,
-            text=current_text,
-            # center text on x axis:
-            x=x + 4, 
-            y=y,
-            color=palette[i]
-            )
-    tft.show()
-#     counter = 0
-#     while True:
-#         counter += 1
-#         
-#         x = ping_pong(counter, _DISPLAY_WIDTH - (len(current_text) * _SMALL_CHAR_WIDTH))
-#         y = ping_pong(counter, _DISPLAY_HEIGHT - 16)
-#         clr_idx = ping_pong(counter // 4, 15)
-# 
-#         tft.text(
-#             font=fontsmall,
-#             text=current_text,
-#             # center text on x axis:
-#             x=x, 
-#             y=y,
-#             color=palette[clr_idx]
-#             )
-#         
-#         x2 = ping_pong((counter * 2) // 3, _DISPLAY_WIDTH - (len(current_text) * _CHAR_WIDTH))
-#         y2 = ping_pong((counter * 2) // 3, _DISPLAY_HEIGHT - 32)
-#         clr_idx2 = ping_pong(counter // 8, 15)
-# 
-#         tft.text(
-#             font=font,
-#             text=current_text,
-#             # center text on x axis:
-#             x=x2, 
-#             y=y2,
-#             color=palette[clr_idx2]
-#             )
-#     
-#         # write framebuffer to display
-#         tft.show()
-#         
-#         # blackout for next frame
-#         tft.text(
-#             font=fontsmall,
-#             text=current_text,
-#             # center text on x axis:
-#             x=x, 
-#             y=y,
-#             color=palette[3]
-#             )
-#         
-#         tft.text(
-#             font=font,
-#             text=current_text,
-#             # center text on x axis:
-#             x=x2, 
-#             y=y2,
-#             color=palette[3]
-#             )
-
