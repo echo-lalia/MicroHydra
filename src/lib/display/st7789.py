@@ -407,30 +407,6 @@ class ST7789:
     
     
     @micropython.viper
-    def _convert_tiny_line(self, palette_buf, y:int, width:int):
-        """Parse a single horizontal line of pixel data."""
-        source_ptr = ptr8(self.fbuf)
-        palette = ptr16(palette_buf)
-        output_buf = bytearray(width * 2)
-        output = ptr16(output_buf)
-        
-        
-        source_width = width // 2 if (width % 8 == 0) else ((width + 1) // 2)
-        source_start_idx = source_width * y
-        output_idx = 0
-        
-        while output_idx < width:
-            source_idx = source_start_idx + (output_idx // 2)
-            sample = source_ptr[source_idx] >> 4 if (output_idx % 2 == 0) else source_ptr[source_idx] & 0xf
-
-            output[output_idx] = palette[sample]
-            
-            output_idx += 1
-        
-        return output_buf
-    
-    
-    @micropython.viper
     def _write_tiny_buf(self):
         """Convert tiny_buf data to RGB565 and write to SPI"""
         if self.cs:
