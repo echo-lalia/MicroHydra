@@ -10,13 +10,14 @@ _MAX_VALUE = const(2100000) # 4.2v
 _LOW_THRESH = const(_MIN_VALUE + ((_MAX_VALUE - _MIN_VALUE) // 3))
 _HIGH_THRESH = const(_LOW_THRESH + ((_MAX_VALUE - _MIN_VALUE) // 3))
 
+_MH_BATT_ADC = const(10)
 
 
 # CLASS Battery:
 class Battery:
     def __init__(self):
         #init the ADC for the battery
-        self.adc = machine.ADC(10)
+        self.adc = machine.ADC(_MH_BATT_ADC)
         self.adc.atten(machine.ADC.ATTN_11DB) # needed to get apropriate range
         
     def read_pct(self):

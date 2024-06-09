@@ -40,6 +40,11 @@ _PERIODS = [ # c-0 thru b-0 - how much to advance a sample pointer per frame for
 _INT_MINVAL = const(-32768)
 _INT_MAXVAL = const(32767)
 
+_MH_I2S_SCK = const(41)
+_MH_I2S_WS = const(43)
+_MH_I2S_SD = const(42)
+
+
 @micropython.viper
 def _volume(volume:int) -> int:
 	"""Returns volume 0-30 reversed in order to be used in bitshifting. 15 is 100% (no bitshift)"""
@@ -138,7 +143,7 @@ class Register:
 		return f"{self.buf_start}: {self.sample} v:{self.volume} n:{self.note}"
 
 class M5Sound:
-	def __init__(self, buf_size=2048, rate=11025, channels=4, sck=41, ws=43, sd=42):
+	def __init__(self, buf_size=2048, rate=11025, channels=4, sck=_MH_I2S_SCK, ws=_MH_I2S_WS, sd=_MH_I2S_SD):
 		self._output = I2S(
 			1,
 			sck=Pin(sck),

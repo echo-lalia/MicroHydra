@@ -16,7 +16,13 @@
         "_MH_SDCARD_SCK": "40",
         "_MH_SDCARD_MISO": "38",
         "_MH_SDCARD_MOSI": "41",
-        "_MH_SDCARD_CS": "39"
+        "_MH_SDCARD_CS": "39",
+
+        "_MH_BATT_ADC": "4",
+
+        "_MH_I2S_SCK": "7",
+        "_MH_I2S_WS": "5",
+        "_MH_I2S_SD": "6"
         },
 
     "features": [
