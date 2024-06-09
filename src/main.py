@@ -1,6 +1,8 @@
 import os
 import machine
-from sys import path
+import sys
+
+sys.path = ['', '/lib', '.frozen', '.frozen/lib']
 
 #default app path is the path to the launcher
 app_path = "/launcher/launcher.py"
@@ -22,15 +24,11 @@ if machine.reset_cause() != machine.PWRON_RESET: #if this was not a power reset,
     else:
         rtc.memory("/launcher/launcher.py") # for when we reset again
 
-#add apps directory to PATH
-path.append('/apps')
-
 # only mount the sd card if the app is on the sd card.
 if app_path.startswith("/sd"):
     sd = machine.SDCard(slot=2, sck=machine.Pin(40), miso=machine.Pin(39), mosi=machine.Pin(14), cs=machine.Pin(12))
     try:
         os.mount(sd, '/sd')
-        path.append('/sd/apps')
     except OSError:
         with open('log.txt', 'a') as log:
             log.write(f"Couldn't mount SDCard!\n")

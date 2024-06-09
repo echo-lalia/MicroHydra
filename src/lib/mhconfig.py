@@ -1,16 +1,19 @@
 import json
-from lib.palette import Palette
+from lib.display.palette import Palette
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ CONSTANT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-DEFAULT_CONFIG = {"ui_color": 53243,
-                  "bg_color": 4421,
-                  "ui_sound": True,
-                  "volume": 2,
-                  "wifi_ssid": '',
-                  "wifi_pass": '',
-                  "sync_clock": True,
-                  "24h_clock": False,
-                  "timezone": 0}
+DEFAULT_CONFIG = const("""{
+"24h_clock": false,
+"wifi_ssid": "",
+"bg_color": 2051,
+"volume": 2,
+"wifi_pass": "",
+"ui_color": 65430,
+"ui_sound": true,
+"timezone": 0,
+"sync_clock":
+true
+}""")
 
 
 def mix(val2, val1, fac=0.5):
@@ -230,40 +233,23 @@ def color565_shiftblue(color, mix_factor=0.1, hue_mix_fac=0.4, sat_mix_fac=0.2):
     return mix_color565(color, _BLUE, mix_factor, hue_mix_fac, sat_mix_fac)
 
 
-# # Palette class
-# class Palette:
-#     def __init__(self, size=32, use_tiny_buf=False):
-#         self.buf = bytearray(size)
-#         self.use_tiny_buf = use_tiny_buf
-# 
-# 
-#     def __len__(self) -> int:
-#         return len(self.buf) // 2
-# 
-# 
-#     @micropython.viper
-#     def __setitem__(self, key:int, new_val:int):
-#         buf_ptr = ptr16(self.buf)
-#         buf_ptr[key] = new_val
-# 
-# 
-#     @micropython.viper
-#     def __getitem__(self, key:int) -> int:
-#         # if using tiny buf, the color should be the index for the color
-#         if self.use_tiny_buf:
-#             return key
-# 
-#         buf_ptr = ptr16(self.buf)
-#         return buf_ptr[key]
-#     
-#     
-#     def __iter__(self):
-#         for i in range(len(self)):
-#             yield self[i]
+def compliment_color565(color):
+    """Generate a complimentary color from given RGB565 color."""
+    r,g,b = separate_color565(color)
+    r /= 31; g /= 63; b /= 31
+    
+    h,s,v = rgb_to_hsv(r,g,b)
+    
+    # opposite hue
+    h += 0.5
+    r,g,b = hsv_to_rgb(h,s,v)
+    r *= 31; g *= 63; b *= 31
+    
+    return combine_color565(int(r), int(g), int(b))
+
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Config Class ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 class Config:
     def __init__(self):
@@ -272,29 +258,33 @@ class Config:
         The goal of this class is to prevent internal-MicroHydra scripts from reimplementing the same code repeatedly,
         and to provide easy to read methods for apps to access MicroHydra config values.
         """
+        self.config = json.loads(DEFAULT_CONFIG)
         # initialize the config object with the values from config.json
         try:
             with open("config.json", "r") as conf:
-                self.config = json.loads(conf.read())
+                self.config.update(
+                    json.loads(conf.read())
+                    )
+                #= json.loads(conf.read())
                 # in case config schema was updated, local config should be also updated
-                for key, value in DEFAULT_CONFIG.items():
-                    self.config[key] = self.config.get(key, value)
+#                 for key, value in DEFAULT_CONFIG.items():
+#                     self.config[key] = self.config.get(key, value)
         except:
             print("could not load settings from config.json. reloading default values.")
             with open("config.json", "w") as conf:
-                self.config = DEFAULT_CONFIG
                 conf.write(json.dumps(self.config))
-        # storing just the vals from the config lets us check later if any values have been modified
-        self.initial_values = tuple(self.config.values())
+                
+        self._modified = False
         # generate an extended color palette
         self.generate_palette()
 
+
     def save(self):
         """If the config has been modified, save it to config.json"""
-        if tuple(self.config.values()) != self.initial_values:
-            import json
+        if self._modified:
             with open("config.json", "w") as conf:
                 conf.write(json.dumps(self.config))
+
 
     def generate_palette(self):
         """
@@ -307,35 +297,31 @@ class Config:
         self.palette = Palette()
         
         # self.palette[0] = 0 # black
-        self.palette[15] = 65535 # white
+        self.palette[1] = darker_color565(bg_color)  # darker bg color
         
         # user colors
-        for i in range(1, 15):
-            fac = (i - 1) / 13
+        for i in range(2, 9):
+            fac = (i - 2) / 6
             self.palette[i] = mix_color565(bg_color, ui_color, fac)
         
+        self.palette[9] = lighter_color565(ui_color)
+        self.palette[10] = 65535 # white
         
-#         self.palette = (
-#             darker_color565(bg_color),  # darker bg color
-#             bg_color,  # bg color
-#             mix_color565(bg_color, ui_color, 0.25),  # low-mid color
-#             mid_color,  # mid color
-#             mix_color565(bg_color, ui_color, 0.75),  # high-mid color
-#             ui_color,  # ui color
-#             lighter_color565(ui_color),  # lighter ui color
-#         )
-
         # Generate a further expanded palette, based on UI colors, shifted towards primary display colors.
-        self.rgb_colors = (
-            color565_shiftred(lighter_color565(bg_color)),  # red color
-            color565_shiftgreen(mid_color),  # green color
-            color565_shiftblue(darker_color565(mid_color))  # blue color
-        )
+        self.palette[11] = color565_shiftred(lighter_color565(bg_color))
+        self.palette[12] = color565_shiftgreen(mid_color)
+        self.palette[13] = color565_shiftblue(darker_color565(mid_color))
+        
+        self.palette[14] = compliment_color565(bg_color)
+        self.palette[15] = compliment_color565(ui_color)
+
 
     def __getitem__(self, key):
         # get item passthrough
         return self.config[key]
 
+
     def __setitem__(self, key, new_val):
+        self._modified = True
         # item assignment passthrough
         self.config[key] = new_val
