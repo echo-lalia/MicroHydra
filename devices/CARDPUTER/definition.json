@@ -11,8 +11,15 @@
         "_MH_DISPLAY_CS": "37", 
         "_MH_DISPLAY_DC": "34", 
         "_MH_DISPLAY_BACKLIGHT": "38", 
-        "_MH_DISPLAY_ROTATION": "1"
-        }, 
+        "_MH_DISPLAY_ROTATION": "1",
+
+        "_MH_SDCARD_SLOT": "2",
+        "_MH_SDCARD_SCK": "40",
+        "_MH_SDCARD_MISO": "39",
+        "_MH_SDCARD_MOSI": "14",
+        "_MH_SDCARD_CS": "12"
+        },
+
     "features": [
         "keyboard", 
         "display", 

@@ -54,6 +54,7 @@ gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ _CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _MH_DISPLAY_WIDTH = const(240)
 _MH_DISPLAY_HEIGHT = const(135)
+_MH_DISPLAY_BACKLIGHT = const(38)
 
 _DISPLAY_WIDTH_HALF = const(_MH_DISPLAY_WIDTH//2)
 
@@ -68,6 +69,12 @@ _ICON_Y = const(36)
 _APPNAME_Y = const(80)
 
 _SCROLL_ANIMATION_TIME = const(300)
+
+_MH_SDCARD_SLOT = const(2)
+_MH_SDCARD_SCK = const(40)
+_MH_SDCARD_MISO = const(39)
+_MH_SDCARD_MOSI = const(14)
+_MH_SDCARD_CS = const(12)
 
 
 
@@ -131,8 +138,14 @@ def scan_apps():
     # if the sd card is not mounted, we need to mount it.
     if "sd" not in main_directory:
         try:
-            SD = machine.SDCard(slot=2, sck=machine.Pin(40), miso=machine.Pin(
-                39), mosi=machine.Pin(14), cs=machine.Pin(12))
+            SD = machine.SDCard(
+                slot=_MH_SDCARD_SLOT,
+                sck=machine.Pin(_MH_SDCARD_SCK),
+                miso=machine.Pin(_MH_SDCARD_MISO), 
+                mosi=machine.Pin(_MH_SDCARD_MOSI),
+                cs=machine.Pin(_MH_SDCARD_CS)
+                )
+
         except OSError as e:
             print(e)
             print("SDCard couldn't be initialized. This might be because it was already initialized and not properly deinitialized.")
@@ -744,7 +757,7 @@ def main_loop():
                     # shut off the display
                     DISPLAY.fill(0)
                     DISPLAY.sleep_mode(True)
-                    machine.Pin(38, machine.Pin.OUT).value(0)  # backlight off
+                    machine.Pin(_MH_DISPLAY_BACKLIGHT, machine.Pin.OUT).value(0)  # backlight off
                     DISPLAY.spi.deinit()
 
                     if SD != None:
