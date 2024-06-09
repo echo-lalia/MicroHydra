@@ -225,7 +225,7 @@ class FileParser:
         # match only lines with constants that start with "_MH_"
         # not care about valid spacing around the constant
         # not care about comments after the constant
-        pattern = r'^\s*_MH_[A-Z_]+\s*=\s*const\s*\(.+\)\s*(#.*)?$'
+        pattern = r'^\s*_MH_[A-Z0-9_]+\s*=\s*const\s*\(.+\)\s*(#.*)?$'
 
         # Use the regex to check if the line matches the pattern
         match = re.match(pattern, line)
@@ -239,7 +239,7 @@ class FileParser:
         extract the name of that constant from the line.
         """
         # Same pattern as "_looks_like_constant" but with capture.
-        pattern = r'^\s*(_MH_[A-Z_]+)\s*=\s*const\s*\(.+\)\s*(#.*)?$'
+        pattern = r'^\s*(_MH_[A-Z0-9_]+)\s*=\s*const\s*\(.+\)\s*(#.*)?$'
 
         match = re.match(pattern, line)
         if match:
@@ -273,6 +273,7 @@ class FileParser:
 
     def parse_constants(self, device):
         """Read constants from device description, and replace constants in lines with device constants"""
+        count_constants = 0
         for idx, line in enumerate(self.lines):
             # check if it looks like a constant first, so we can warn
             if self._looks_like_constant(line):
@@ -280,6 +281,7 @@ class FileParser:
 
                 if const_name in device.constants.keys():
                     # replace the valid Hydra constant!
+                    count_constants += 1
                     new_value = device.constants[const_name]
                     self.lines[idx] = self.replace_constant_value(line, new_value)
 
@@ -288,6 +290,9 @@ class FileParser:
                           "looks like a Hydra constant, but is not in device definition."
                           f"{bcolors.ENDC}"
                           )
+
+        vprint(f"{bcolors.OKBLUE}        Parsed {count_constants} constants.{bcolors.ENDC}")
+
 
     @staticmethod
     def _is_hydra_conditional(line:str) -> bool:

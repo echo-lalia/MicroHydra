@@ -59,23 +59,23 @@ if __name__ == "__main__":
     from font import vga2_16x32 as font
     from machine import SPI, Pin, PWM, reset, ADC
     
-    tft = st7789fbuf.ST7789(
-        SPI(1, baudrate=40000000, sck=Pin(36), mosi=Pin(35), miso=None),
-        135,
-        240,
-        reset=Pin(33, Pin.OUT),
-        cs=Pin(37, Pin.OUT),
-        dc=Pin(34, Pin.OUT),
-        backlight=Pin(38, Pin.OUT),
-        rotation=1,
-        color_order=st7789fbuf.BGR
-        )
-    batt = Battery()
+    # tft = st7789fbuf.ST7789(
+    #     SPI(1, baudrate=40000000, sck=Pin(36), mosi=Pin(35), miso=None),
+    #     135,
+    #     240,
+    #     reset=Pin(33, Pin.OUT),
+    #     cs=Pin(37, Pin.OUT),
+    #     dc=Pin(34, Pin.OUT),
+    #     backlight=Pin(38, Pin.OUT),
+    #     rotation=1,
+    #     color_order=st7789fbuf.BGR
+    #     )
+    # batt = Battery()
     
-    while True:
-        time.sleep(1)
-        tft.fill(0)
-        tft.bitmap_text(font, f"Batt level: {batt.read_level()}", 10,10, 65535)
-        tft.bitmap_text(font, f"pct: {batt.read_pct()}%", 10,50, 65535)
-        tft.show()
+    # while True:
+    #     time.sleep(1)
+    #     tft.fill(0)
+    #     tft.bitmap_text(font, f"Batt level: {batt.read_level()}", 10,10, 65535)
+    #     tft.bitmap_text(font, f"pct: {batt.read_pct()}%", 10,50, 65535)
+    #     tft.show()
 

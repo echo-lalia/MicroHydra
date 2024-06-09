@@ -2,6 +2,7 @@
     "constants": {
         "_MH_DISPLAY_WIDTH": "320",
         "_MH_DISPLAY_HEIGHT": "240",
+        "_MH_DISPLAY_SPI_ID": "1", 
         "_MH_DISPLAY_BAUDRATE": "40_000_000",
         "_MH_DISPLAY_SCK": "40",
         "_MH_DISPLAY_MOSI": "41",
@@ -22,7 +23,8 @@
 
         "_MH_I2S_SCK": "7",
         "_MH_I2S_WS": "5",
-        "_MH_I2S_SD": "6"
+        "_MH_I2S_SD": "6",
+        "_MH_I2S_ID": "1"
         },
 
     "features": [

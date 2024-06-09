@@ -23,7 +23,8 @@
 
         "_MH_I2S_SCK": "41",
         "_MH_I2S_WS": "43",
-        "_MH_I2S_SD": "42"
+        "_MH_I2S_SD": "42",
+        "_MH_I2S_ID": "1"
         },
 
     "features": [

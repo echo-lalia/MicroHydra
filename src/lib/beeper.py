@@ -1,10 +1,11 @@
 from machine import I2S, Pin
 import math
 
-_SCK_PIN = const(41)
-_WS_PIN = const(43)
-_SD_PIN = const(42)
-_I2S_ID = const(1)
+_MH_I2S_SCK = const(41)
+_MH_I2S_WS = const(43)
+_MH_I2S_SD = const(42)
+_MH_I2S_ID = const(1)
+
 _BUFFER_LENGTH_IN_BYTES = const(1024)
 _SAMPLE_SIZE_IN_BITS = const(16)
 _FORMAT = I2S.MONO
@@ -69,10 +70,10 @@ class Beeper:
     def __init__(self, buf_size=4000):
         
         self._output = I2S(            
-            _I2S_ID,
-            sck=Pin(_SCK_PIN),
-            ws=Pin(_WS_PIN),
-            sd=Pin(_SD_PIN),
+            _MH_I2S_ID,
+            sck=Pin(_MH_I2S_SCK),
+            ws=Pin(_MH_I2S_WS),
+            sd=Pin(_MH_I2S_SD),
             mode=I2S.TX,
             bits=_SAMPLE_SIZE_IN_BITS,
             format=_FORMAT,
@@ -391,26 +392,3 @@ if __name__ == "__main__":
         ('C4','E4','G4'),
         ('C4','E4','G4'),
         ),40,4)
-#     beep.play(
-#         ('C3',
-#         ('C3'),
-#         ('C3','E3'),
-#         ('C3','E3','G3'),
-#         ('C4','E4','G4'),
-#         ('C4','E4','G4'),
-#         ('C4','E4','G4'),
-#         ('C4','E4','G4')
-#         ),40,4)
-#     beep.play('A4', 500, 2)
-#     time.sleep(1)
-#     beep.play('C6', 500, 2)
-#     time.sleep(1)
-#     beep.play((
-#         'C6', 'CS6', 'D6', 'DS6', 'E6', 'F6', 'FS6', 'G6', 'GS6','A6', 'AS6', 'B6'
-#         ), 200, 3)
-#     time.sleep(1)
-#     beep.play((('C4','C5','C3'),('B3','B3','B3'),('A3','A3','A3'),('A3','A3','A3'),('B3','B3','B3')),400,3)
-    
-
-
-
