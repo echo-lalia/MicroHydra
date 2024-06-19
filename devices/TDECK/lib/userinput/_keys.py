@@ -13,8 +13,26 @@ KEYMAP = {
     1:'q',   2:'w',  17:'e',  33:'r', 35:'t', 51:'y', 49:'u', 67:'i', 65:'o', 20:'p',
     4:'a',   18:'s', 19:'d',  39:'f', 34:'g', 50:'h', 55:'j', 71:'k', 66:'l', 68:'BSPC',
     5:'ALT',22:'z', 21:'x',  38:'c', 37:'v', 53:'b', 54:'n', 70:'m', 69:'$', 52:'ENT',
-            23:'LSHFT', 7:'CTRL',     6:'SPC',     3:'SYM', 36:'SHFT',
+            23:'LSHFT', 7:'CTRL',     6:'SPC',     3:'FN', 36:'SHFT',
     }
+KEYMAP_SHFT = KEYMAP.copy()
+KEYMAP_SHFT.update({
+    1:'Q',   2:'W',  17:'E',  33:'R', 35:'T', 51:'Y', 49:'U', 67:'I', 65:'O', 20:'P',
+    4:'A',  18:'S',  19:'D',  39:'F', 34:'G', 50:'H', 55:'J', 71:'K', 66:'L',
+            22:'Z',  21:'X',  38:'C', 37:'V', 53:'B', 54:'N', 70:'M',
+    })
+KEYMAP_FN = KEYMAP.copy()
+KEYMAP_FN.update({
+    1:'#',   2:'1',  17:'2',  33:'3', 35:'(', 51:')', 49:'_', 67:'-', 65:'+', 20:'@',
+    4:'*',  18:'4',  19:'5',  39:'6', 34:'/', 50:':', 55:';', 71:"'", 66:'"',
+            22:'7',  21:'8',  38:'9', 37:'?', 53:'!', 54:',', 70:'.', 69:'SPEAK',
+                      7:'0',
+    })
+
+_KC_LEFT_SHIFT = const(23)
+_KC_SHIFT = const(36)
+_KC_FN = const(3)
+_KC_CTRL = const(7)
 
 _I2C_ADDR = const(0x55)
 
@@ -25,6 +43,7 @@ _ENABLE_RAW_MODE  = const(0x03)
 
 # the number of keys sent in raw mode
 _NUM_READ_KEYS = const(4)
+_EMPTY_BYTES = b'\x00' * _NUM_READ_KEYS
 
 
 class Keys:
@@ -121,23 +140,40 @@ class Keys:
     def _special_mod_keys(self, keylist):
         """Convert device-specific key combos into general keys."""
         # shortcut for "OPT" key
-        if "LSHFT" in keylist:
+        while "LSHFT" in keylist:
             keylist.remove("LSHFT")
             if "CTRL" in keylist:
                 keylist.remove("CTRL")
                 keylist.append("OPT")
-            else:
-                keylist.append("SHFT")
-        
+                
+        # finally, remove pre-processed special keys
+        while "SHFT" in keylist:
+            keylist.remove("SHFT")
+        while "FN" in keylist:
+            keylist.remove("FN")
+
 
     def get_pressed_keys(self):
         """Return currently pressed keys."""
         codes = self.i2c.readfrom(_I2C_ADDR, _NUM_READ_KEYS)
         keys = []
+        
+        if codes == _EMPTY_BYTES:
+            return keys
+
+        # process special keys before converting to readable format
+        if _KC_FN in codes:
+            keymap = KEYMAP_FN
+        elif _KC_SHIFT in codes \
+        or (_KC_LEFT_SHIFT in codes and _KC_CTRL not in codes):
+            keymap = KEYMAP_SHFT
+        else:
+            keymap = KEYMAP
+        
         for code in codes:
             if code != 0:
                 # avoid rare duplicate keys
-                key = KEYMAP[code]
+                key = keymap[code]
                 if key not in keys:
                     keys.append(key)
         
