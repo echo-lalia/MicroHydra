@@ -710,7 +710,7 @@ class ST7789:
             color (int): 565 encoded color
             fill (bool): fill in the ellipse. Default is False
         """
-        self._set_show_min(y - yr, y + yr)
+        self._set_show_min(y - yr, y + yr + 1)
         color = self._format_color(color)
         self.fbuf.ellipse(x,y,xr,yr,color,fill,m)
 
