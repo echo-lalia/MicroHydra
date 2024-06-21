@@ -1,6 +1,22 @@
 """
 Read and return Keyboard / Trackball data
-for the Lilygo T-Deck
+for the Lilygo T-Deck.
+
+!Important note!:
+    The T-Deck has a separate ESP32C3 in its keyboard that communicates
+    with the main controller.
+    The firmware that comes with that ESP32C3 is not very useful.
+    It leaves several keys completely unused, and provides no way to
+    read the keys being pressed.
+
+    For this reason, MicroHydra has a custom firmware for the keyboard
+    that much be flashed for full functionality.
+    The custom firmware is backwards compatible with the og firmware,
+    and it allows the main controller to enable a raw output mode.
+
+    This module includes a simple method of 'detecting' when the old
+    firmware is used, and enables a backwards-compatibility mode.
+    However, the results will be lower quality compared to the custom firmware.
 """
 from machine import SoftI2C, Pin
 import time
@@ -43,6 +59,15 @@ _ENABLE_RAW_MODE  = const(0x03)
 _NUM_READ_KEYS = const(4)
 _EMPTY_BYTES = b'\x00' * _NUM_READ_KEYS
 
+# warning to print when wrong firmware is detected.
+_KB_FIRMWARE_WARNING = const("""\
+WARNING:
+The T-Deck keyboard sent an invalid code to the _keys module.
+This is probably because the wrong firmware is installed on the keyboard.\
+It is reccomended that you flash the Hydra KB firmware to the keyboard to get full functionality.
+
+Compatibility mode will now be enabled...""")
+
 
 class Keys:
     """
@@ -62,6 +87,7 @@ class Keys:
         
         # enable raw mode (REQUIRES HYDRA KB FIRMWARE)
         self._send_code(_ENABLE_RAW_MODE)
+        self.firmware_compat_mode = False
         
         # trackball read pins
         self.tb_up = Pin(3, mode=Pin.IN, pull=Pin.PULL_UP)
@@ -125,8 +151,8 @@ class Keys:
         
         self.tb_x = 0
         self.tb_y = 0
-        
-        
+
+
     def _special_mod_keys(self, codes, keylist):
         """Convert device-specific key combos into general keys."""
         # shortcut for "OPT" key
@@ -134,6 +160,32 @@ class Keys:
         and _KC_FN in codes:
             keylist.remove("G0")
             keylist.append("OPT")
+
+
+    def _alt_get_pressed_keys(self):
+        """Alternate version of get_pressed_keys for compatibility"""
+        read_key = self.i2c.readfrom(_I2C_ADDR, 1).decode()
+        tb_val = self.tb_click.value()
+        keys = []
+        
+        if read_key == "\x00" \
+        and not self.tb_x \
+        and not self.tb_y \
+        and tb_val:
+            return keys
+        
+        # tb button
+        if tb_val == 0:
+            keys.append("G0")
+        
+        if read_key != "\x00":
+            if read_key == "\x08":
+                keys.append("BSPC")
+            else:
+                keys.append(read_key)
+        
+        self._add_tb_keys(keys)
+        return keys
 
 
     def get_pressed_keys(self, force_fn=False, force_shft=False):
@@ -162,13 +214,22 @@ class Keys:
             keys.append("G0")
         
         for code in codes:
-            if code != 0 and code in keymap.keys():
+            if code != 0:
+                if code in keymap.keys():
                     keys.append(keymap[code])
+
+                elif code > 100:
+                    # firmware should not be sending values like this
+                    # enable compatibility mode for wrong kb firmware
+                    print(_KB_FIRMWARE_WARNING)
+                    self.firmware_compat_mode = True
+                    self.get_pressed_keys = self._alt_get_pressed_keys
+                    return keys
         
         self._special_mod_keys(codes, keys)
         self._add_tb_keys(keys)
         return keys
-        
+
 
 if __name__ == "__main__":
     keys = Keys()
