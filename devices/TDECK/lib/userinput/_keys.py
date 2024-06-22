@@ -69,6 +69,10 @@ It is reccomended that you flash the Hydra KB firmware to the keyboard to get fu
 Compatibility mode will now be enabled...""")
 
 
+DONT_REPEAT_KEYS = const(('ALT', 'CTRL'))
+ALWAYS_NEW_KEYS = const(('UP', 'RIGHT', 'LEFT', 'DOWN'))
+
+
 class Keys:
     """
     Keys class is responsible for reading and returning currently pressed keys.
@@ -108,6 +112,8 @@ class Keys:
         
         # set configuration
         self.tb_move_thresh = tb_move_thresh
+        
+        self.key_state = []
         
         
     def _handle_irq(self, tb_pin):
@@ -172,6 +178,7 @@ class Keys:
         and not self.tb_x \
         and not self.tb_y \
         and tb_val:
+            self.key_state = keys
             return keys
         
         # tb button
@@ -185,11 +192,15 @@ class Keys:
                 keys.append(read_key)
         
         self._add_tb_keys(keys)
+        self.key_state = keys
         return keys
 
 
     def get_pressed_keys(self, force_fn=False, force_shft=False):
-        """Return currently pressed keys."""
+        """
+        Return currently pressed keys.
+        Also, populate self.key_state
+        """
         codes = self.i2c.readfrom(_I2C_ADDR, _NUM_READ_KEYS)
         tb_val = self.tb_click.value()
         keys = []
@@ -199,6 +210,7 @@ class Keys:
         and not self.tb_x \
         and not self.tb_y \
         and tb_val:
+            self.key_state = keys
             return keys
         
         # process special keys before converting to readable format
@@ -228,6 +240,8 @@ class Keys:
         
         self._special_mod_keys(codes, keys)
         self._add_tb_keys(keys)
+        
+        self.key_state = keys
         return keys
 
 

@@ -1,12 +1,23 @@
+"""
+This module is responsible for combining device-specific
+user input modules into a single, unified API.
+
+This module also adds some fancy extra features to that input,
+such as key repetition, and global keyboard shortcuts.
+"""
 import time
-from . import _keys
+
+try:
+    from . import _keys
+except:
+    from lib.userinput import _keys
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ KeyBoard: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-class UserInput():
+class UserInput(_keys.Keys):
     """
     Smart Keyboard Class
-    
-    
+
+
     Args:
     =====
     
@@ -23,8 +34,17 @@ class UserInput():
         whether or not to enable 'global' system commands.
         If enabled, removes 'opt' key presses and changes config using keyboard shortcuts.
     
+    **kwargs :
+        Passes other (device-specific) keywords to _keys.Keys
     """
-    def __init__(self, hold_ms=600, repeat_ms=80, config=None, use_sys_commands=True, **kwargs):
+    def __init__(
+        self,
+        hold_ms=600,
+        repeat_ms=80,
+        config=None,
+        use_sys_commands=True,
+        **kwargs):
+
         self._key_list_buffer = []
         
         # TODO: make config a singleton and simplify this
@@ -34,51 +54,50 @@ class UserInput():
             from lib import mhconfig
             self.config = mhconfig.Config()
         
-        self.keys = _keys.Keys(**kwargs)
-        
+        # key repetition
         self.tracker = {}
-        self.hold_ms = 600
+        self.hold_ms = hold_ms
         self.repeat_delta = hold_ms - repeat_ms
 
-        self.key_state = []
-
-        self.sys_commands = use_sys_commands
-
-
-    def get_pressed_keys(self):
-        """Get a readable list of currently held keys."""
-        self.key_state = self.keys.get_pressed_keys()
-
-        if not self._key_list_buffer and not self.key_state: # if nothing is pressed, we can return an empty list
-            return self.key_state
+        # enable system commands
+        self.use_sys_commands = use_sys_commands
         
-        if kc_fn in self._key_list_buffer:
-            #remove modifier keys which are already accounted for
-            self._key_list_buffer.remove(kc_fn)
-            if kc_shift in self._key_list_buffer:
-                self._key_list_buffer.remove(kc_shift)
+        # init _keys.Keys
+        super().__init__(**kwargs)
 
-            for keycode in self._key_list_buffer:
-                # get fn keymap, or default to normal keymap
-                self.key_state.append(
-                    keymap_fn.get(keycode, keymap[keycode])
-                    )
 
-        elif kc_shift in self._key_list_buffer:
-            #remove modifier keys which are already accounted for
-            self._key_list_buffer.remove(kc_shift)
+    @micropython.viper
+    def _get_new_keys(self):
+        """Viper component of get_new_keys"""
+        # using viper for this part is probably not critical for speed.
+        # but in my experience viper tends to be much faster any time
+        # iteration is involved (also seems to use less ram).
+        # and so when something like this can easily be viper-ized,
+        # I tend to just do it.
 
-            for keycode in self._key_list_buffer:
-                # get fn keymap, or default to normal keymap
-                self.key_state.append(
-                    keymap_shift.get(keycode, keymap[keycode])
-                    )
+        tracker = self.tracker
+        time_now = int(time.ticks_ms())
+        hold_ms = int(self.hold_ms)
+        repeat_delta = int(self.repeat_delta)
+        
+        # Iterate over pressed keys, keeping keys not in the tracker.
+        # And, check for device-specific keys that should always be "new".
+        keylist = []
+        for key in self.key_state:
+            if key not in tracker \
+            or key in _keys.ALWAYS_NEW_KEYS:
+                keylist.append(key)
 
-        else:
-            for keycode in self._key_list_buffer:
-                self.key_state.append(keymap[keycode])
+        # Test if tracked keys have been held enough to repeat.
+        # If they have, we can repeat them and reset the repeat time.
+        # Also, don't repeat excluded keys.
+        for key, key_time in tracker.items():
+            if int(time.ticks_diff(time_now, key_time)) >= hold_ms \
+            and key not in _keys.DONT_REPEAT_KEYS:
+                keylist.append(key)
+                tracker[key] = time_now - repeat_delta
 
-        return self.key_state
+        return keylist
 
 
     def get_new_keys(self):
@@ -87,16 +106,9 @@ class UserInput():
         """
         self.populate_tracker()
         self.get_pressed_keys()
+        keylist = self._get_new_keys()
 
-        keylist = [key for key in self.key_state if key not in self.tracker]
-
-        for key, key_time in self.tracker.items():
-            # test if keys have been held long enough to repeat
-            if time.ticks_diff(time.ticks_ms(), key_time) >= self.hold_ms:
-                keylist.append(key)
-                self.tracker[key] = time.ticks_ms() - self.repeat_delta
-
-        if self.sys_commands:
+        if self.use_sys_commands:
             self.system_commands(keylist)
 
         return keylist
@@ -136,3 +148,10 @@ class UserInput():
             elif '.' in keylist:
                 self.config['volume'] = (self.config['volume'] - 1) % 11
                 keylist.remove('.')
+
+
+if __name__ == "__main__":
+    user_input = UserInput()
+    while True:
+        print(user_input.get_new_keys())
+        time.sleep_ms(30)
