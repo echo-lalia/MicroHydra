@@ -4,6 +4,10 @@ user input modules into a single, unified API.
 
 This module also adds some fancy extra features to that input,
 such as key repetition, and global keyboard shortcuts.
+
+!IMPORTANT NOTE!
+    The API connecting _keys and userinput is almost certainly going to change!
+    Do not use the _keys module directly!
 """
 import time
 
