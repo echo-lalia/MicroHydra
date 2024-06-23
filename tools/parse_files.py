@@ -5,11 +5,11 @@ designed to enable multiplatform development for MicroHydra.
 This script pulls source code from /src and turns it into 
 device-specific MicroHydra code for the each defined device.
 
-Device definitions are stored in /devices, in json format.
+Device definitions are stored in /devices, in yaml format.
 
 Hydra "magic" Constants:
 - Constants declared with the "_MH_" prefix, and
-  which match a platform-specific value from the device json definition.
+  which match a platform-specific value from the device yaml definition.
 - Are replaced automatically with their device specific value.
 - Initial value can be anything (for testing purposes).
 Example:
@@ -43,7 +43,7 @@ print("this device has no touchscreen!")
 """
 
 import os
-import json
+import yaml
 import argparse
 import re
 # from pathlib import Path
@@ -63,7 +63,7 @@ epilog='This program is designed to enable multi-platform support in MicroHydra.
 )
 
 PARSER.add_argument('-s', '--source', help='Path to MicroHydra source to be parsed.')
-PARSER.add_argument('-D', '--devices', help='Path to device JSON definition folder.')
+PARSER.add_argument('-D', '--devices', help='Path to device definition folder.')
 PARSER.add_argument('-d', '--dest', help='Destination path for parsed MicroHydra files.')
 PARSER.add_argument('-v', '--verbose', action='store_true')
 PARSER.add_argument('--frozen', action='store_true')
@@ -88,8 +88,8 @@ if DEST_PATH is None:
 
 
 
-with open(os.path.join(DEVICE_PATH, 'default.json'), 'r', encoding="utf-8") as default_file:
-    default = json.loads(default_file.read())
+with open(os.path.join(DEVICE_PATH, 'default.yml'), 'r', encoding="utf-8") as default_file:
+    default = yaml.safe_load(default_file.read())
 DEFAULT_CONSTANTS = default['constants']
 DEFAULT_FEATURES = default['features']
 
@@ -112,7 +112,7 @@ def main():
     # parse devices into list of Device objects
     devices = []
     for filepath in os.listdir(DEVICE_PATH):
-        if filepath != 'default.json':
+        if filepath != 'default.yml':
             devices.append(Device(filepath))
 
     # print status information
@@ -150,7 +150,7 @@ def main():
         device_file_data = get_device_files(device)
         for dir_entry, file_path in device_file_data:
             # definition file does not need to be copied over
-            if dir_entry.name != "definition.json":
+            if dir_entry.name != "definition.yml":
                 file_parser = FileParser(dir_entry, file_path)
                 file_parser.save_unparsable_file(DEST_PATH, device)
 
@@ -177,8 +177,8 @@ class Device:
     """Store/parse device/platform details."""
     def __init__(self, name):
         self.constants = DEFAULT_CONSTANTS.copy()
-        with open(os.path.join(DEVICE_PATH, name, "definition.json"), 'r', encoding="utf-8") as device_file:
-            device_def = json.loads(device_file.read())
+        with open(os.path.join(DEVICE_PATH, name, "definition.yml"), 'r', encoding="utf-8") as device_file:
+            device_def = yaml.safe_load(device_file.read())
             self.constants.update(device_def['constants'])
             self.features = device_def['features']
         self.name = name

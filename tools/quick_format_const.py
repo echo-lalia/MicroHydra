@@ -1,4 +1,6 @@
 """
+TODO: update this script to use yaml instead of json
+
 This simple script is just designed to extract and print formatted constant declarations
 from the device definition files.
 
@@ -9,7 +11,7 @@ example output:
 `_MH_DISPLAY_WIDTH = const(240)`
 
 """
-import json
+import yaml
 import os
 
 
@@ -22,13 +24,13 @@ target_device = None
 
 # get path based on target device
 if target_device is None:
-    target_file = os.path.join("devices", "default.json")
+    target_file = os.path.join("devices", "default.yml")
 else:
-    target_file = os.path.join("devices", target_device.upper(), "definition.json")
+    target_file = os.path.join("devices", target_device.upper(), "definition.yml")
 
 # read lines from file
-with open(target_file, "rb") as json_file:
-    data = json_file.readlines()
+with open(target_file, "rb") as yml_file:
+    data = yml_file.readlines()
 
 
 for line in data:
