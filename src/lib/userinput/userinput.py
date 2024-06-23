@@ -10,13 +10,15 @@ such as key repetition, and global keyboard shortcuts.
     Do not use the _keys module directly!
 """
 import time
+from lib.hydra.config import Config
 
 try:
     from . import _keys
 except:
     from lib.userinput import _keys
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ KeyBoard: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ UserInput: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class UserInput(_keys.Keys):
     """
     Smart Keyboard Class
@@ -45,18 +47,12 @@ class UserInput(_keys.Keys):
         self,
         hold_ms=600,
         repeat_ms=80,
-        config=None,
         use_sys_commands=True,
         **kwargs):
 
         self._key_list_buffer = []
         
-        # TODO: make config a singleton and simplify this
-        if config:
-            self.config = config
-        elif use_sys_commands:
-            from lib import mhconfig
-            self.config = mhconfig.Config()
+        self.config = Config()
         
         # key repetition
         self.tracker = {}
@@ -65,6 +61,12 @@ class UserInput(_keys.Keys):
 
         # enable system commands
         self.use_sys_commands = use_sys_commands
+        
+        # mh_if keyboard_light
+        # keyboard backlight control!
+        self.kb_light_timer = None
+        self.kb_light_state = False
+        # mh_end_if
         
         # init _keys.Keys
         super().__init__(**kwargs)
@@ -156,6 +158,13 @@ class UserInput(_keys.Keys):
 
 if __name__ == "__main__":
     user_input = UserInput()
+    backlight = False
     while True:
         print(user_input.get_new_keys())
+        if user_input.key_state and not backlight:
+            backlight = True
+            user_input.set_backlight(True)
+        elif not user_input.key_state and backlight:
+            backlight = False
+            user_input.set_backlight(False)
         time.sleep_ms(30)
