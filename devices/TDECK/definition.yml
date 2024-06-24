@@ -21,6 +21,7 @@ constants:
   _MH_SDCARD_MOSI: '41'
   _MH_SDCARD_SCK: '40'
   _MH_SDCARD_SLOT: '2'
+
 features:
 - keyboard
 - display
@@ -30,3 +31,4 @@ features:
 - trackball
 - wifi
 - bluetooth
+- kb_light

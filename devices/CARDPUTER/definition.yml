@@ -21,6 +21,7 @@ constants:
   _MH_SDCARD_MOSI: '14'
   _MH_SDCARD_SCK: '40'
   _MH_SDCARD_SLOT: '2'
+
 features:
 - keyboard
 - display
