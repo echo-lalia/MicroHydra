@@ -18,11 +18,13 @@ for the Lilygo T-Deck.
     firmware is used, and enables a backwards-compatibility mode.
     However, the results will be lower quality compared to the custom firmware.
 """
-from machine import SoftI2C, Pin
+from machine import I2C, Pin
 import time
+
 
 KBD_PWR = Pin(10, Pin.OUT)
 KBD_INT = Pin(46, Pin.IN)
+
 
 # keycodes mapped to matrix keys.
 KEYMAP = {
@@ -44,6 +46,7 @@ KEYMAP_FN = {
                       7:'0',
     }
 
+
 _KC_LEFT_SHIFT = const(23)
 _KC_SHIFT = const(36)
 _KC_FN = const(3)
@@ -59,6 +62,7 @@ _ENABLE_RAW_MODE  = const(0x03)
 _NUM_READ_KEYS = const(4)
 _EMPTY_BYTES = b'\x00' * _NUM_READ_KEYS
 
+
 # warning to print when wrong firmware is detected.
 _KB_FIRMWARE_WARNING = const("""\
 WARNING:
@@ -73,6 +77,7 @@ DONT_REPEAT_KEYS = const(('ALT', 'CTRL'))
 ALWAYS_NEW_KEYS = const(('UP', 'RIGHT', 'LEFT', 'DOWN'))
 
 
+
 class Keys:
     """
     Keys class is responsible for reading and returning currently pressed keys.
@@ -83,7 +88,7 @@ class Keys:
         KBD_PWR.value(1)
 
         # I2C for communicating with ESP32C3
-        self.i2c = SoftI2C(scl=Pin(8), sda=Pin(18), freq=400000, timeout=50000)
+        self.i2c = I2C(0, scl=Pin(8), sda=Pin(18), freq=400000, timeout=50000)
 
         # Stores a single int for writing to display
         # (because I2C requires it be a buffer)
@@ -196,6 +201,14 @@ class Keys:
         return keys
 
 
+    def set_backlight(self, value:bool):
+        """Turn keyboard backlight on or off"""
+        if value:
+            self._send_code(_BACKLIGHT_ON)
+        else:
+            self._send_code(_BACKLIGHT_OFF)
+        
+
     def get_pressed_keys(self, force_fn=False, force_shft=False):
         """
         Return currently pressed keys.
@@ -214,7 +227,8 @@ class Keys:
             return keys
         
         # process special keys before converting to readable format
-        if _KC_FN in codes or force_fn:
+        if (_KC_FN in codes and tb_val) \
+        or force_fn:
             keymap = KEYMAP_FN
         elif _KC_SHIFT in codes or _KC_LEFT_SHIFT in codes or force_shft:
             keymap = KEYMAP_SHFT

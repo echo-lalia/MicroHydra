@@ -17,6 +17,14 @@ try:
 except:
     from lib.userinput import _keys
 
+# mh_if touchscreen:
+try:
+    from . import _touch
+except:
+    from lib.userinput import _touch
+# mh_end_if
+
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ UserInput: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class UserInput(_keys.Keys):
@@ -62,14 +70,20 @@ class UserInput(_keys.Keys):
         # enable system commands
         self.use_sys_commands = use_sys_commands
         
-        # mh_if keyboard_light
-        # keyboard backlight control!
-        self.kb_light_timer = None
-        self.kb_light_state = False
-        # mh_end_if
-        
         # init _keys.Keys
         super().__init__(**kwargs)
+        
+        # mh_if kb_light:
+        # keyboard backlight control!
+        self.set_backlight(self.config["kb_light"])
+        # mh_end_if
+        
+        # mh_if touchscreen:
+        # setup touch control!
+        self.touch = _touch.Touch(i2c=self.i2c)
+        self.get_touch_events = self.touch.get_touch_events
+        self.get_current_points = self.touch.get_current_points
+        # mh_end_if
 
 
     @micropython.viper
@@ -154,17 +168,18 @@ class UserInput(_keys.Keys):
             elif '.' in keylist:
                 self.config['volume'] = (self.config['volume'] - 1) % 11
                 keylist.remove('.')
+            
+            # mh_if kb_light:
+            if "b" in keylist:
+                self.config["kb_light"] = not self.config["kb_light"]
+                self.set_backlight(self.config["kb_light"])
+                keylist.remove('b')
+            # mh_end_if
+
 
 
 if __name__ == "__main__":
     user_input = UserInput()
-    backlight = False
     while True:
-        print(user_input.get_new_keys())
-        if user_input.key_state and not backlight:
-            backlight = True
-            user_input.set_backlight(True)
-        elif not user_input.key_state and backlight:
-            backlight = False
-            user_input.set_backlight(False)
+        print(user_input.get_new_keys() + user_input.get_touch_events())
         time.sleep_ms(30)

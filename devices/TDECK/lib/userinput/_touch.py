@@ -216,13 +216,14 @@ class TouchEvent:
 
 
 class Touch:
-    def __init__(self, sda=18, scl=8, interrupt=_BOARD_TOUCH_INT, reset=_BOARD_PERIPHERAL_POWER, freq=400_000, rotation=1, swipe_move_thresh=20):
+    def __init__(self, i2c, interrupt=_BOARD_TOUCH_INT, reset=_BOARD_PERIPHERAL_POWER, rotation=1, swipe_move_thresh=20):
         self.width = 0
         self.height = 0
         self.address = None
         self.configuration = []
-        self.i2c =  machine.I2C(0, freq=freq, scl=machine.Pin(scl), sda=machine.Pin(sda))
-        self.interrupt = machine.Pin(interrupt, machine.Pin.OUT)
+        self.i2c = i2c
+#         self.i2c =  machine.I2C(1, freq=freq, scl=machine.Pin(scl), sda=machine.Pin(sda))
+        self.interrupt = machine.Pin(interrupt, machine.Pin.IN)
         self.reset_pin = machine.Pin(reset, machine.Pin.OUT)
 
         self.rotation = rotation % 4
@@ -269,7 +270,7 @@ class Touch:
 
     def _begin(self, address):
         self.address = address
-        self._reset()
+#         self._reset()
         self.configuration = self._read(_CONFIG_START, _CONFIG_SIZE)
         wl = self.configuration[config_offset(_X_OUTPUT_MAX_LOW)]
         wh = self.configuration[config_offset(_X_OUTPUT_MAX_HIGH)]
@@ -279,18 +280,18 @@ class Touch:
         self.height = (hh << 8) + hl
 
 
-    def _reset(self):
-        self.interrupt.value(0)
-        self.reset_pin.value(0)
-        time.sleep_ms(10)
-        self.interrupt.value(self.address == _ADDR2)
-        time.sleep_ms(1)
-        self.reset_pin.value(1)
-        time.sleep_ms(5)
-        self.interrupt.value(0)
-        time.sleep_ms(50)
-        self.interrupt.init(mode=machine.Pin.IN)
-        time.sleep_ms(50)
+#     def _reset(self):
+#         self.interrupt.value(0)
+#         self.reset_pin.value(0)
+#         time.sleep_ms(10)
+#         self.interrupt.value(self.address == _ADDR2)
+#         time.sleep_ms(1)
+#         self.reset_pin.value(1)
+#         time.sleep_ms(5)
+#         self.interrupt.value(0)
+#         time.sleep_ms(50)
+#         self.interrupt.init(mode=machine.Pin.IN)
+#         time.sleep_ms(50)
 
 
     def _parse_point(self, data):
