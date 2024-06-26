@@ -844,7 +844,7 @@ class ST7789:
                             fbuf8[target_idx] = (fbuf8[target_idx] & dest_mask) | (color << dest_shift)
                         else:
                             # draw to 16 bits
-                            target_idx = target_px * 2
+                            target_idx = target_px
                             fbuf16[target_idx] = color
                     
                     px_idx += 1
@@ -964,7 +964,7 @@ class ST7789:
                 else:
                     # TODO: TEST THIS! (has only been tested for tiny fbuf)
                     # writing 16-bit pixels
-                    target_idx = target_px * 2
+                    target_idx = target_px
                     fbuf16[target_idx] = clr
             
             px_idx += 1
