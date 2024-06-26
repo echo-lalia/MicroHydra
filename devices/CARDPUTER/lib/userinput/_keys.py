@@ -13,7 +13,7 @@ KEYMAP = {
     
     66:'TAB',62:'q',  56:'w',  52:'e', 46:'r', 42:'t', 36:'y', 32:'u', 26:'i', 22:'o', 16:'p', 12:'[', 6:']', 2:'\\',
     
-                      55:'a',  51:'s', 45:'d', 41:'f', 35:'g', 31:'h', 25:'j', 21:'k', 15:'l', 11:';', 5:"'", 1:'ENT',
+    65:"FN",61:"SHIFT",55:'a', 51:'s', 45:'d', 41:'f', 35:'g', 31:'h', 25:'j', 21:'k', 15:'l', 11:';', 5:"'", 1:'ENT',
     
     64:'CTL',60:'OPT',54:'ALT',50:'z', 44:'x', 40:'c', 34:'v', 30:'b', 24:'n', 20:'m', 14:',', 10:'.', 4:'/', 0:'SPC',
     }
@@ -23,7 +23,7 @@ KEYMAP_SHIFT = {
     
     66:'TAB',62:'Q',  56:'W',  52:'E', 46:'R', 42:'T', 36:'Y', 32:'U', 26:'I', 22:'O', 16:'P', 12:'{', 6:'}', 2:'|',
     
-                      55:'A',  51:'S', 45:'D', 41:'F', 35:'G', 31:'H', 25:'J', 21:'K', 15:'L', 11:':', 5:'"', 1:'ENT',
+    65:"FN",61:"SHIFT",55:'A', 51:'S', 45:'D', 41:'F', 35:'G', 31:'H', 25:'J', 21:'K', 15:'L', 11:':', 5:'"', 1:'ENT',
     
     64:'CTL',60:'OPT',54:'ALT',50:'Z', 44:'X', 40:'C', 34:'V', 30:'B', 24:'N', 20:'M', 14:'<', 10:'>', 4:'?', 0:'SPC',
     }
@@ -33,13 +33,13 @@ KEYMAP_FN = {
     
     66:'TAB',62:'q',  56:'w',  52:'e', 46:'r', 42:'t', 36:'y', 32:'u', 26:'i', 22:'o', 16:'p', 12:'[', 6:']', 2:'\\',
     
-                      55:'a',  51:'s', 45:'d', 41:'f', 35:'g', 31:'h', 25:'j', 21:'k', 15:'l', 11:'UP',5:"'", 1:'ENT',
+    65:"FN",61:"SHIFT",55:'a', 51:'s', 45:'d', 41:'f', 35:'g', 31:'h', 25:'j', 21:'k', 15:'l', 11:'UP',5:"'", 1:'ENT',
     
     64:'CTL',60:'OPT',54:'ALT',50:'z', 44:'x', 40:'c', 34:'v', 30:'b', 24:'n',20:'m',14:'LEFT',10:'DOWN',4:'RIGHT',0:'SPC',
     }
 
 
-DONT_REPEAT_KEYS = const(('ALT', 'CTRL'))
+MOD_KEYS = const(('ALT', 'CTRL', 'FN', 'SHIFT', 'OPT'))
 ALWAYS_NEW_KEYS = const(())
 
 
@@ -105,8 +105,21 @@ class Keys():
         return key_list_buffer
 
 
-    def get_pressed_keys(self):
-        """Get a readable list of currently held keys."""
+    def get_pressed_keys(self, force_fn=False, force_shift=False):
+        """
+        Get a readable list of currently held keys.
+        Also, populate self.key_state with current vals.
+        
+        Args:
+        =====
+
+        force_fn : bool = False
+            If true, forces the use of 'FN' key layer
+
+        force_shift : bool - False
+            If True, forces the use of 'SHIFT' key layer
+        
+        """
         
         #update our scan results
         self.scan()
@@ -118,19 +131,11 @@ class Keys():
         if not self._key_list_buffer and not self.key_state: # if nothing is pressed, we can return an empty list
             return self.key_state
         
-        if KC_FN in self._key_list_buffer:
-            #remove modifier keys which are already accounted for
-            self._key_list_buffer.remove(KC_FN)
-            if KC_SHIFT in self._key_list_buffer:
-                self._key_list_buffer.remove(KC_SHIFT)
-                
+        if KC_FN in self._key_list_buffer or force_fn:
             for keycode in self._key_list_buffer:
                 self.key_state.append(KEYMAP_FN[keycode])
-                
-        elif KC_SHIFT in self._key_list_buffer:
-            #remove modifier keys which are already accounted for
-            self._key_list_buffer.remove(KC_SHIFT)
-            
+
+        elif KC_SHIFT in self._key_list_buffer or force_shift:
             for keycode in self._key_list_buffer:
                 self.key_state.append(KEYMAP_SHIFT[keycode])
         

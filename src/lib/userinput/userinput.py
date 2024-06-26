@@ -14,13 +14,13 @@ from lib.hydra.config import Config
 
 try:
     from . import _keys
-except:
+except ImportError:
     from lib.userinput import _keys
 
 # mh_if touchscreen:
 try:
     from . import _touch
-except:
+except ImportError:
     from lib.userinput import _touch
 # mh_end_if
 
@@ -40,13 +40,13 @@ class UserInput(_keys.Keys):
     
     repeat_ms : int = 80
         how long between key repetitions
-    
-    config : Config|None = None
-        your MH config instance. If not provided, it is created automatically.
         
     use_sys_commands : bool = True
         whether or not to enable 'global' system commands.
         If enabled, removes 'opt' key presses and changes config using keyboard shortcuts.
+    
+    allow_locking_keys : bool = True
+        Set to False to disable locking modifier keys (True uses the value in config.json).
     
     **kwargs :
         Passes other (device-specific) keywords to _keys.Keys
@@ -56,17 +56,17 @@ class UserInput(_keys.Keys):
         hold_ms=600,
         repeat_ms=80,
         use_sys_commands=True,
-        locking_keys=True,
+        allow_locking_keys=True,
         **kwargs):
         
         self.config = Config()
         
-        # key repetition
+        # key repetition / locking keys
         self.tracker = {}
         self.hold_ms = hold_ms
         self.repeat_delta = hold_ms - repeat_ms
 
-        self.locking_keys = locking_keys
+        self.locking_keys = allow_locking_keys
         self.locked_keys = []
 
         # enable system commands
@@ -114,8 +114,8 @@ class UserInput(_keys.Keys):
         # If they have, we can repeat them and reset the repeat time.
         # Also, don't repeat modifier` keys.
         for key, key_time in tracker.items():
-            if int(time.ticks_diff(time_now, key_time)) >= hold_ms \
-            and key not in _keys.MOD_KEYS:
+            if key not in _keys.MOD_KEYS \
+            and int(time.ticks_diff(time_now, key_time)) >= hold_ms:
                 keylist.append(key)
                 tracker[key] = time_now - repeat_delta
 
@@ -155,11 +155,14 @@ class UserInput(_keys.Keys):
                 # mod keys lock rather than repeat
                 if self.locking_keys \
                 and key in _keys.MOD_KEYS:
+                    # True means key can be locked
                     self.tracker[key] = True
                 else:
+                    # Remember when key was pressed for key-repeat behavior
                     self.tracker[key] = time.ticks_ms()
 
         # remove keys that arent being pressed from tracker
+        # (mod keys are removed in handle_locking_keys)
         for key in self.tracker.keys():
             if key not in self.key_state \
             and (self.locking_keys == False
@@ -168,25 +171,32 @@ class UserInput(_keys.Keys):
 
 
     def handle_locking_keys(self):
+        """Handle 'locking' behaviour of modifier keys."""
         tracker = self.tracker
         locked_keys = self.locked_keys
 
+        # iterate over mod keys in tracker:
         for key in tracker:
             if key in _keys.MOD_KEYS:
                 
+                # pre-fetch for easier readability:
                 tracker_val = tracker[key]
                 in_locked_keys = key in locked_keys
                 is_being_pressed = key in self.key_state
                 
-                if tracker_val:
-                    # tracker val is True
+                # when mod key is pressed, val is True
+                # becomes False when any other key is pressed at the same time
+                # if not pressed and still True, then lock the mod key
+                # remove locked mod key when pressed again.
+
+                if tracker_val: # is True
                     if is_being_pressed:
-                        # key is being pressed
+                        # key is being pressed and val is True
                         if in_locked_keys:
                             # key already in locked keys, must have been pressed twice.
                             locked_keys.remove(key)
                             tracker[key] = False
-                            
+
                         elif len(self.key_state) > 1:
                             # multiple keys are being pressed together, dont lock this key
                             tracker[key] = False

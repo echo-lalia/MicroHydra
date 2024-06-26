@@ -82,6 +82,12 @@ class Keys:
     """
     Keys class is responsible for reading and returning currently pressed keys.
     It is intented to be used by the Input module.
+    
+    Args:
+    =====
+    
+    tb_move_thresh : int = 2
+        how much the trackball must move before sending a directional keystroke.
     """
     def __init__(self, tb_move_thresh = 2, **kwargs):
         # turn on keyboard
@@ -213,7 +219,17 @@ class Keys:
     def get_pressed_keys(self, force_fn=False, force_shift=False):
         """
         Return currently pressed keys.
-        Also, populate self.key_state
+        Also, populate self.key_state with current vals.
+        
+        Args:
+        =====
+
+        force_fn : bool = False
+            If true, forces the use of 'FN' key layer
+
+        force_shift : bool - False
+            If True, forces the use of 'SHIFT' key layer
+
         """
         codes = self.i2c.readfrom(_I2C_ADDR, _NUM_READ_KEYS)
         tb_val = self.tb_click.value()
@@ -231,11 +247,12 @@ class Keys:
         if (_KC_FN in codes and tb_val) \
         or force_fn:
             keymap = KEYMAP_FN
-        elif _KC_SHIFT in codes or _KC_LEFT_SHIFT in codes or force_shift:
+        elif _KC_SHIFT in codes or _KC_LEFT_SHIFT in codes \
+        or force_shift:
             keymap = KEYMAP_SHFT
         else:
             keymap = KEYMAP
-        
+
         # tb button
         if tb_val == 0:
             keys.append("G0")
