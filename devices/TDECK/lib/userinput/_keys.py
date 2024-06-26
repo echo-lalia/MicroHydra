@@ -33,7 +33,7 @@ KEYMAP = {
     5:'ALT',22:'z', 21:'x',  38:'c', 37:'v', 53:'b', 54:'n', 70:'m', 69:'$', 52:'ENT',
           23:'SHIFT',  7:'CTRL',       6:'SPC',     3:'FN',  36:'SHIFT',
     }
-KEYMAP_SHFT = {
+KEYMAP_SHIFT = {
     1:'Q',   2:'W',  17:'E',  33:'R', 35:'T', 51:'Y', 49:'U', 67:'I', 65:'O', 20:'P',
     4:'A',  18:'S',  19:'D',  39:'F', 34:'G', 50:'H', 55:'J', 71:'K', 66:'L', 68:'BSPC',
     5:'ALT',22:'Z',  21:'X',  38:'C', 37:'V', 53:'B', 54:'N', 70:'M', 69:'$', 52:'ENT',
@@ -249,7 +249,7 @@ class Keys:
             keymap = KEYMAP_FN
         elif _KC_SHIFT in codes or _KC_LEFT_SHIFT in codes \
         or force_shift:
-            keymap = KEYMAP_SHFT
+            keymap = KEYMAP_SHIFT
         else:
             keymap = KEYMAP
 

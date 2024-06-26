@@ -213,8 +213,6 @@ class TouchEvent:
         return self._finish_swipe(touch_time, touch_dist)
 
 
-
-
 class Touch:
     def __init__(self, i2c, interrupt=_BOARD_TOUCH_INT, reset=_BOARD_PERIPHERAL_POWER, rotation=1, swipe_move_thresh=20):
         self.width = 0
@@ -222,7 +220,6 @@ class Touch:
         self.address = None
         self.configuration = []
         self.i2c = i2c
-#         self.i2c =  machine.I2C(1, freq=freq, scl=machine.Pin(scl), sda=machine.Pin(sda))
         self.interrupt = machine.Pin(interrupt, machine.Pin.IN)
         self.reset_pin = machine.Pin(reset, machine.Pin.OUT)
 
@@ -230,6 +227,8 @@ class Touch:
         
         TouchEvent.swipe_move_thresh = swipe_move_thresh
         self.tracker = [TouchEvent() for _ in range(_NUM_POINTS)]
+        
+        self.ready = False
 
         self._begin(_DEFAULT_ADDR)
 
@@ -270,7 +269,6 @@ class Touch:
 
     def _begin(self, address):
         self.address = address
-#         self._reset()
         self.configuration = self._read(_CONFIG_START, _CONFIG_SIZE)
         wl = self.configuration[config_offset(_X_OUTPUT_MAX_LOW)]
         wh = self.configuration[config_offset(_X_OUTPUT_MAX_HIGH)]
@@ -278,20 +276,6 @@ class Touch:
         hh = self.configuration[config_offset(_Y_OUTPUT_MAX_HIGH)]
         self.width = (wh << 8) + wl
         self.height = (hh << 8) + hl
-
-
-#     def _reset(self):
-#         self.interrupt.value(0)
-#         self.reset_pin.value(0)
-#         time.sleep_ms(10)
-#         self.interrupt.value(self.address == _ADDR2)
-#         time.sleep_ms(1)
-#         self.reset_pin.value(1)
-#         time.sleep_ms(5)
-#         self.interrupt.value(0)
-#         time.sleep_ms(50)
-#         self.interrupt.init(mode=machine.Pin.IN)
-#         time.sleep_ms(50)
 
 
     def _parse_point(self, data):
@@ -322,10 +306,12 @@ class Touch:
                 # init new touch event in tracker
                 tracker[point.id].__init__(point)
         
-        # iterate though touchevents to find active events that are finished
-        for idx, event in enumerate(tracker):
-            if event.alive and idx not in active_ids:
-                output.append(event.finish())
+        # self.ready indicates if the data is up to date
+        if self.ready:
+            # iterate though touchevents to find active events that are finished
+            for idx, event in enumerate(tracker):
+                if event.alive and idx not in active_ids:
+                    output.append(event.finish())
         
         return output
                 
@@ -338,10 +324,9 @@ class Touch:
         """
         points = []
         info = self._read(_POINT_INFO, 1)[0]
-        ready = bool((info >> 7) & 1)
-        # large_touch = bool((info >> 6) & 1)
+        self.ready = bool((info >> 7) & 1)
         touch_count = info & 0xF
-        if ready and touch_count > 0:
+        if self.ready and touch_count > 0:
             for i in range(touch_count):
                 data = self._read(_POINT_1 + (i * 8), 7)
                 points.append(self._parse_point(data))
@@ -352,11 +337,11 @@ class Touch:
 
 
 if __name__ == "__main__":
-    tp = Touch()
-
+    tp = Touch(i2c=machine.I2C(0, scl=machine.Pin(8), sda=machine.Pin(18), freq=400000, timeout=50000))
+    
     while True:
         points = tp.get_touch_events()
         if points:
             print(f"Received touch events: {points}")
-        time.sleep_ms(10)
+        time.sleep_ms(1)
 

@@ -1,21 +1,24 @@
 constants:
   _MH_BATT_ADC: '4'
+
   _MH_DISPLAY_BACKLIGHT: '42'
-  _MH_DISPLAY_BAUDRATE: '40_000_000'
+  _MH_DISPLAY_BAUDRATE: '80_000_000'
   _MH_DISPLAY_CS: '12'
   _MH_DISPLAY_DC: '11'
   _MH_DISPLAY_HEIGHT: '240'
+  _MH_DISPLAY_WIDTH: '320'
   _MH_DISPLAY_MISO: '38'
   _MH_DISPLAY_MOSI: '41'
   _MH_DISPLAY_RESET: None
   _MH_DISPLAY_ROTATION: '1'
   _MH_DISPLAY_SCK: '40'
   _MH_DISPLAY_SPI_ID: '1'
-  _MH_DISPLAY_WIDTH: '320'
+
   _MH_I2S_ID: '1'
   _MH_I2S_SCK: '7'
   _MH_I2S_SD: '6'
   _MH_I2S_WS: '5'
+
   _MH_SDCARD_CS: '39'
   _MH_SDCARD_MISO: '38'
   _MH_SDCARD_MOSI: '41'
@@ -32,3 +35,4 @@ features:
 - wifi
 - bluetooth
 - kb_light
+- spi_ram

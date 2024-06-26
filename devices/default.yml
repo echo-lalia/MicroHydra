@@ -33,13 +33,14 @@ constants:
   _MH_SDCARD_SLOT: '2'
 
 features:
-- trackball
+- touchscreen
 - wifi
 - keyboard
-- i2s_speaker
-- display
-- pdm_microphone
-- kb_light
-- bluetooth
+- trackball
 - ir_blaster
-- touchscreen
+- pdm_microphone
+- bluetooth
+- display
+- kb_light
+- spi_ram
+- i2s_speaker

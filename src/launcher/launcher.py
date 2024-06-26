@@ -42,8 +42,8 @@ import array
 import machine
 from launcher.icons import battery, appicons
 from font import vga2_16x32 as font
-from lib import smartkeyboard, beeper, battlevel
-from lib.mhconfig import Config
+from lib import userinput, beeper, battlevel
+from lib.hydra.config import Config
 from lib import display
 import gc
 
@@ -52,9 +52,9 @@ gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ _CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-_MH_DISPLAY_WIDTH = const(240)
-_MH_DISPLAY_HEIGHT = const(135)
-_MH_DISPLAY_BACKLIGHT = const(38)
+_MH_DISPLAY_WIDTH = const(320)
+_MH_DISPLAY_HEIGHT = const(240)
+_MH_DISPLAY_BACKLIGHT = const(42)
 
 _DISPLAY_WIDTH_HALF = const(_MH_DISPLAY_WIDTH//2)
 
@@ -65,10 +65,31 @@ _FONT_WIDTH_HALF = const(_FONT_WIDTH // 2)
 _SMALL_FONT_WIDTH = const(8)
 _SMALL_FONT_HEIGHT = const(8)
 
-_ICON_Y = const(36)
-_APPNAME_Y = const(80)
 
-_SCROLL_ANIMATION_TIME = const(300)
+_ICON_HEIGHT = const(32)
+_ICON_WIDTH = const(32)
+
+_STATUSBAR_HEIGHT = const(18)
+_SCROLLBAR_HEIGHT = const(4)
+
+# somewhat arbitrary padding calculation:
+_Y_PADDING = const(
+    (_MH_DISPLAY_HEIGHT
+    - _STATUSBAR_HEIGHT
+    - _ICON_HEIGHT
+    - _FONT_HEIGHT
+    - _SCROLLBAR_HEIGHT
+    - 4)
+    // 5
+    )
+
+
+_ICON_Y = const(_MH_DISPLAY_HEIGHT * 27 // 100)
+_APPNAME_Y = const(_ICON_Y + _ICON_HEIGHT + _Y_PADDING)
+
+
+_SCROLL_ANIMATION_TIME = const(400)
+
 
 _MH_SDCARD_SLOT = const(2)
 _MH_SDCARD_SCK = const(40)
@@ -102,13 +123,21 @@ except RuntimeError as e:
 #     )
 
 DISPLAY = display.Display(
+    # mh_if spi_ram:
+    use_tiny_buf=False,
+    # mh_else:
     use_tiny_buf=True,
-#     reserved_bytearray=reserved_bytearray
+    # mh_end_if
     )
 
 BEEP = beeper.Beeper()
 CONFIG = Config()
-KB = smartkeyboard.KeyBoard(config=CONFIG)
+KB = userinput.UserInput()
+# mh_if CARDPUTER:
+# Make Cardputer arrow keys bahave as expected
+KB.rebind_keys({',':'LEFT', '/':'RIGHT'})
+# mh_end_if
+
 SD = None
 RTC = machine.RTC()
 BATT = battlevel.Battery()
@@ -275,8 +304,7 @@ def center_text_x(text, char_width=16):
         Calculate the x coordinate to draw a text string, to make it horizontally centered. (plus the text width)
     """
     str_width = len(text) * char_width
-    # display is 240 px wide
-    start_coord = 120 - (str_width // 2)
+    start_coord = _DISPLAY_WIDTH_HALF - (str_width // 2)
 
     return start_coord
 
@@ -307,10 +335,8 @@ def play_sound(notes, time_ms=40):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Graphics Functions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-_STATUSBAR_HEIGHT = const(18)
-
 _CLOCK_X = const(6)
-_CLOCK_Y = const((_STATUSBAR_HEIGHT - 8) // 2)
+_CLOCK_Y = const((_STATUSBAR_HEIGHT - _SMALL_FONT_HEIGHT) // 2)
 _CLOCK_AMPM_Y = const(_CLOCK_Y - 1)
 _CLOCK_AMPM_PADDING = const(2)
 _CLOCK_AMPM_X_OFFSET = const(_CLOCK_AMPM_PADDING + _CLOCK_X)
@@ -380,7 +406,6 @@ def draw_statusbar(t=None):
 
 
 _MIN_SCROLLBAR_WIDTH = const(20)
-_SCROLLBAR_HEIGHT = const(4)
 _SCROLLBAR_PADDING = const(6)
 
 _SCROLLBAR_FILL_HEIGHT = const(_SCROLLBAR_HEIGHT - 2)
@@ -426,12 +451,6 @@ def draw_scrollbar():
         )
 
 
-
-_BLIT_NAME_WIDTH = const(_MH_DISPLAY_WIDTH - 1)  # TODO: trim this down
-_BLIT_NAME_Y_END = const(_APPNAME_Y + _FONT_HEIGHT - 1)
-
-_TOTAL_SELECTOR_HEIGHT = const((_APPNAME_Y + _FONT_HEIGHT) - _ICON_Y)
-
 def draw_app_selector(icon):
     icon.move()
     icon.draw()
@@ -444,8 +463,6 @@ _GEAR_ICON_IDX = const(2)
 _REFRESH_ICON_IDX = const(3)
 _FILE_ICON_IDX = const(4)
 
-_ICON_HEIGHT = const(32)
-_ICON_WIDTH = const(32)
 _ICON_WIDTH_HALF = const(_ICON_WIDTH // 2)
 
 _ICON_CENTERED_X = const(_DISPLAY_WIDTH_HALF - (_ICON_WIDTH // 2))
@@ -700,18 +717,29 @@ def main_loop():
     
     icon = IconWidget()
     icon.force_update()
-    
+
 
     while True:
 
         # ----------------------- check for key presses on the keyboard. Only if they weren't already pressed. --------------------------
         new_keys = KB.get_new_keys()
-        # new_keys = repeater.update_keys(new_keys)
+        
+        # mh_if touch:
+        # add swipes to direcitonal input
+        touch_events = KB.get_touch_events()
+        for event in touch_events:
+            print(event)
+            if hasattr(event, 'direction'):
+                if event.direction == 'RIGHT':
+                    new_keys.append('LEFT')
+                elif event.direction == 'LEFT':
+                    new_keys.append('RIGHT')
+        # mh_end_if
 
         if new_keys:
 
             # ~~~~~~ check if the arrow keys are newly pressed ~~~~~
-            if "/" in new_keys:  # right arrow
+            if "RIGHT" in new_keys:  # right arrow
                 PREV_SELECTOR_INDEX = APP_SELECTOR_INDEX
                 APP_SELECTOR_INDEX = (APP_SELECTOR_INDEX + 1) % len(APP_NAMES)
 
@@ -720,7 +748,7 @@ def main_loop():
 
                 play_sound((("D3", 'F3'), "A3"), 20)
 
-            elif "," in new_keys:  # left arrow
+            elif "LEFT" in new_keys:  # left arrow
                 PREV_SELECTOR_INDEX = APP_SELECTOR_INDEX
                 APP_SELECTOR_INDEX = (APP_SELECTOR_INDEX - 1) % len(APP_NAMES)
 
@@ -730,7 +758,7 @@ def main_loop():
                 play_sound((("C3", "E3"), "G3"), 20)
 
             # ~~~~~~~~~~ check if GO or ENTER are pressed ~~~~~~~~~~
-            if "GO" in new_keys or "ENT" in new_keys:
+            if "G0" in new_keys or "ENT" in new_keys:
 
                 # special "settings" app options will have their own behaviour, otherwise launch the app
                 if APP_NAMES[APP_SELECTOR_INDEX] == "UI Sound":

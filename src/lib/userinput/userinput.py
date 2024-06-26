@@ -240,6 +240,17 @@ class UserInput(_keys.Keys):
                 keylist.remove('b')
             # mh_end_if
 
+    
+    def rebind_keys(self, new_keys:dict):
+        """
+        Rebind keyboard keys.
+        Pass a dictionary in the format {'OLD_KEY':'NEW_KEY'},
+        updates keymap in the userinput._keys module.
+        """
+        for key, val in _keys.KEYMAP.items():
+            if val in new_keys:
+                _keys.KEYMAP[key] = new_keys[val]
+
 
 
 if __name__ == "__main__":
