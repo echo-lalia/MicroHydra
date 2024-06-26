@@ -56,9 +56,8 @@ class UserInput(_keys.Keys):
         hold_ms=600,
         repeat_ms=80,
         use_sys_commands=True,
+        locking_keys=True,
         **kwargs):
-
-        self._key_list_buffer = []
         
         self.config = Config()
         
@@ -66,6 +65,9 @@ class UserInput(_keys.Keys):
         self.tracker = {}
         self.hold_ms = hold_ms
         self.repeat_delta = hold_ms - repeat_ms
+
+        self.locking_keys = locking_keys
+        self.locked_keys = []
 
         # enable system commands
         self.use_sys_commands = use_sys_commands
@@ -110,10 +112,10 @@ class UserInput(_keys.Keys):
 
         # Test if tracked keys have been held enough to repeat.
         # If they have, we can repeat them and reset the repeat time.
-        # Also, don't repeat excluded keys.
+        # Also, don't repeat modifier` keys.
         for key, key_time in tracker.items():
             if int(time.ticks_diff(time_now, key_time)) >= hold_ms \
-            and key not in _keys.DONT_REPEAT_KEYS:
+            and key not in _keys.MOD_KEYS:
                 keylist.append(key)
                 tracker[key] = time_now - repeat_delta
 
@@ -125,6 +127,10 @@ class UserInput(_keys.Keys):
         Return a list of keys which are newly pressed.
         """
         self.populate_tracker()
+        
+        if self.locking_keys:
+            self.handle_locking_keys()
+        
         self.get_pressed_keys()
         keylist = self._get_new_keys()
 
@@ -134,17 +140,65 @@ class UserInput(_keys.Keys):
         return keylist
 
 
+    def get_pressed_keys(self):
+        force_fn = True if 'FN' in self.locked_keys else False
+        force_shift = True if 'SHIFT' in self.locked_keys else False
+        return super().get_pressed_keys(force_fn=force_fn, force_shift=force_shift)
+
+
     def populate_tracker(self):
         """Move currently pressed keys to tracker"""
         # add new keys
         for key in self.key_state:
             if key not in self.tracker.keys():
-                self.tracker[key] = time.ticks_ms()
+                
+                # mod keys lock rather than repeat
+                if self.locking_keys \
+                and key in _keys.MOD_KEYS:
+                    self.tracker[key] = True
+                else:
+                    self.tracker[key] = time.ticks_ms()
 
         # remove keys that arent being pressed from tracker
         for key in self.tracker.keys():
-            if key not in self.key_state:
+            if key not in self.key_state \
+            and (self.locking_keys == False
+            or key not in _keys.MOD_KEYS):
                 self.tracker.pop(key)
+
+
+    def handle_locking_keys(self):
+        tracker = self.tracker
+        locked_keys = self.locked_keys
+
+        for key in tracker:
+            if key in _keys.MOD_KEYS:
+                
+                tracker_val = tracker[key]
+                in_locked_keys = key in locked_keys
+                is_being_pressed = key in self.key_state
+                
+                if tracker_val:
+                    # tracker val is True
+                    if is_being_pressed:
+                        # key is being pressed
+                        if in_locked_keys:
+                            # key already in locked keys, must have been pressed twice.
+                            locked_keys.remove(key)
+                            tracker[key] = False
+                            
+                        elif len(self.key_state) > 1:
+                            # multiple keys are being pressed together, dont lock this key
+                            tracker[key] = False
+                    else:
+                        # key has just been released and should be locked
+                        locked_keys.append(key)
+                        tracker.pop(key)
+                else:
+                    # tracker val is False
+                    if not is_being_pressed:
+                        # if not being pressed and not locking, then just remove it
+                        tracker.pop(key)
 
 
     def system_commands(self, keylist):
@@ -179,7 +233,7 @@ class UserInput(_keys.Keys):
 
 
 if __name__ == "__main__":
-    user_input = UserInput()
+    user_input = UserInput(locking_keys=True)
     while True:
         print(user_input.get_new_keys() + user_input.get_touch_events())
         time.sleep_ms(30)
