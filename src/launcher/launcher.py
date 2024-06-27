@@ -724,11 +724,10 @@ def main_loop():
         # ----------------------- check for key presses on the keyboard. Only if they weren't already pressed. --------------------------
         new_keys = KB.get_new_keys()
         
-        # mh_if touch:
+        # mh_if touchscreen:
         # add swipes to direcitonal input
         touch_events = KB.get_touch_events()
         for event in touch_events:
-            print(event)
             if hasattr(event, 'direction'):
                 if event.direction == 'RIGHT':
                     new_keys.append('LEFT')
