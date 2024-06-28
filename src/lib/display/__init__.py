@@ -21,6 +21,9 @@ _MH_DISPLAY_ROTATION = const(1)
 
 
 class Display(st7789.ST7789):
+
+    overlay_callbacks = []
+
     def __new__(cls, **kwargs):
         if not hasattr(cls, 'instance'):
           cls.instance = super(Display, cls).__new__(cls)
@@ -55,6 +58,13 @@ class Display(st7789.ST7789):
             return
         return machine.Pin(target_pin, *args)
 
-    
+
+    def _draw_overlays(self):
+        """Call each overlay callback in Display.overlay_callbacks"""
+        for callback in Display.overlay_callbacks:
+            callback(self)
+        
+
     def show(self):
+        self._draw_overlays()
         super().show()

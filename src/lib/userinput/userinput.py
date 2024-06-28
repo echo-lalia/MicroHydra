@@ -11,6 +11,7 @@ such as key repetition, and global keyboard shortcuts.
 """
 import time
 from lib.hydra.config import Config
+from lib.display import Display
 
 try:
     from . import _keys
@@ -23,6 +24,15 @@ try:
 except ImportError:
     from lib.userinput import _touch
 # mh_end_if
+
+
+
+# Used for drawing locked keys to display:
+_PADDING = const(3)
+_FONT_WIDTH = const(8)
+_FONT_HEIGHT = const(8)
+_BOX_HEIGHT = const(_FONT_HEIGHT + (_PADDING * 2) + 1)
+_RADIUS = const((_BOX_HEIGHT - 1) // 2)
 
 
 
@@ -56,7 +66,7 @@ class UserInput(_keys.Keys):
         hold_ms=600,
         repeat_ms=80,
         use_sys_commands=True,
-        allow_locking_keys=True,
+        allow_locking_keys=False,
         **kwargs):
         
         self.config = Config()
@@ -71,7 +81,10 @@ class UserInput(_keys.Keys):
 
         # enable system commands
         self.use_sys_commands = use_sys_commands
-        
+
+        # setup locked key overlay:
+        Display.overlay_callbacks.append(self._locked_keys_overlay)
+
         # init _keys.Keys
         super().__init__(**kwargs)
         
@@ -250,6 +263,33 @@ class UserInput(_keys.Keys):
         for key, val in _keys.KEYMAP.items():
             if val in new_keys:
                 _keys.KEYMAP[key] = new_keys[val]
+
+    
+    def _locked_keys_overlay(self, display):
+        """Draw currently locked keys to the display."""
+        width = display.width
+        
+        for key_txt in self.locked_keys:
+            box_width = (len(key_txt) * _FONT_WIDTH)
+            x = width - box_width - _PADDING - _RADIUS
+            key_idx = _keys.MOD_KEYS.index(key_txt)
+            txt_clr = key_idx % 3
+            bg_clr = (key_idx % 3) + 6
+            ex_clr = 11 + key_idx
+            
+            # bg
+            display.rect(x, 1, box_width, _BOX_HEIGHT, display.palette[bg_clr], fill=True)
+            display.ellipse(x, _RADIUS + 1, _RADIUS, _RADIUS, display.palette[bg_clr], fill=True, m=6)
+            display.ellipse(x + box_width, _RADIUS + 1, _RADIUS, _RADIUS, display.palette[bg_clr], fill=True, m=9)
+            
+            # outline
+            display.hline(x, 1, box_width, display.palette[ex_clr])
+            display.hline(x, _BOX_HEIGHT, box_width, display.palette[ex_clr])
+            display.ellipse(x, _RADIUS + 1, _RADIUS, _RADIUS, display.palette[ex_clr], fill=False, m=6)
+            display.ellipse(x + box_width, _RADIUS + 1, _RADIUS, _RADIUS, display.palette[ex_clr], fill=False, m=9)
+            
+            display.text(key_txt, x, _PADDING + 2, display.palette[txt_clr])
+            width = x - _RADIUS - _PADDING
 
 
 
