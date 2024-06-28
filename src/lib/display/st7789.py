@@ -637,6 +637,11 @@ class ST7789:
         if self._show_y_min > self._show_y_max:
             # nothing to show
             return
+        
+        # mh_if TDECK:
+        # TDeck shares SPI with SDCard
+        self.spi.init()
+        # mh_end_if
 
         # clamp min and max
         if self._show_y_min < 0:
@@ -657,6 +662,10 @@ class ST7789:
             self._write_normal_buf()
         
         self._reset_show_min()
+        # mh_if TDECK:
+        # TDeck shares SPI with SDCard
+        self.spi.deinit()
+        # mh_end_if
         
         
     def blit_buffer(self, buffer, x, y, width, height, key=-1, palette=None):
