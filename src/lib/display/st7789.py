@@ -512,10 +512,17 @@ class ST7789:
             value (bool): if True enable sleep mode. if False disable sleep
             mode
         """
+        # mh_if TDECK:
+        # TDeck shares SPI with SDCard
+        self.spi.init()
+        # mh_end_if
         if value:
             self._write(_ST7789_SLPIN)
         else:
             self._write(_ST7789_SLPOUT)
+        # mh_if TDECK:
+        self.spi.deinit()
+        # mh_end_if
 
 
     def inversion_mode(self, value):
@@ -526,10 +533,17 @@ class ST7789:
             value (bool): if True enable inversion mode. if False disable
             inversion mode
         """
+        # mh_if TDECK:
+        # TDeck shares SPI with SDCard
+        self.spi.init()
+        # mh_end_if
         if value:
             self._write(_ST7789_INVON)
         else:
             self._write(_ST7789_INVOFF)
+        # mh_if TDECK:
+        self.spi.deinit()
+        # mh_end_if
 
 
     def rotation(self, rotation):
@@ -979,6 +993,19 @@ class ST7789:
             px_idx += 1
 
 
-    def polygon(self, *args):
-        # TODO: this should handle colors the same way the other methodsx do.
-        self.fbuf.poly(*args)
+    def polygon(self, coords, x, y, color, fill=False):
+        """
+        Draw a polygon from an array of coordinates
+
+        Args:
+            coords (array('h')): An array of x/y coordinates defining the shape
+            x (int): column to start drawing at
+            y (int): row to start drawing at
+            color (int): Color of polygon
+            fill (bool=False) : fill the polygon (or draw an outline)
+        """
+        # calculate approx height so min/max can be set
+        h = max(coords)
+        self._set_show_min(y, y + h)
+        color = self._format_color(color)
+        self.fbuf.poly(x, y, coords, color, fill)

@@ -315,7 +315,7 @@ class Config:
         # Generate a further expanded palette, based on UI colors, shifted towards primary display colors.
         self.palette[11] = color565_shiftred(lighter_color565(bg_color))
         self.palette[12] = color565_shiftgreen(mid_color)
-        self.palette[13] = color565_shiftblue(darker_color565(mid_color))
+        self.palette[13] = color565_shiftblue(darker_color565(ui_color))
 
         self.palette[14] = compliment_color565(bg_color)
         self.palette[15] = compliment_color565(ui_color)
