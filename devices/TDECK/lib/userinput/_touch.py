@@ -214,14 +214,13 @@ class TouchEvent:
 
 
 class Touch:
-    def __init__(self, i2c, interrupt=_BOARD_TOUCH_INT, reset=_BOARD_PERIPHERAL_POWER, rotation=1, swipe_move_thresh=20):
+    def __init__(self, i2c, interrupt=_BOARD_TOUCH_INT, rotation=1, swipe_move_thresh=20):
         self.width = 0
         self.height = 0
         self.address = None
         self.configuration = []
         self.i2c = i2c
         self.interrupt = machine.Pin(interrupt, machine.Pin.IN)
-        self.reset_pin = machine.Pin(reset, machine.Pin.OUT)
 
         self.rotation = rotation % 4
         

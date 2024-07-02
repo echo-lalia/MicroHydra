@@ -94,7 +94,7 @@ class Keys:
         KBD_PWR.value(1)
 
         # I2C for communicating with ESP32C3
-        self.i2c = I2C(0, scl=Pin(8), sda=Pin(18), freq=400000, timeout=50000)
+        self.i2c = I2C(0, scl=Pin(8), sda=Pin(18), freq=400000, timeout=500000)
 
         # Stores a single int for writing to display
         # (because I2C requires it be a buffer)
