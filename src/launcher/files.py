@@ -1,22 +1,41 @@
-from lib import st7789fbuf, mhconfig, mhoverlay, smartkeyboard, beeper
+from lib import mhoverlay, beeper, userinput
+from lib.display import Display
+from lib.hydra.config import Config
 from font import vga2_16x32 as font
 import os, machine, time, math
 
 
-_DISPLAY_HEIGHT = const(135)
-_DISPLAY_WIDTH = const(240)
+_MH_DISPLAY_HEIGHT = const(240)
+_MH_DISPLAY_WIDTH = const(320)
 
-_ITEMS_PER_SCREEN = const(_DISPLAY_HEIGHT // 32)
+
+_MH_SDCARD_SLOT = const(2)
+_MH_SDCARD_SCK = const(40)
+_MH_SDCARD_MISO = const(38)
+_MH_SDCARD_MOSI = const(41)
+_MH_SDCARD_CS = const(39)
+
+
+_DISPLAY_WIDTH_HALF = const(_MH_DISPLAY_WIDTH // 2)
+
+_ITEMS_PER_SCREEN = const(_MH_DISPLAY_HEIGHT // 32)
 _ITEMS_PER_SCREEN_MINUS = const(_ITEMS_PER_SCREEN - 1)
 
-_CHAR_PADDING = const(1)
+_LEFT_PADDING = const(_MH_DISPLAY_WIDTH // 20)
+
+# calculate padding around items based on amount of unused space
+_CHAR_PADDING = const((_MH_DISPLAY_HEIGHT - (_ITEMS_PER_SCREEN * 32)) // _ITEMS_PER_SCREEN)
 _LINE_HEIGHT = const(32 + _CHAR_PADDING)
 
-_CHARS_PER_SCREEN = const(_DISPLAY_WIDTH // 16)
+# calculate top padding based on remainder from padded item positions
+_TOP_PADDING = const((_MH_DISPLAY_HEIGHT - (_LINE_HEIGHT * _ITEMS_PER_SCREEN) + 1) // 2)
+
+_CHARS_PER_SCREEN = const(_MH_DISPLAY_WIDTH // 16)
 
 _SCROLLBAR_WIDTH = const(3)
-_SCROLLBAR_START_X = const(_DISPLAY_WIDTH - _SCROLLBAR_WIDTH)
+_SCROLLBAR_START_X = const(_MH_DISPLAY_WIDTH - _SCROLLBAR_WIDTH)
 
+# for horizontal text scroll animation:
 _SCROLL_TIME = const(5000) # ms per one text scroll
 
 _PATH_JOIN = const("|//|")
@@ -29,38 +48,42 @@ FILE_HANDLERS = {
 
 
 
-tft = st7789fbuf.ST7789(
-    machine.SPI(
-        1,baudrate=40000000,sck=machine.Pin(36),mosi=machine.Pin(35),miso=None),
-    _DISPLAY_HEIGHT,
-    _DISPLAY_WIDTH,
-    reset=machine.Pin(33, machine.Pin.OUT),
-    cs=machine.Pin(37, machine.Pin.OUT),
-    dc=machine.Pin(34, machine.Pin.OUT),
-    backlight=machine.Pin(38, machine.Pin.OUT),
-    rotation=1,
-    color_order=st7789fbuf.BGR
-    )
+tft = Display()
 
-config = mhconfig.Config()
-kb = smartkeyboard.KeyBoard(config=config)
+config = Config()
+kb = userinput.UserInput()
 overlay = mhoverlay.UI_Overlay(config, kb, display_fbuf=tft)
 beep = beeper.Beeper()
 
-sd = None
+try:
+    sd = machine.SDCard(
+        slot=_MH_SDCARD_SLOT,
+        sck=machine.Pin(_MH_SDCARD_SCK),
+        miso=machine.Pin(_MH_SDCARD_MISO), 
+        mosi=machine.Pin(_MH_SDCARD_MOSI),
+        cs=machine.Pin(_MH_SDCARD_CS)
+        )
+except OSError as e:
+    print(e)
+    print("SDCard couldn't be initialized. This might be because it was already initialized and not properly deinitialized.")
+    sd = None
+
 
 # copied_file = None
 clipboard = None
 
+
+
 def mount_sd():
-    global sd
+    main_directory = os.listdir("/")
     # sd needs to be mounted for any files in /sd
-    try:
-        if sd == None:
-            sd = machine.SDCard(slot=2, sck=machine.Pin(40), miso=machine.Pin(39), mosi=machine.Pin(14), cs=machine.Pin(12))
-        os.mount(sd, '/sd')
-    except OSError:
-        print("Could not mount SDCard!")
+    if "sd" not in main_directory:
+        try:
+            os.mount(sd, '/sd')
+        except OSError:
+            print("Could not mount SDCard!")
+
+
 
 class ListView:
     def __init__(self, tft, config, items, dir_dict):
@@ -70,10 +93,11 @@ class ListView:
         self.dir_dict = dir_dict
         self.view_index = 0
         self.cursor_index = 0
-    
+
+
     def draw(self):
         tft = self.tft
-        tft.fill(self.config["bg_color"])
+        tft.fill(self.config.palette[2])
         
         for idx in range(0, _ITEMS_PER_SCREEN):
             item_index = idx + self.view_index
@@ -81,20 +105,19 @@ class ListView:
             if item_index == self.cursor_index:
                 # draw selection box
                 tft.rect(
-                    0, idx*_LINE_HEIGHT, _SCROLLBAR_START_X, 32, self.config.palette[0], fill=True
+                    0, idx*_LINE_HEIGHT + _TOP_PADDING, _SCROLLBAR_START_X, 32, self.config.palette[1], fill=True
                     )
                 # special styling on "add" button
                 if self.items[item_index] == "/.../":
-                    draw_hamburger_menu(104, idx*_LINE_HEIGHT, self.config.palette[5])
-                    #tft.bitmap_text(font, "...", 96, idx*32, self.config.palette[5])
+                    draw_hamburger_menu(idx * _LINE_HEIGHT, self.config.palette[8])
                 else:
                     
                     if self.dir_dict[self.items[item_index]]:
-                        mytext = "/" + self.items[item_index]
-                        x = 0
+                        mytext = self.items[item_index] + "/"
+                        x = 2
                     else:
                         mytext = self.items[item_index]
-                        x = 2
+                        x = _LEFT_PADDING
                     
                     # scroll text if too long
                     if len(mytext) > _CHARS_PER_SCREEN:
@@ -104,55 +127,62 @@ class ListView:
                     
                     #style based on directory or not
                     if self.dir_dict[self.items[item_index]]:
-                        tft.bitmap_text(font, mytext, x, idx*_LINE_HEIGHT, self.config.palette[5])
+                        tft.text(mytext, x, idx * _LINE_HEIGHT + _TOP_PADDING, self.config.palette[7], font=font)
                     else:
-                        tft.bitmap_text(font, mytext, x, idx*_LINE_HEIGHT, self.config.palette[5])
+                        tft.text(mytext, x, idx * _LINE_HEIGHT + _TOP_PADDING, self.config.palette[8], font=font)
                 
             elif item_index < len(self.items):
                 # special styling on "add" button
                 if self.items[item_index] == "/.../":
-                    draw_hamburger_menu(104, idx*_LINE_HEIGHT, self.config.palette[2])
-                    #tft.bitmap_text(font, "...", 96, idx*32, self.config.palette[4])
+                    draw_hamburger_menu(idx*_LINE_HEIGHT, self.config.palette[5])
                 else:
                     #style based on directory or not
                     if self.dir_dict[self.items[item_index]]:
-                        tft.bitmap_text(font, "/" + self.items[item_index], 0, idx*_LINE_HEIGHT, self.config.palette[3])
+                        tft.text(self.items[item_index] + "/", 2, idx*_LINE_HEIGHT + _TOP_PADDING, self.config.palette[4], font=font)
                     else:
-                        tft.bitmap_text(font, self.items[item_index], 2, idx*_LINE_HEIGHT, self.config.palette[4])
+                        tft.text(self.items[item_index], _LEFT_PADDING, idx*_LINE_HEIGHT + _TOP_PADDING, self.config.palette[6], font=font)
         
         # draw scrollbar
-        scrollbar_height = _DISPLAY_HEIGHT // max(1, (len(self.items) - _ITEMS_PER_SCREEN_MINUS))
-        scrollbar_y = int((_DISPLAY_HEIGHT-scrollbar_height) * (self.view_index / max(len(self.items) - _ITEMS_PER_SCREEN, 1)))
-        tft.rect(_SCROLLBAR_START_X, scrollbar_y, _SCROLLBAR_WIDTH, scrollbar_height, self.config.palette[2], fill=True)
-    
+        scrollbar_height = _MH_DISPLAY_HEIGHT // max(1, (len(self.items) - _ITEMS_PER_SCREEN_MINUS))
+        scrollbar_y = int((_MH_DISPLAY_HEIGHT-scrollbar_height) * (self.view_index / max(len(self.items) - _ITEMS_PER_SCREEN, 1)))
+        tft.rect(_SCROLLBAR_START_X, scrollbar_y, _SCROLLBAR_WIDTH, scrollbar_height, self.config.palette[4], fill=True)
+
+
     def clamp_cursor(self):
         self.cursor_index %= len(self.items)
         self.view_to_cursor()
-    
+
+
     def view_to_cursor(self):
         if self.cursor_index < self.view_index:
             self.view_index = self.cursor_index
         if self.cursor_index >= self.view_index + _ITEMS_PER_SCREEN:
             self.view_index = self.cursor_index - _ITEMS_PER_SCREEN + 1
 
+
     def up(self):
         self.cursor_index = (self.cursor_index - 1) % len(self.items)
         self.view_to_cursor()
-            
+
+
     def down(self):
         self.cursor_index = (self.cursor_index + 1) % len(self.items)
         self.view_to_cursor()
-     
-def draw_hamburger_menu(x,y,color):
+
+
+
+
+def draw_hamburger_menu(y,color):
     # draw 32x32 hamburger menu icon
     _WIDTH=const(32)
+    _HAMBURGER_X = const(_DISPLAY_WIDTH_HALF - (_WIDTH // 2))
     _HEIGHT=const(2)
     _PADDING=const(10)
     _OFFSET=const(6)
     
-    tft.rect(x,y+_PADDING,_WIDTH,_HEIGHT,color)
-    tft.rect(x,y+_PADDING+_OFFSET,_WIDTH,_HEIGHT,color)
-    tft.rect(x,y+_PADDING+_OFFSET+_OFFSET,_WIDTH,_HEIGHT,color)
+    tft.rect(_HAMBURGER_X,y+_PADDING,_WIDTH,_HEIGHT,color)
+    tft.rect(_HAMBURGER_X,y+_PADDING+_OFFSET,_WIDTH,_HEIGHT,color)
+    tft.rect(_HAMBURGER_X,y+_PADDING+_OFFSET+_OFFSET,_WIDTH,_HEIGHT,color)
          
 def ease_in_out_sine(x):
     return -(math.cos(math.pi * x) - 1) / 2
@@ -242,7 +272,7 @@ def ext_options(overlay):
                     new_file.write(l)
     
     elif option == "Exit to launcher":
-        overlay.draw_textbox("Exiting...", _DISPLAY_WIDTH//2, _DISPLAY_HEIGHT//2)
+        overlay.draw_textbox("Exiting...", _MH_DISPLAY_WIDTH//2, _MH_DISPLAY_HEIGHT//2)
         tft.show()
         rtc = machine.RTC()
         rtc.memory('')
@@ -289,8 +319,8 @@ def open_file(file):
     filepath = cwd + file
     
     # visual feedback
-    overlay.draw_textbox("Opening...", _DISPLAY_WIDTH//2, _DISPLAY_HEIGHT//4)
-    overlay.draw_textbox(filepath, _DISPLAY_WIDTH//2, _DISPLAY_HEIGHT//2)
+    overlay.draw_textbox("Opening...", _MH_DISPLAY_WIDTH//2, _MH_DISPLAY_HEIGHT//4)
+    overlay.draw_textbox(filepath, _MH_DISPLAY_WIDTH//2, _MH_DISPLAY_HEIGHT//2)
     tft.show()
     
     filetype = file.split(".")[-1]
@@ -321,10 +351,10 @@ def main_loop(tft, kb, config, overlay):
     while True:
         new_keys = kb.get_new_keys()
         for key in new_keys:
-            if key == ";":
+            if key == "UP":
                 view.up()
                 play_sound(("G3","B3"), 30)
-            elif key == ".":
+            elif key == "DOWN":
                 view.down()
                 play_sound(("D3","B3"), 30)
             elif key == "ENT" or key == "SPC":
@@ -353,7 +383,7 @@ def main_loop(tft, kb, config, overlay):
                         view.dir_dict = dir_dict
                         view.clamp_cursor()
                         
-            elif key ==  "BSPC" or key == "`":
+            elif key ==  "BSPC":
                 play_sound(("D3","B3","G3"), 30)
                 # previous directory
                 if os.getcwd() == "/sd":
@@ -366,7 +396,7 @@ def main_loop(tft, kb, config, overlay):
                 view.cursor_index = 0
                 view.view_index = 0
                 
-            elif key == "GO":
+            elif key == "G0":
                     ext_options(overlay)
                     file_list, dir_dict = parse_files()
                     view.items = file_list
@@ -380,3 +410,5 @@ def main_loop(tft, kb, config, overlay):
     
     
 main_loop(tft, kb, config, overlay)
+
+

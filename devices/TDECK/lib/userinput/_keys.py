@@ -89,7 +89,7 @@ class Keys:
     tb_move_thresh : int = 2
         how much the trackball must move before sending a directional keystroke.
     """
-    def __init__(self, tb_move_thresh = 2, **kwargs):
+    def __init__(self, tb_move_thresh = 1, **kwargs):
         # turn on keyboard
         KBD_PWR.value(1)
 
