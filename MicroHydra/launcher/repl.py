@@ -113,7 +113,7 @@ def main_loop():
     current_text = []
     scr_feed("MicroHydra REPL Ver 1.0.")
     scr_feed("Press GO Button to Exit.")
-    scr_feed(">>>")
+    scr_feed(">>>_")
     scr_show()
     
     
@@ -138,7 +138,7 @@ def main_loop():
             else:
                 current_text += [i for i in keys if i != 'ENT']
             
-            scr_buf[11] = ">>>" + ''.join(current_text)
+            scr_buf[11] = ">>>" + ''.join(current_text) + "_"
             scr_show()
             
             if 'ENT' in keys:
@@ -146,10 +146,12 @@ def main_loop():
                 try:
                     result = str(eval(''.join(current_text)))
                     if result != "None":
+                        scr_buf[11] = scr_buf[11][:-1]
                         scr_feed(result.replace("\n","\\n"))
                     elif output_buffer.getvalue() != "":
                         result = output_buffer.getvalue()
                         output_buffer.clear()
+                        scr_buf[11] = scr_buf[11][:-1]
                         scr_feed(result.replace("\n","\\n"))
                         
                 except Exception as e:
@@ -158,11 +160,12 @@ def main_loop():
                         result = output_buffer.getvalue()
                         output_buffer.clear()
                         if result != "":
+                            scr_buf[11] = scr_buf[11][:-1]
                             scr_feed(result.replace("\n","\\n"))
                     except Exception as ee:
                         scr_feed(f"{ee}")
                        
-                scr_feed(">>>")
+                scr_feed(">>>_")
                 scr_show()
                 current_text = []
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
