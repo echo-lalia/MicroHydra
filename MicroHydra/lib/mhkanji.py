@@ -21,9 +21,7 @@ class mhKanji:
         for i in range(height):
             for j in range(width):
                 if (cur & 1):
-                    for _i in range(scale):
-                        for _j in range(scale):
-                            self.tft.pixel((x+j)*scale+_j,(y+i)*scale+_i,color)
+                    self.tft.rect((x+j)*scale,(y+i)*scale,scale,scale,color,True)
                 cur >>= 1
     
     def putc(self, char, x, y, color, scale = 2):
@@ -41,25 +39,25 @@ class mhKanji:
                     break
                 else:
                     del KANJI_FONT
-                    gc.collect()
             
-            if len(self.cache) >= 20:
+            if len(self.cache) >= 200:
                 del self.cache[list(self.cache.keys())[0]]
             
             if found:
-                self.cache[char] = KANJI_FONT[char]
-                self.show_decode(int(KANJI_FONT[char]), x, y, color, scale)
+                cur = KANJI_FONT[char]
+                self.cache[char] = cur
+                self.show_decode(int(cur), x, y, color, scale)
                 del KANJI_FONT
-                gc.collect()
             else:
                 self.show_decode(0x7e424242427e0000, x, y, color, scale)
         
-        gc.collect()
-    def text(self, string, x, y, color,scale = 2):
+    def text(self, string, x, y, color, scale = 2, instant_show = True):
         cur_x = x
         for char in string:
             self.putc(char, cur_x, y, color, scale)
-            gc.collect()
+            if instant_show:
+                self.tft.show()
+            
             if char in self.ascii_font:
                 cur_x += 4
             else:
