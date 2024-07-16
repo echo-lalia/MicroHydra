@@ -15,6 +15,7 @@ class mhKanji:
                            ')': '0x12222210', '_': '0x70000000', '+': '0x2272200', '-': '0x70000', '=': '0x707000', '[': '0x62222260', ']': '0x32222230', '{': '0x42212240',
                            '}': '0x12242210', '|': '0x22222220', ';': '0x1202000',"'": '0x120', ':': '0x202000', '"': '0x550', ',': '0x24000000', '.': '0x2000000',
                            '/': '0x124000', '<': '0x4212400', '>': '0x1242100', '?': '0x2024520'}
+        self.font = open("/font/kanji_8x8.txt","r",encoding = 'utf-8', buffering = 0)
         self.cache = {}
            
     def show_decode(self, cur, x, y, color, scale = 2, height = 8, width = 8):
@@ -31,23 +32,30 @@ class mhKanji:
             self.show_decode(int(self.cache[char]), x, y, color, scale)
         else:
             found = False
-            for i in range(1,9):
-                exec(open(f"/font/kanji/kanji_8x8_{i}.py").read(),globals())
-                global KANJI_FONT
-                if char in KANJI_FONT:
+            t_id = t_cur = ""
+            self.font.seek(0)
+            while True:
+                line = self.font.readline()
+                if not line:
+                    break
+                
+                try:
+                    t_id,t_cur = line.split()
+                except:
+                    continue
+                
+                if t_id == char:
                     found = True
                     break
-                else:
-                    del KANJI_FONT
+                
             
             if len(self.cache) >= 200:
                 del self.cache[list(self.cache.keys())[0]]
             
             if found:
-                cur = KANJI_FONT[char]
+                cur = t_cur
                 self.cache[char] = cur
                 self.show_decode(int(cur), x, y, color, scale)
-                del KANJI_FONT
             else:
                 self.show_decode(0x7e424242427e0000, x, y, color, scale)
         
