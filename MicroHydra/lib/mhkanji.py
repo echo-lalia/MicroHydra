@@ -1,5 +1,3 @@
-import gc
-
 class mhKanji:
     def __init__(self,tft):
         self.tft = tft
@@ -22,7 +20,7 @@ class mhKanji:
         for i in range(height):
             for j in range(width):
                 if (cur & 1):
-                    self.tft.rect((x+j)*scale,(y+i)*scale,scale,scale,color,True)
+                    self.tft.rect(x+j*scale,y+i*scale,scale,scale,color,True)
                 cur >>= 1
     
     def putc(self, char, x, y, color, scale = 2):
@@ -67,7 +65,7 @@ class mhKanji:
                 self.tft.show()
             
             if char in self.ascii_font:
-                cur_x += 4
+                cur_x += 4*scale
             else:
-                cur_x += 8
+                cur_x += 8*scale
 
