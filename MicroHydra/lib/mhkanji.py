@@ -52,7 +52,9 @@ class mhKanji:
                 del KANJI_FONT
                 gc.collect()
             else:
-                self.show_decode_2x(0x7e424242427e0000, x, y, color, scale)
+                self.show_decode(0x7e424242427e0000, x, y, color, scale)
+        
+        gc.collect()
     def text(self, string, x, y, color,scale = 2):
         cur_x = x
         for char in string:
