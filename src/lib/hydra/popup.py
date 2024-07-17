@@ -4,11 +4,26 @@ from lib.hydra.config import Config
 from lib.userinput import UserInput
 
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ UI_Overlay Class ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-class UI_Overlay:
+_MH_DISPLAY_WIDTH = const(320)
+_MH_DISPLAY_HEIGHT = const(240)
+
+_DISPLAY_WIDTH_CENTER = const(_MH_DISPLAY_WIDTH//2)
+_DISPLAY_HEIGHT_CENTER = const(_MH_DISPLAY_HEIGHT//2)
+
+_FONT_WIDTH = const(8)
+
+_WINDOW_PADDING = const(10)
+_WINDOW_WIDTH = const(_MH_DISPLAY_WIDTH - (_WINDOW_PADDING * 2))
+_WINDOW_HEIGHT = const(_MH_DISPLAY_HEIGHT - (_WINDOW_PADDING * 2))
+
+_MAX_TEXT_WIDTH = const(_WINDOW_WIDTH // _FONT_WIDTH)
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ UIOverlay Class ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+class UIOverlay:
     def __init__(self):
         """
-        UI_Overlay aims to provide easy to use methods for displaying themed UI popups, and other Overlays.
+        UIOverlay aims to provide easy to use methods for displaying themed UI popups, and other Overlays.
         params:
             config:Config
                 - A 'lib.mhconfig.Config' object.
@@ -26,93 +41,13 @@ class UI_Overlay:
 
         self.display = Display()
 
-    
-    @staticmethod
-    def split_lines(text, max_length=27):
-        """Split a string into multiple lines, based on max line-length."""
-        lines = []
-        current_line = ''
-        words = text.split()
 
-        for word in words:
-            if len(word) + len(current_line) >= max_length:
-                lines.append(current_line)
-                current_line = word
-            elif len(current_line) == 0:
-                current_line += word
-            else:
-                current_line += ' ' + word
-            
-        lines.append(current_line) # add final line
-            
-        return lines
-
-
-    def text_entry(self, start_value='', title="Enter text:", blackout_bg=False):
+    def text_entry(self, start_value='', title="Enter text:"):
         """
         Display a popup text entry box.
         Blocks until "enter" key pressed, returning written text.
         """
-        tft = self.display
-        # draw background
-        if blackout_bg:
-            tft.fill_rect(10,10,220,115,self.config.palette[1])
-        self.draw_textbox(title, x=120, y=10)
-            
-        prev_text = None
-        current_text = start_value
-        max_lines = 0 # this is used to remember the largest size of text box, to clear the whole thing
-        
-        while True:
-            if prev_text != current_text:
-                prev_text = current_text
-                # draw text
-                # split string into list of lines to display
-                lines = self.split_lines(current_text, max_length=26)
-                if len(lines) > max_lines:
-                    max_lines = len(lines)
-                #tft.fill_rect(4,26,232,104,self.config.palette[2])
-                if self.compatibility_mode:
-                    # draw box
-                    box_height = (max_lines*16)
-                    box_y = 78 - (box_height//2)
-                    
-                    tft.fill_rect(4,box_y,232,box_height, self.config.palette[2])
-                    
-                    start_y = 78 - (len(lines)*8)
-                    for idx, line in enumerate(lines):
-                        tft.text(self.font, line, 8, start_y + (16*idx), self.config.palette[5], self.config.palette[2])
-                    tft.rect(4, box_y, 232, box_height, self.config.palette[3])
-                else:
-                    # draw box
-                    box_height = (max_lines*10) + 8
-                    box_y = 78 - (box_height//2)
-
-                    tft.fill_rect(4,box_y,232,box_height, self.config.palette[2])
-                    
-                    start_y = 78 - (len(lines)*5)
-                    for idx, line in enumerate(lines):
-                        tft.text(line, 8, start_y + (10*idx), self.config.palette[5])
-                    tft.rect(4, box_y, 232, box_height, self.config.palette[3])
-                    tft.show()
-                    
-            keys = self.kb.get_new_keys()
-            for key in keys:
-                if key == "SPC":
-                    current_text += " "
-                elif key == "BSPC":
-                    current_text = current_text[:len(current_text)-1]
-                elif key == "ENT":
-                    return current_text
-                elif key == "ESC":
-                    return start_value
-                elif key == "DEL":
-                    current_text = ''
-                elif len(key) == 1:
-                    current_text += key
-            
-            
-            time.sleep_ms(10)
+        return TextEntry(start_text=start_value, title=title, ui_overlay=self).main()
         
 
     def popup_options(self, options, title=None, shadow=True, extended_border=False):
@@ -186,28 +121,7 @@ class UI_Overlay:
         Display a popup message with given text.
         Blocks until any button is pressed.
         """
-        # split text into lines
-        lines = self.split_lines(text, max_length = 27)
-        box_height = (len(lines) * 10) + 8
-        box_width = (len(max(lines, key=len)) * 8) + 8
-        box_x = 120 - (box_width // 2)
-        box_y = 67 - (box_height // 2)
-        
-        self.display.rect(box_x, box_y, box_width, box_height, self.config.palette[0], fill=True)
-        self.display.rect(box_x-1, box_y-1, box_width+2, box_height+2, self.config.palette[2], fill=False)
-        self.display.rect(box_x-2, box_y-2, box_width+4, box_height+4, self.config.palette[3], fill=False)
-        self.display.rect(box_x-3, box_y-3, box_width+6, box_height+6, self.config.palette[4], fill=False)
-        
-        for idx, line in enumerate(lines):
-            centered_x = 120 - (len(line) * 4)
-            self.display.text(line, centered_x, box_y + 4 + (idx*10), self.config.palette[-1])
-        self.display.show()
-            
-        time.sleep_ms(200)
-        self.kb.get_new_keys() # run once to update keys
-        while True:
-            if self.kb.get_new_keys():
-                return
+        PopupText(text, self).main()
 
         
     def error(self,text):
@@ -215,76 +129,213 @@ class UI_Overlay:
         Display a popup error message with given text.
         Blocks until any button is pressed.
         """
-        if type(text) != str:
-            text = str(text)
-        # split text into lines
-        lines = self.split_lines(text, max_length = 27)
+        PopupError(text, self).main()
+            
+            
+            
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Popup Objects ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+class PopupObject:
+    """Root popup class"""
+    def __init__(self, ui_overlay:UIOverlay):
+        self.config = ui_overlay.config
+        self.kb = ui_overlay.kb
+        self.display = ui_overlay.display
 
-        box_height = (len(lines) * 10) + 20
-        box_width = (len(max(lines, key=len)) * 8) + 8
-        box_x = 120 - (box_width // 2)
-        box_y = 67 - (box_height // 2)
+
+    @staticmethod
+    def split_lines(text:str, max_length:int=_MAX_TEXT_WIDTH) -> list[str]:
+        """Split a string into multiple lines, based on max line-length."""
+        lines = []
+        current_line = ''
+        words = text.split()
+
+        for word in words:
+            if len(word) + len(current_line) >= max_length:
+                lines.append(current_line)
+                current_line = word
+            elif len(current_line) == 0:
+                current_line += word
+            else:
+                current_line += ' ' + word
+            
+        lines.append(current_line) # add final line
+            
+        return lines
+    
+    
+    def draw_text_box(self, text, clr_idx=8, bg_clr=1, title=None, min_width=0, min_height=0):
+        """
+        Draw a text box, with optional title and minimum sizes.
+        Returns a tuple of box width/height (for tracking minimum width/height)
+        """
+        lines = self.split_lines(text)
         
-        self.display.rect(box_x, box_y, box_width, box_height, 0, fill=True)
-        self.display.rect(box_x-1, box_y-1, box_width+2, box_height+2, self.config.rgb_colors[0], fill=False)
-        self.display.rect(box_x-2, box_y-2, box_width+4, box_height+4, self.config.palette[0], fill=False)
-        self.display.rect(box_x-3, box_y-3, box_width+6, box_height+6, self.config.rgb_colors[0], fill=False)
+        if title: # add title before text
+            lines = [title, ''] + lines
         
-        self.display.text("ERROR", 100, box_y + 4, self.config.rgb_colors[0])
+        box_height = max((len(lines) * 10) + 8, min_height)
+        box_width = max((len(max(lines, key=len)) * 8) + 8, min_width)
+        box_x = _DISPLAY_WIDTH_CENTER - (box_width // 2)
+        box_y = _DISPLAY_HEIGHT_CENTER - (box_height // 2)
+        
+        # draw box
+        for i in range(4):
+            self.display.rect(
+                box_x - i, box_y - i,
+                box_width + i*2, box_height + i*2,
+                self.config.palette[i + (bg_clr if i == 0 else 1)],
+                fill = (i == 0),
+                )
+        
         for idx, line in enumerate(lines):
-            centered_x = 120 - (len(line) * 4)
-            self.display.text(line, centered_x, box_y + 16 + (idx*10), 65535)
+            centered_x = _DISPLAY_WIDTH_CENTER - (len(line) * 4)
+            self.display.text(line, centered_x, box_y + 4 + (idx*10), self.config.palette[clr_idx])
+        
+        return box_width, box_height
+
+
+class PopupText(PopupObject):
+    """Pop up message box."""
+    def __init__(self, text, ui_overlay:UIOverlay):
+        self.text = text
+        super().__init__(ui_overlay)
+
+
+    def main(self):
+        """Main program in PopupObject"""
+        self.draw_text_box(self.text, clr_idx=8)
         self.display.show()
             
-        time.sleep_ms(200)
+        time.sleep_ms(200) # stops it from being accidentally closed
         self.kb.get_new_keys() # run once to update keys
-
         while True:
-            if self.kb.get_new_keys():
+            if self.kb.get_new_keys(): # any key closes text box
                 return
-            time.sleep_ms(1)
+
+
+class PopupError(PopupObject):
+    """Pop up message box."""
+    def __init__(self, text, ui_overlay:UIOverlay):
+        self.text = str(text)
+        super().__init__(ui_overlay)
+
+
+    def main(self):
+        """Main program in PopupObject"""
+        self.draw_text_box(self.text, clr_idx=11, bg_clr=0, title="ERROR:")
+        self.display.show()
+            
+        time.sleep_ms(200) # stops it from being accidentally closed
+        self.kb.get_new_keys() # run once to update keys
+        while True:
+            if self.kb.get_new_keys(): # any key closes text box
+                return
+
+
+class TextEntry(PopupObject):
+    """Pop up message box."""
+    def __init__(self, start_text, title, ui_overlay:UIOverlay):
+        self.start_text = start_text
+        self.text = start_text
+        self.title = title
+        self.max_width = 0
+        self.max_height = 0
+        super().__init__(ui_overlay)
+
+
+    def draw(self):
+        w, h = self.draw_text_box(
+            # simple blinking cursor:
+            text=self.text + ("|"if time.ticks_ms() % 1000 < 500 else ":"),
+            title=self.title,
+            min_width=self.max_width,
+            min_height=self.max_height,
+            )
+        if w > self.max_width:
+            self.max_width = w
+        if h > self.max_height:
+            self.max_height = h
+        self.display.show()
+
+
+    def main(self):
+        """
+        Display a popup text entry box.
+        Blocks until "enter" key pressed, returning written text.
+        """
+        self.draw()
+        
+        draw_time = time.ticks_ms()
+        
+        while True:
+            keys = self.kb.get_new_keys()
+            
+            for key in keys:
+                if key == "SPC":
+                    self.text += " "
+                elif key == "BSPC":
+                    self.text = self.text[:-1]
+                elif key == "ENT":
+                    return self.text
+                elif key == "ESC":
+                    return self.start_text
+                elif key == "DEL":
+                    self.text = ''
+                elif len(key) == 1:
+                    self.text += key
+    
+            time_now = time.ticks_ms()
+            if keys or time.ticks_diff(time_now, draw_time) > 500:
+                self.draw()
+                draw_time = time_now
+            else:
+                time.sleep_ms(10)
+
 
 
 if __name__ == "__main__":
     # just for testing
-    reserved_bytearray = bytearray(240*135*2)
-    from lib import st7789py, keyboard
-    from lib.mhconfig import Config
-    from machine import Pin, SPI
+    from lib import display, keyboard
+    from lib.hydra.config import Config
 
     tft = Display()
 
-    overlay = UI_Overlay()
-
-    # popup demo:
-    tft.fill(0)
-    #tft.show()
-    time.sleep(0.5)
-
-    choices = ("popup", "error", "palette", "enter_text")
-    choice = overlay.popup_options(choices, title="Choose demo:")
-    if choice == "popup":
-        tft.fill(0)
-        #tft.show()
-        overlay.popup("Lorem ipsum is placeholder text commonly used in the graphic, print, and publishing industries for previewing layouts and visual mockups.")
-    elif choice == "error":
-        tft.fill(0)
-        #tft.show()
-        overlay.error("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt")
-    elif choice == "palette":
-        tft.fill(0)
-        #tft.show()
-        # color palette
-        bar_width = 240 // len(config.palette)
-        for i in range(0,len(config.palette)):
-            tft.fill_rect(bar_width*i, 0, bar_width, 135, config.palette[i])
-    elif choice == "enter_text":
-        tft.fill(0)
-        print(overlay.text_entry(start_value="Demo!"))
-        
-    config.save() # this should do nothing
+    overlay = UIOverlay()
     
+    overlay.popup("WHAT? (this is a test!)")
     
-    tft.fill(0)
+    print(overlay.text_entry("Hello, world!", title="test:"))
+    print("DONE")
+
+#     # popup demo:
+#     tft.fill(0)
+#     #tft.show()
+#     time.sleep(0.5)
+# 
+#     choices = ("popup", "error", "palette", "enter_text")
+#     choice = overlay.popup_options(choices, title="Choose demo:")
+#     if choice == "popup":
+#         tft.fill(0)
+#         #tft.show()
+#         overlay.popup("Lorem ipsum is placeholder text commonly used in the graphic, print, and publishing industries for previewing layouts and visual mockups.")
+#     elif choice == "error":
+#         tft.fill(0)
+#         #tft.show()
+#         overlay.error("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt")
+#     elif choice == "palette":
+#         tft.fill(0)
+#         #tft.show()
+#         # color palette
+#         bar_width = 240 // len(config.palette)
+#         for i in range(0,len(config.palette)):
+#             tft.fill_rect(bar_width*i, 0, bar_width, 135, config.palette[i])
+#     elif choice == "enter_text":
+#         tft.fill(0)
+#         print(overlay.text_entry(start_value="Demo!"))
+#         
+#     config.save() # this should do nothing
+#     
+#     
+#     tft.fill(0)
     #tft.show()
 
