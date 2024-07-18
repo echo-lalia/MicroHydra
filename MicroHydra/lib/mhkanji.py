@@ -55,6 +55,7 @@ class mhKanji:
                 self.cache[char] = cur
                 self.show_decode(int(cur), x, y, color, scale)
             else:
+                self.cache[char] = 0x7e424242427e0000
                 self.show_decode(0x7e424242427e0000, x, y, color, scale)
         
     def text(self, string, x, y, color, scale = 2, instant_show = True):
