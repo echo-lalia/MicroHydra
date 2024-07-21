@@ -31,8 +31,17 @@ if app_path.startswith("/sd"):
             log.write(f"Couldn't mount SDCard!\n")
 
 # import the requested app!
+MAIN_RUN_PRGM = ""
+
 try:
-    __import__(app_path)
+    with open(app_path,'r') as f:
+        tt = f.read()
+    
+    if 'st7789' in tt: #Adapted for CardPuter
+        __import__(app_path)
+    else:
+        rtc.memory('$' + app_path)
+        __import__("/launcher/terminal.py")
 except Exception as e:
     with open('log.txt', 'a') as log:
         log.write(f"Tried to launch '{app_path}', but failed: '{e}'\n")
