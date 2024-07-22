@@ -121,7 +121,7 @@ def main_loop():
     """
     
     app_path = RTC.memory().decode()
-    if app_path[0] == '$':
+    if len(app_path) > 0 and app_path[0] == '$':
         #print(app_path[1:])
         exec(open(app_path[1:]).read(), {'__name__': '__main__'},globals())
     else:
@@ -203,7 +203,11 @@ def main_loop():
                         except Exception as e:
                             print(e)
                             print("Trying Hard Launch...")
-                            RTC.memory(args[0])
+                            cwd = os.getcwd()
+                            if cwd != '/':
+                                cwd += '/'
+                            
+                            RTC.memory(cwd + args[0])
                             # reset clock speed to default.
                             machine.freq(160_000_000)
                             time.sleep_ms(10)
