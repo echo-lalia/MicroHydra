@@ -197,9 +197,16 @@ def main_loop():
                         scr_clear()
                     elif args[0] == 'reboot' or args[0] == 'exit':
                         machine.reset()
-                    elif args[0] in os.listdir():
+                    else:
                         try:
-                            exec(open(args[0]).read(), {'__name__': '__main__', 'argv':args},globals())
+                            if not '.py' in args[0]:
+                                args[0] = args[0] + '.py'
+                            if args[0] in os.listdir():
+                                exec(open(args[0]).read(), {'__name__': '__main__', 'argv':args},globals())
+                            elif args[0] in os.listdir('/apps'):
+                                exec(open('/apps/' + args[0]).read(), {'__name__': '__main__', 'argv':args},globals())
+                            else:
+                                print("Bad Command.")
                         except Exception as e:
                             print(e)
                             print("Trying Hard Launch...")
@@ -212,8 +219,7 @@ def main_loop():
                             machine.freq(160_000_000)
                             time.sleep_ms(10)
                             machine.reset()
-                    else:
-                        print("Bad Command.")
+                        
                 except Exception as e:
                     print(f"{e}")
                        
