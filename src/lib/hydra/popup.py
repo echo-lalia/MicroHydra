@@ -11,6 +11,7 @@ _DISPLAY_WIDTH_CENTER = const(_MH_DISPLAY_WIDTH//2)
 _DISPLAY_HEIGHT_CENTER = const(_MH_DISPLAY_HEIGHT//2)
 
 _FONT_WIDTH = const(8)
+_FONT_HEIGHT = const(8)
 
 _WINDOW_PADDING = const(10)
 _WINDOW_WIDTH = const(_MH_DISPLAY_WIDTH - (_WINDOW_PADDING * 2))
@@ -48,57 +49,10 @@ class UIOverlay:
         Blocks until "enter" key pressed, returning written text.
         """
         return TextEntry(start_text=start_value, title=title, ui_overlay=self).main()
-        
 
-    def popup_options(self, options, title=None, shadow=True, extended_border=False):
-        """
-        Display a popup message with given options.
-        Blocks until option selected, returns selection.
-        """
-        tft = self.display
-        # draw box
-        box_height = (len(options) * 10) + 8
-        box_width = (len(max(options, key=len)) * 8) + 8
-        box_x = 120 - (box_width // 2)
-        box_y = 67 - (box_height // 2)
-        if extended_border:
-            tft.fill_rect(max(box_x - 20,0), max(box_y - 10,0), min(box_width + 40,240), min(box_height + 20,135), self.config.palette[1])
-        if title:
-            self.draw_textbox(title, 120, box_y - 14, shadow=shadow, extended_border=extended_border)
-            
-        prev_cursor_index = -1
-        cursor_index = 0
-        keys = self.kb.get_new_keys()
-        while True:
-            if prev_cursor_index != cursor_index:
-                prev_cursor_index = cursor_index # this logic is only really needed for compatibility mode
-                # draw box
-                if shadow:
-                    tft.rect(box_x + 6, box_y + 6, box_width, box_height, self.config.palette[0], fill=True)
-                tft.rect(box_x - 2, box_y - 2, box_width + 4, box_height + 4, self.config.palette[0], fill=False)
-                tft.rect(box_x - 1, box_y - 1, box_width + 2, box_height + 2, self.config.palette[1], fill=False)
-                tft.rect(box_x, box_y, box_width, box_height, self.config.palette[2], fill=True)
-                # draw options
-                for idx, option in enumerate(options):
-                    if idx == cursor_index:
-                        tft.rect(box_x, box_y + 3 + (idx*10), box_width, 10, self.config.palette[0], fill=True)
-                        tft.text(option, 120 - (len(option) * 4), box_y + 4 + idx* 10, self.config.palette[5])
-                    else:
-                        tft.text(option, 120 - (len(option) * 4), box_y + 4 + idx* 10, self.config.palette[4])
-                tft.show()
-                        
-            keys = self.kb.get_new_keys()
-            for key in keys:
-                if key == "UP":
-                    cursor_index = (cursor_index - 1) % len(options)
-                elif key == "DOWN":
-                    cursor_index = (cursor_index + 1) % len(options)
-                elif key == "ESC" or key == "BSPC":
-                    return None
-                elif key == "ENT" or key == "G0":
-                    return options[cursor_index]
-                
-            time.sleep_ms(10)
+
+    def popup_options(self, options:list[list], title=None):
+        return PopupOptions(options, title=title, ui_overlay=self).main()
 
 
     def draw_textbox(self, text, x, y, padding=8, shadow=True, extended_border=False):
@@ -163,7 +117,15 @@ class PopupObject:
         return lines
     
     
-    def draw_text_box(self, text, clr_idx=8, bg_clr=1, title=None, min_width=0, min_height=0):
+    def draw_text_box(
+        self,
+        text,
+        clr_idx=8,
+        bg_clr=1,
+        title=None,
+        min_width=0,
+        min_height=0
+        ):
         """
         Draw a text box, with optional title and minimum sizes.
         Returns a tuple of box width/height (for tracking minimum width/height)
@@ -292,6 +254,185 @@ class TextEntry(PopupObject):
                 time.sleep_ms(10)
 
 
+_OPTION_BOX_HEIGHT = const(12)
+_OPTION_Y_PADDING = const((_OPTION_BOX_HEIGHT - _FONT_HEIGHT) // 2)
+_OPTION_X_PADDING = const(2)
+_OPTION_X_PADDING_TOTAL = const(_OPTION_X_PADDING * 2)
+_OPTION_Y_PADDING_TOTAL = const(_OPTION_BOX_HEIGHT - _FONT_HEIGHT)
+class PopupOptions(PopupObject):
+    """
+    Pop up options menu, can be 1D or 2D
+    options parameter should be a list of lists, where each list is a separate column
+    """
+    def __init__(self, options:list[list], title:str|None, ui_overlay:UIOverlay):
+
+        # parse 1-dimensional options into 2d for consistency
+        if options and not isinstance(options[0], (list, tuple)):
+            self.options = [options]
+        else:
+            self.options = options
+        
+        # calculate bg width and height
+        self.total_width, self.total_height, self.col_xs = self._find_width_height(options)
+        
+        self.title = title
+        self.cursor_x = 0
+        self.cursor_y = 0
+        
+        super().__init__(ui_overlay)
+
+
+    @staticmethod
+    def _find_width_height(options):
+        """Scan given options to find total bg width and height"""
+
+        max_num_options = len(max(options, key=len))
+        col_xs = []
+        total_width = 0
+        for column in options:
+            col_text_width = len(max(column, key=len)) * _FONT_WIDTH + (_OPTION_X_PADDING_TOTAL * 2)
+            col_xs.append(total_width + (col_text_width // 2))
+            total_width += col_text_width
+            
+        total_height = max_num_options * (_OPTION_BOX_HEIGHT + _OPTION_Y_PADDING_TOTAL)
+
+        return total_width + _OPTION_Y_PADDING_TOTAL, total_height + _OPTION_X_PADDING_TOTAL, col_xs
+        
+
+
+    def draw_option_box(self, text, x, y, selected=False):
+        box_width = (len(text) * 8) + _OPTION_X_PADDING_TOTAL
+        x -= box_width // 2
+        y -= _OPTION_BOX_HEIGHT // 2
+        
+        self.display.rect(
+            x, y, box_width, _OPTION_BOX_HEIGHT,
+            self.config.palette[6 if selected else 4],
+            fill=True)
+        self.display.rect(
+            x, y, box_width, _OPTION_BOX_HEIGHT,
+            self.config.palette[7 if selected else 5]
+            )
+        self.display.text(
+            text, x + _OPTION_X_PADDING, y + _OPTION_Y_PADDING + 1,
+            self.config.palette[10 if selected else 6])
+    
+    
+    def draw(self):
+        num_columns = len(self.options)
+        display_width = self.display.width
+        display_height = self.display.height
+        
+        col_half_width = self.total_width // (num_columns * 2)
+        
+        
+        bg_y = (display_height - self.total_height) // 2
+        
+        # draw title:
+        if self.title is not None:
+            title_width = len(self.title) * _FONT_WIDTH
+            title_box_width = max(title_width + _OPTION_X_PADDING_TOTAL, self.total_width)
+            
+            title_x = display_width // 2 - title_width // 2
+            title_box_x = display_width // 2 - title_box_width // 2
+            title_box_y = bg_y - _OPTION_BOX_HEIGHT - _OPTION_Y_PADDING
+            
+            self.display.rect(
+                title_box_x, title_box_y,
+                title_box_width, _OPTION_BOX_HEIGHT + _OPTION_Y_PADDING,
+                self.config.palette[4], fill=True)
+            self.display.text(
+                self.title,
+                title_x, title_box_y + _OPTION_Y_PADDING + 1,
+                self.config.palette[5],
+                )
+            self.display.text(
+                self.title,
+                title_x, title_box_y + _OPTION_Y_PADDING,
+                self.config.palette[6],
+                )
+        else:
+            title_box_width = 0
+
+        
+        bg_width = max(self.total_width, title_box_width)
+        width_delta_offset = (title_box_width - self.total_width) // 2 if title_box_width > self.total_width else 0
+        bg_x = (display_width - bg_width) // 2
+        
+        # draw bg:
+        self.display.rect(
+            bg_x,
+            bg_y,
+            bg_width, self.total_height,
+            self.config.palette[4],
+            fill=True
+            )
+        
+        # draw each column:
+        for col_idx, column in enumerate(self.options):
+            column_len = len(column)
+            column_x = self.col_xs[col_idx]
+            option_half_height = self.total_height // (column_len * 2)
+            
+            for option_idx, option in enumerate(column):
+                option_y = (self.total_height * option_idx) // column_len + option_half_height
+                self.draw_option_box(
+                    option,
+                    column_x + bg_x + width_delta_offset,
+                    option_y + bg_y,
+                    selected=True if col_idx == self.cursor_x and option_idx == self.cursor_y else False,
+                    )
+
+        self.display.show()
+    
+    def _move_cursor_x(self, move):
+        """Move cursor left/right, adjusting for varying column lengths"""
+        old_col_len = len(self.options[self.cursor_x])
+        old_y = self.cursor_y
+        self.cursor_x = (self.cursor_x + move) % len(self.options)
+        new_col_len = len(self.options[self.cursor_x])
+        
+        self.cursor_y = min(
+            int(round((old_y / old_col_len) * new_col_len)),
+            new_col_len - 1
+            )
+        
+    
+    def main(self):
+        """
+        Display a popup options menu.
+        Blocks until "enter" key pressed, returning option str.
+        """
+        self.draw()
+        
+        draw_time = time.ticks_ms()
+        
+        while True:
+            keys = self.kb.get_new_keys()
+            
+            for key in keys:
+                if key == "RIGHT":
+                    self._move_cursor_x(1)
+                elif key == "LEFT":
+                    self._move_cursor_x(-1)
+
+                elif key == "UP":
+                    self.cursor_y = (self.cursor_y - 1) % len(self.options[self.cursor_x])
+                elif key == "DOWN":
+                    self.cursor_y = (self.cursor_y + 1) % len(self.options[self.cursor_x])
+
+                elif key == "ESC":
+                    return None
+
+                elif key == "ENT" or key == "G0":
+                    return self.options[self.cursor_x][self.cursor_y]
+            
+            if keys:
+                self.draw()
+            else:
+                time.sleep_ms(10)
+    
+    
 
 if __name__ == "__main__":
     # just for testing
@@ -302,9 +443,15 @@ if __name__ == "__main__":
 
     overlay = UIOverlay()
     
-    overlay.popup("WHAT? (this is a test!)")
+    tft.fill(Config().palette[2])
     
-    print(overlay.text_entry("Hello, world!", title="test:"))
+    overlay.popup("WHAT? (this is a test!)")
+    print(overlay.popup_options((
+        ["do","re","mi","fa","so"],
+        ["la","ti","do"],
+        ["this", "is","a","test"],
+        ), title="popup options!"))
+#     print(overlay.text_entry("Hello, world!", title="test:"))
     print("DONE")
 
 #     # popup demo:
@@ -338,4 +485,5 @@ if __name__ == "__main__":
 #     
 #     tft.fill(0)
     #tft.show()
+
 
