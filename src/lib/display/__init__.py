@@ -31,6 +31,8 @@ class Display(st7789.ST7789):
 
 
     def __init__(self, use_tiny_buf=False, **kwargs):
+        if hasattr(self, 'fbuf'):
+            print("WARNING: Display re-initialized.")
         super().__init__(
             machine.SPI(
                 _MH_DISPLAY_SPI_ID,
@@ -50,6 +52,7 @@ class Display(st7789.ST7789):
             use_tiny_buf=use_tiny_buf,
             **kwargs,
             )
+
 
     @staticmethod
     def _init_pin(target_pin, *args):

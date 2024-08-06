@@ -25,22 +25,15 @@ class UIOverlay:
     def __init__(self):
         """
         UIOverlay aims to provide easy to use methods for displaying themed UI popups, and other Overlays.
-        params:
-            config:Config
-                - A 'lib.mhconfig.Config' object.
-
-            keyboard:KeyBoard
-                - A 'KeyBoard' object from lib.keyboard
-
-            display_fbuf:ST7789
-            display_py:ST7789
-                - An 'ST7789' object from lib.st7789py or lib.st7789fbuf
-                - One of them must be supplied. 
         """
         self.config = Config()
-        self.kb = UserInput()
+        self.kb = UserInput.instance if hasattr(UserInput, 'instance') else UserInput()
 
-        self.display = Display()
+        # avoid reinitializing display!
+        try:
+            self.display = Display.instance
+        except AttributeError as e:
+            raise AttributeError("Display has no instance. (Please initialize Display before UIOverlay)") from e
 
 
     def text_entry(self, start_value='', title="Enter text:"):
@@ -435,7 +428,7 @@ class PopupOptions(PopupObject):
 
 if __name__ == "__main__":
     # just for testing
-    from lib import display, keyboard
+    from lib import display
     from lib.hydra.config import Config
 
     tft = Display()
