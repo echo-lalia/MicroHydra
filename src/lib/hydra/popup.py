@@ -268,9 +268,8 @@ class PopupOptions(PopupObject):
 
         # parse 1-dimensional options into 2d for consistency
         if options and not isinstance(options[0], (list, tuple)):
-            self.options = [options]
-        else:
-            self.options = options
+            options = [options]
+        self.options = options
         
         # calculate bg width and height
         self.total_width, self.total_height, self.col_xs = self._find_width_height(options)
@@ -296,7 +295,7 @@ class PopupOptions(PopupObject):
             
         total_height = max_num_options * (_OPTION_BOX_HEIGHT + _OPTION_Y_PADDING_TOTAL)
 
-        return total_width + _OPTION_Y_PADDING_TOTAL, total_height + _OPTION_X_PADDING_TOTAL, col_xs
+        return total_width, total_height + _OPTION_Y_PADDING_TOTAL, col_xs
         
 
 
@@ -445,7 +444,7 @@ if __name__ == "__main__":
     
     tft.fill(Config().palette[2])
     
-    overlay.popup("WHAT? (this is a test!)")
+    print(overlay.popup_options(['1','2','3','4','5']))
     print(overlay.popup_options((
         ["do","re","mi","fa","so"],
         ["la","ti","do"],
