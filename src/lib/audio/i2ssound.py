@@ -142,7 +142,7 @@ class Register:
 	def __str__(self):
 		return f"{self.buf_start}: {self.sample} v:{self.volume} n:{self.note}"
 
-class M5Sound:
+class I2SSound:
 	def __init__(self, buf_size=2048, rate=11025, channels=4, sck=_MH_I2S_SCK, ws=_MH_I2S_WS, sd=_MH_I2S_SD):
 		self._output = I2S(
 			1,
