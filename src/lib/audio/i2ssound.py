@@ -40,9 +40,9 @@ _PERIODS = [ # c-0 thru b-0 - how much to advance a sample pointer per frame for
 _INT_MINVAL = const(-32768)
 _INT_MAXVAL = const(32767)
 
-_MH_I2S_SCK = const(41)
-_MH_I2S_WS = const(43)
-_MH_I2S_SD = const(42)
+_MH_I2S_SCK = const(7)
+_MH_I2S_WS = const(5)
+_MH_I2S_SD = const(6)
 
 
 @micropython.viper
