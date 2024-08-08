@@ -101,6 +101,14 @@ class UserInput(_keys.Keys):
         # mh_end_if
 
 
+
+    def __new__(cls, **kwargs):
+        if not hasattr(cls, 'instance'):
+          cls.instance = super(UserInput, cls).__new__(cls)
+        return cls.instance
+
+
+
     @micropython.viper
     def _get_new_keys(self):
         """Viper component of get_new_keys"""

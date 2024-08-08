@@ -1,8 +1,8 @@
-from lib import smartkeyboard, st7789fbuf, mhconfig, mhoverlay
+from lib import userinput, display, sdcard
+from lib.hydra import config, popup, color
 import machine
 from machine import Pin, SPI, RTC
 from font import vga1_8x16 as font
-from lib import microhydra as mh
 import os, time, sys
 import esp32
 
@@ -10,10 +10,10 @@ import esp32
 machine.freq(240_000_000)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constants: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-_DISPLAY_WIDTH = const(240)
-_DISPLAY_HEIGHT = const(135)
+_MH_DISPLAY_HEIGHT = const(240)
+_MH_DISPLAY_WIDTH = const(320)
 
-_HORIZONTAL_CHARACTERS = const((_DISPLAY_WIDTH // 8) - 1)
+_HORIZONTAL_CHARACTERS = const((_MH_DISPLAY_WIDTH // 8) - 1)
 
 _DISPLAY_LINES = const(10)
 _DISPLAY_PADDING = const(1) # padding between lines
@@ -22,7 +22,7 @@ _LEFT_PADDING = const(8)
 _LEFT_RULE = const(6)
 _INDENT_RULE_OFFSET = const(_LEFT_RULE - _LEFT_PADDING)
 
-_RIGHT_TEXT_FADE = const(_DISPLAY_WIDTH - 8)
+_RIGHT_TEXT_FADE = const(_MH_DISPLAY_WIDTH - 8)
 
 _TEXT_HEIGHT = const(16 + _DISPLAY_PADDING)
 _SMALL_TEXT_HEIGHT = const(8 + _DISPLAY_PADDING)
@@ -51,27 +51,13 @@ _TAB_INDENT = const('	')
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Global Objects: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # sd needs to be mounted for any files in /sd
-try:
-    sd = machine.SDCard(slot=2, sck=machine.Pin(40), miso=machine.Pin(39), mosi=machine.Pin(14), cs=machine.Pin(12))
-    os.mount(sd, '/sd')
-except OSError:
-    print("Could not mount SDCard!")
+sdcard.SDCard().mount()
 
-DISPLAY = st7789fbuf.ST7789(
-    SPI(1, baudrate=40000000, sck=Pin(36), mosi=Pin(35), miso=None),
-    _DISPLAY_HEIGHT,
-    _DISPLAY_WIDTH,
-    reset=Pin(33, Pin.OUT),
-    cs=Pin(37, Pin.OUT),
-    dc=Pin(34, Pin.OUT),
-    backlight=Pin(38, Pin.OUT),
-    rotation=1,
-    color_order=st7789fbuf.BGR
-    )
+DISPLAY = display.Display()
 
 RTC = machine.RTC()
-CONFIG = mhconfig.Config()
-KB = smartkeyboard.KeyBoard(config=CONFIG, use_sys_commands = False)
+CONFIG = config.Config()
+KB = userinput.UserInput()
 NVS = esp32.NVS("HyDE")
 
 # load config option to use tabs/spaces
@@ -80,19 +66,19 @@ USE_TABS = False
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Generate color palette: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-def shift_color565_hue(color, shift):
+def shift_color565_hue(clr, shift):
     """shift the hue of a color565 to the right and left. this is useful for generating complimentary colors."""
-    r,g,b = mhconfig.separate_color565(color)
+    r,g,b = color.separate_color565(clr)
 
     r /= 31; g /= 63; b /= 31
 
-    h,s,v = mhconfig.rgb_to_hsv(r,g,b)
+    h,s,v = color.rgb_to_hsv(r,g,b)
 
-    r,g,b = mhconfig.hsv_to_rgb(h+shift,s,v)
+    r,g,b = color.hsv_to_rgb(h+shift,s,v)
 
     r = int(r*31); g = int(g*63); b = int(b*31)
 
-    clr = mhconfig.combine_color565(r,g,b)
+    clr = color.combine_color565(r,g,b)
 
     return clr
 
@@ -100,23 +86,23 @@ STR_COLOR = shift_color565_hue(CONFIG.palette[5], -0.4)
 DARK_STR_COLOR = shift_color565_hue(CONFIG.palette[3], -0.2)
 
 NUM_COLOR = shift_color565_hue(
-    mhconfig.mix_color565(CONFIG.palette[1], CONFIG.palette[5], mix_factor=0.95, hue_mix_fac=0, sat_mix_fac=0.95),
+    color.mix_color565(CONFIG.palette[1], CONFIG.palette[5], mix_factor=0.95, hue_mix_fac=0, sat_mix_fac=0.95),
     -0.15
     )
 
-OP_COLOR = mhconfig.mix_color565(
+OP_COLOR = color.mix_color565(
     CONFIG.palette[1], CONFIG.palette[5], mix_factor=0.9, hue_mix_fac=0.7, sat_mix_fac=0.8
     )
 
-KEYWORD_COLOR = mhconfig.mix_color565(
+KEYWORD_COLOR = color.mix_color565(
     CONFIG.palette[1], CONFIG.palette[5], mix_factor=1, hue_mix_fac=0.3, sat_mix_fac=0.7
     )
 
-COMMENT_COLOR = mhconfig.mix_color565(
+COMMENT_COLOR = color.mix_color565(
     CONFIG.palette[1], CONFIG.palette[5], mix_factor=0.5, hue_mix_fac=0, sat_mix_fac=0.1
     )
 
-DARK_COMMENT_COLOR = mhconfig.mix_color565(
+DARK_COMMENT_COLOR = color.mix_color565(
     CONFIG.palette[1], CONFIG.palette[5], mix_factor=0.25, hue_mix_fac=0, sat_mix_fac=0.1
     )
 
@@ -198,7 +184,7 @@ def exit_options(target_file,overlay,editor):
 
 def boot_into_file(target_file,overlay):
     """Restart and load into target file."""
-    overlay.draw_textbox("Restarting...", _DISPLAY_WIDTH//2, _DISPLAY_HEIGHT//2)
+    overlay.draw_textbox("Restarting...", _MH_DISPLAY_WIDTH//2, _MH_DISPLAY_HEIGHT//2)
     DISPLAY.show()
 
     RTC.memory(target_file)
@@ -207,7 +193,7 @@ def boot_into_file(target_file,overlay):
 def run_file_here(filepath, overlay, editor):
     """Try running the target file here"""
     editor.save_file(filepath)
-    overlay.draw_textbox("Running...", _DISPLAY_WIDTH//2, _DISPLAY_HEIGHT//2)
+    overlay.draw_textbox("Running...", _MH_DISPLAY_WIDTH//2, _MH_DISPLAY_HEIGHT//2)
     DISPLAY.show()
     try:
         # you have to slice off the ".py" to avoid importerror
@@ -500,10 +486,12 @@ def draw_fancy_line(line, x, y, highlight=False, trim=True):
         else:
             color = CONFIG.palette[5]
 
-        DISPLAY.bitmap_text(font, char,
-                        x,
-                        y, color
-                        )
+        DISPLAY.text(
+            char,
+            x, y,
+            color,
+            font=font
+            )
 
         # reset style trackers for next cycle
         if string_char == "END": string_char = None
@@ -789,19 +777,19 @@ class Editor:
         # y scrollbar
         max_screen_index = len(self.lines) - 5
         if max_screen_index > 0:
-            scrollbar_height = (_DISPLAY_HEIGHT // max_screen_index) + 10
-            scrollbar_position = int((_DISPLAY_HEIGHT - scrollbar_height) * ((self.display_index[1] + 3) / max_screen_index))
-            DISPLAY.rect(238,0,2,_DISPLAY_HEIGHT, CONFIG.palette[0])
+            scrollbar_height = (_MH_DISPLAY_HEIGHT // max_screen_index) + 10
+            scrollbar_position = int((_MH_DISPLAY_HEIGHT - scrollbar_height) * ((self.display_index[1] + 3) / max_screen_index))
+            DISPLAY.rect(238,0,2,_MH_DISPLAY_HEIGHT, CONFIG.palette[0])
             DISPLAY.vline(237,scrollbar_position - 10, scrollbar_height + 20, CONFIG.palette[1])
             DISPLAY.rect(238,scrollbar_position - 10, 2, scrollbar_height + 20, CONFIG.palette[3])
 
         #x scrollbar
         max_screen_index = (len(self.lines[self.cursor_index[1]]) - _HORIZONTAL_CHARACTERS) + 4
         if max_screen_index > 0:
-            scrollbar_width = (_DISPLAY_WIDTH // max_screen_index) + 10
-            scrollbar_position = int((_DISPLAY_WIDTH - scrollbar_width) * ((self.display_index[0]) / max_screen_index) )
+            scrollbar_width = (_MH_DISPLAY_WIDTH // max_screen_index) + 10
+            scrollbar_position = int((_MH_DISPLAY_WIDTH - scrollbar_width) * ((self.display_index[0]) / max_screen_index) )
             DISPLAY.hline(scrollbar_position, 132, scrollbar_width, CONFIG.palette[1])
-            DISPLAY.rect(0,133, _DISPLAY_WIDTH,2, CONFIG.palette[0])
+            DISPLAY.rect(0,133, _MH_DISPLAY_WIDTH,2, CONFIG.palette[0])
             DISPLAY.rect(scrollbar_position, 133, scrollbar_width, 2, CONFIG.palette[3])
 
     def get_current_lines(self):
@@ -824,13 +812,13 @@ class Editor:
 
     def draw_bg(self):
         """fill the background"""
-        DISPLAY.fill(CONFIG['bg_color'])
+        DISPLAY.fill(CONFIG.palette[2])
         if self.display_index[0] == 0: # left rule
-            DISPLAY.vline(_LEFT_RULE, 0, _DISPLAY_HEIGHT, CONFIG.palette[0])
+            DISPLAY.vline(_LEFT_RULE, 0, _MH_DISPLAY_HEIGHT, CONFIG.palette[1])
 
     def save_file(self, filepath):
         """Reverse temporary formatting and Save the file."""
-        self.overlay.draw_textbox("Saving...",_DISPLAY_WIDTH//2,_DISPLAY_HEIGHT//2)
+        self.overlay.draw_textbox("Saving...",_MH_DISPLAY_WIDTH//2,_MH_DISPLAY_HEIGHT//2)
         DISPLAY.show()
         with open(filepath,"w") as file:
             for line in self.lines:
@@ -872,18 +860,21 @@ def main_loop():
 
     global STR_COLOR, DARK_STR_COLOR, KEYWORD_COLOR, COMMENT_COLOR, DARK_COMMENT_COLOR, USE_TABS
 
-    DISPLAY.fill(CONFIG['bg_color'])
-    overlay = mhoverlay.UI_Overlay(CONFIG, KB, display_fbuf=DISPLAY)
+    DISPLAY.fill(CONFIG.palette[2])
+    overlay = popup.UIOverlay()
     editor = Editor(overlay)
 
     # Find our filepath from RTC memory
     target_file = RTC.memory().decode()
+    # TESTING:
+    if target_file == "":
+        target_file = "/misc_tdeck/testkb.py"
 
     # remove syntax hilighting for plain txt files.
     if target_file.endswith('.txt'):
-        STR_COLOR = CONFIG['ui_color']; DARK_STR_COLOR = CONFIG['ui_color']
-        KEYWORD_COLOR = CONFIG['ui_color']
-        COMMENT_COLOR = CONFIG['ui_color']; DARK_COMMENT_COLOR = CONFIG['ui_color']
+        STR_COLOR = CONFIG.palette[8]; DARK_STR_COLOR = CONFIG.palette[8]
+        KEYWORD_COLOR = CONFIG.palette[8]
+        COMMENT_COLOR = CONFIG.palette[8]; DARK_COMMENT_COLOR = CONFIG.palette[8]
 
 
     try:

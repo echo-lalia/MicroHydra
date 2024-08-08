@@ -320,7 +320,7 @@ class PopupOptions(PopupObject):
         
         bg_y = (display_height - self.total_height) // 2
         
-        # draw title:
+         # draw title:
         if self.title is not None:
             title_width = len(self.title) * _FONT_WIDTH
             title_box_width = max(title_width + _OPTION_X_PADDING_TOTAL, self.total_width)
@@ -332,7 +332,7 @@ class PopupOptions(PopupObject):
             self.display.rect(
                 title_box_x, title_box_y,
                 title_box_width, _OPTION_BOX_HEIGHT + _OPTION_Y_PADDING,
-                self.config.palette[4], fill=True)
+                self.config.palette[3], fill=True)
             self.display.text(
                 self.title,
                 title_x, title_box_y + _OPTION_Y_PADDING + 1,
@@ -356,7 +356,7 @@ class PopupOptions(PopupObject):
             bg_x,
             bg_y,
             bg_width, self.total_height,
-            self.config.palette[4],
+            self.config.palette[3],
             fill=True
             )
         
@@ -413,7 +413,7 @@ class PopupOptions(PopupObject):
                 elif key == "DOWN":
                     self.cursor_y = (self.cursor_y + 1) % len(self.options[self.cursor_x])
 
-                elif key == "ESC":
+                elif key == "ESC" or key == "BSPC":
                     return None
 
                 elif key == "ENT" or key == "G0":

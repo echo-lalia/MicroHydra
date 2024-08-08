@@ -41,7 +41,7 @@ KEYMAP_SHIFT = {
     }
 KEYMAP_FN = {
     1:'#',   2:'1',  17:'2',  33:'3', 35:'(', 51:')', 49:'_', 67:'-', 65:'+', 20:'@',
-    4:'*',  18:'4',  19:'5',  39:'6', 34:'/', 50:':', 55:';', 71:"'", 66:'"',
+    4:'*',  18:'4',  19:'5',  39:'6', 34:'/', 50:':', 55:';', 71:"'", 66:'"', 68:'DEL',
     5:'ALT',22:'7',  21:'8',  38:'9', 37:'?', 53:'!', 54:',', 70:'.', 69:'SPEAK',
           23:'SHIFT',  7:'0',          6:'SPC',     3:'FN',  36:'SHIFT',
     }
@@ -178,6 +178,12 @@ class Keys:
             keylist.remove("G0")
             keylist.remove("FN")
             keylist.append("OPT")
+        # shortcut for "ESC"
+        if "ALT" in keylist \
+        and "q" in keylist:
+            keylist.remove("ALT")
+            keylist.remove("q")
+            keylist.append("ESC")
 
 
     def _alt_get_pressed_keys(self, **kwargs):

@@ -1,5 +1,6 @@
-from lib import mhoverlay, beeper, userinput
+from lib import sdcard, userinput
 from lib.display import Display
+from lib.hydra import beeper, popup
 from lib.hydra.config import Config
 from font import vga2_16x32 as font
 import os, machine, time, math
@@ -48,40 +49,20 @@ FILE_HANDLERS = {
 
 
 
+kb = userinput.UserInput()
 tft = Display()
 
 config = Config()
-kb = userinput.UserInput()
-overlay = mhoverlay.UI_Overlay(config, kb, display_fbuf=tft)
 beep = beeper.Beeper()
+overlay = popup.UIOverlay()
 
-try:
-    sd = machine.SDCard(
-        slot=_MH_SDCARD_SLOT,
-        sck=machine.Pin(_MH_SDCARD_SCK),
-        miso=machine.Pin(_MH_SDCARD_MISO), 
-        mosi=machine.Pin(_MH_SDCARD_MOSI),
-        cs=machine.Pin(_MH_SDCARD_CS)
-        )
-except OSError as e:
-    print(e)
-    print("SDCard couldn't be initialized. This might be because it was already initialized and not properly deinitialized.")
-    sd = None
+
+sd = sdcard.SDCard()
+
 
 
 # copied_file = None
 clipboard = None
-
-
-
-def mount_sd():
-    main_directory = os.listdir("/")
-    # sd needs to be mounted for any files in /sd
-    if "sd" not in main_directory:
-        try:
-            os.mount(sd, '/sd')
-        except OSError:
-            print("Could not mount SDCard!")
 
 
 
@@ -250,7 +231,7 @@ def ext_options(overlay):
             
     elif option == "Refresh":
         play_sound(("B3","G3","D3"), 30)
-        mount_sd()
+        sd.mount()
         os.sync()
         
     elif option == "Paste":
@@ -343,7 +324,7 @@ def play_sound(notes, time_ms=30):
 def main_loop(tft, kb, config, overlay):
     
     new_keys = kb.get_new_keys()
-    mount_sd()
+    sd.mount()
     file_list, dir_dict = parse_files()
     
     view = ListView(tft, config, file_list, dir_dict)

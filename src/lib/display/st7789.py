@@ -840,7 +840,7 @@ class ST7789:
             
             # only draw chars that exist in font
             if first <= ch_idx < last:
-                bit_start = ch_idx * char_px_len
+                bit_start = (ch_idx - first) * char_px_len
                 
                 px_idx = 0
                 while px_idx < char_px_len:

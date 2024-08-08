@@ -31,6 +31,11 @@ class Display(st7789.ST7789):
 
 
     def __init__(self, use_tiny_buf=False, **kwargs):
+        # mh_if TDECK:
+        # # Enable Peripherals:
+        # machine.Pin(10, machine.Pin.OUT, value=1)
+        # mh_end_if
+
         if hasattr(self, 'fbuf'):
             print("WARNING: Display re-initialized.")
         super().__init__(

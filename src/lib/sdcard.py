@@ -23,8 +23,10 @@ class SDCard:
 
 
     def mount(self):
+        if "sd" in os.listdir("/"):
+            return
         try:
-            os.mount(SD, '/sd')
+            os.mount(self.sd, '/sd')
         except (OSError, NameError, AttributeError) as e:
             print(f"Could not mount SDCard: {e}")
 
@@ -36,4 +38,3 @@ class SDCard:
 
     def __del__(self):
         self.deinit()
-    

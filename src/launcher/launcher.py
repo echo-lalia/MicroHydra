@@ -42,7 +42,8 @@ import array
 import machine
 from launcher.icons import battery, appicons
 from font import vga2_16x32 as font
-from lib import userinput, beeper, battlevel
+from lib import userinput, battlevel, sdcard
+from lib.hydra import beeper
 from lib.hydra.config import Config
 from lib import display
 import gc
@@ -91,11 +92,6 @@ _APPNAME_Y = const(_ICON_Y + _ICON_HEIGHT + _Y_PADDING)
 _SCROLL_ANIMATION_TIME = const(400)
 
 
-_MH_SDCARD_SLOT = const(2)
-_MH_SDCARD_SCK = const(40)
-_MH_SDCARD_MISO = const(39)
-_MH_SDCARD_MOSI = const(14)
-_MH_SDCARD_CS = const(12)
 
 
 
@@ -138,7 +134,7 @@ KB = userinput.UserInput()
 KB.rebind_keys({',':'LEFT', '/':'RIGHT'})
 # mh_end_if
 
-SD = None
+SD = sdcard.SDCard()
 RTC = machine.RTC()
 BATT = battlevel.Battery()
 
@@ -161,35 +157,9 @@ def scan_apps():
     
     gc.collect()
     gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
-    
+
+    SD.mount()
     main_directory = os.listdir("/")
-
-    # if the sd card is not mounted, we need to mount it.
-    if "sd" not in main_directory:
-        try:
-            SD = machine.SDCard(
-                slot=_MH_SDCARD_SLOT,
-                sck=machine.Pin(_MH_SDCARD_SCK),
-                miso=machine.Pin(_MH_SDCARD_MISO), 
-                mosi=machine.Pin(_MH_SDCARD_MOSI),
-                cs=machine.Pin(_MH_SDCARD_CS)
-                )
-
-        except OSError as e:
-            print(e)
-            print("SDCard couldn't be initialized. This might be because it was already initialized and not properly deinitialized.")
-            try:
-                SD.deinit()
-            except:
-                print("Couldn't deinitialize SDCard")
-
-        try:
-            os.mount(SD, '/sd')
-        except (OSError, NameError, AttributeError) as e:
-            print(e)
-            print("Could not mount SDCard.")
-
-        main_directory = os.listdir("/")
 
     sd_directory = []
     if "sd" in main_directory:
@@ -327,8 +297,7 @@ def time_24_to_12(hour_24, minute):
 
 
 def play_sound(notes, time_ms=40):
-    if CONFIG.palette[8]:
-        BEEP.play(notes, time_ms, CONFIG['volume'])
+    BEEP.play(notes, time_ms)
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
