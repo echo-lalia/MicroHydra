@@ -1,27 +1,31 @@
 from lib import userinput, display, sdcard
 from lib.hydra import config, popup, color
 import machine
-from machine import Pin, SPI, RTC
 from font import vga1_8x16 as font
 import os, time, sys
 import esp32
 
+
+
 # increased freq makes fancy text drawing faster. This may not be necessary if fancytext function is optimized
 machine.freq(240_000_000)
+
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constants: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _MH_DISPLAY_HEIGHT = const(240)
 _MH_DISPLAY_WIDTH = const(320)
 
 
+# main font sizes
 _FONT_HEIGHT = const(16)
 _FONT_WIDTH = const(8)
 _SMALL_FONT_HEIGHT = const(8)
 _SMALL_FONT_WIDTH = const(8)
 
 
+# how much text fits on screen:
 _HORIZONTAL_CHARACTERS = const((_MH_DISPLAY_WIDTH // _FONT_WIDTH) - 1)
-
 
 # number of regular sized lines (always 6 small lines)
 _NUM_LINES = const((_MH_DISPLAY_HEIGHT - (_SMALL_FONT_HEIGHT * 6)) // _FONT_HEIGHT)
@@ -33,6 +37,8 @@ _DISPLAY_PADDING = const(
     // (_NUM_LINES)
     ) 
 
+
+# modified text sizes (based on padding)
 _TEXT_HEIGHT = const(_FONT_HEIGHT + _DISPLAY_PADDING)
 _TEXT_WIDTH = const(_FONT_WIDTH)
 _SMALL_TEXT_HEIGHT = const(_SMALL_FONT_HEIGHT + _DISPLAY_PADDING)
@@ -41,20 +47,25 @@ _TEXT_HEIGHT_HALF = const(_TEXT_HEIGHT//2)
 _SMALL_TEXT_HEIGHT_HALF = const(_SMALL_TEXT_HEIGHT//2)
 
 
+# additional graphics rules
 _LEFT_PADDING = const(8)
 _LEFT_RULE = const(6)
 _INDENT_RULE_OFFSET = const(_LEFT_RULE - _LEFT_PADDING)
 
-_RIGHT_TEXT_FADE = const(_MH_DISPLAY_WIDTH - 8)
+_RIGHT_TEXT_FADE = const(_MH_DISPLAY_WIDTH - _FONT_WIDTH)
 
 
-
+# controll the blinking animation:
 _CURSOR_BLINK_MS = const(1000)
 _CURSOR_BLINK_HALF = const(_CURSOR_BLINK_MS // 2)
 
+
+# used for "exit to file browser" option:
 _FILE_BROWSER = const("/launcher/files.py")
 
-# arbitrary char classifications as int:
+
+
+# arbitrary char classifications as int (used for syntax highlighting):
 _NONE_CLASS = const(0)
 _ALPHA_CLASS = const(7)
 _DIGIT_CLASS = const(8)
@@ -63,22 +74,26 @@ _SPACE_CLASS = const(1)
 _INDENT_CLASS = const(2)
 _OTHER_CLASS = const(4)
 
-# rarely used whitespace chars are repurposed to denote converted tab/space indents
+
+
+# rare whitespace char is repurposed here to denote converted tab/space indents
 _INDENT_SYM = const(' ')
 _SPACE_INDENT = const('    ')
 _TAB_INDENT = const('	')
 
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Global Objects: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# sd needs to be mounted for any files in /sd
-sdcard.SDCard().mount()
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Global Objects: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 DISPLAY = display.Display()
 
 RTC = machine.RTC()
 CONFIG = config.Config()
-KB = userinput.UserInput()
+INPUT = userinput.UserInput()
 NVS = esp32.NVS("HyDE")
+
+
+# sd needs to be mounted for any files in /sd
+sdcard.SDCard().mount()
 
 # load config option to use tabs/spaces
 USE_TABS = False
@@ -89,18 +104,18 @@ USE_TABS = False
 def shift_color565_hue(clr, shift):
     """shift the hue of a color565 to the right and left. this is useful for generating complimentary colors."""
     r,g,b = color.separate_color565(clr)
-
     r /= 31; g /= 63; b /= 31
 
     h,s,v = color.rgb_to_hsv(r,g,b)
-
     r,g,b = color.hsv_to_rgb(h+shift,s,v)
 
     r = int(r*31); g = int(g*63); b = int(b*31)
 
     clr = color.combine_color565(r,g,b)
-
     return clr
+
+
+# Generate extended colors for syntax highlighting based on UI colors
 
 STR_COLOR = color.mix_color565(
     CONFIG.palette[15], CONFIG.palette[8], mix_factor=1.0, hue_mix_fac=0.0, sat_mix_fac=0.5
@@ -136,7 +151,7 @@ DARK_COMMENT_COLOR = color.mix_color565(
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Function defs: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def file_options(target_file,overlay,editor):
+def file_options(target_file, overlay, editor):
     """Give file options menu"""
     _OPTIONS = const(("Back", "Save", "Tab...", "Run...", "Exit..."))
 
@@ -153,14 +168,15 @@ def file_options(target_file,overlay,editor):
     elif choice == "Tab...":
         tab_options(target_file,overlay,editor)
 
-def tab_options(target_file,overlay,editor):
+
+def tab_options(target_file, overlay, editor):
     """Give tab options menu"""
     global USE_TABS
 
     title = "'tab' inserts tabs" if USE_TABS else "'tab' inserts spaces"
     _TAB_OPTIONS = const(("Back", "Use tabs", "Use spaces"))
 
-    choice = overlay.popup_options(_TAB_OPTIONS,title=title,extended_border=True)
+    choice = overlay.popup_options(_TAB_OPTIONS, title=title, depth=1)
 
     if choice == "Back":
         return
@@ -175,10 +191,11 @@ def tab_options(target_file,overlay,editor):
         NVS.set_i32("use_tabs",False)
         NVS.commit()
 
-def run_options(target_file,overlay,editor):
+
+def run_options(target_file, overlay, editor):
     """Give run options submenu"""
     _RUN_OPTIONS = const(("Cancel", "Run here", "Restart and run"))
-    choice = overlay.popup_options(_RUN_OPTIONS,extended_border=True)
+    choice = overlay.popup_options(_RUN_OPTIONS, title="Run...", depth=1)
     if choice == "Cancel":
         return
     elif choice == "Run here":
@@ -186,11 +203,12 @@ def run_options(target_file,overlay,editor):
     elif choice == "Restart and run":
         boot_into_file(target_file,overlay)
 
-def exit_options(target_file,overlay,editor):
+
+def exit_options(target_file, overlay, editor):
     """Give run options submenu"""
     _EXIT_OPTIONS = const(("Cancel", "Exit to Files", "Exit to Launcher"))
 
-    choice = overlay.popup_options(_EXIT_OPTIONS,extended_border=True)
+    choice = overlay.popup_options(_EXIT_OPTIONS, title="Exit...", depth=1)
 
     if choice == "Cancel":
         return
@@ -205,13 +223,15 @@ def exit_options(target_file,overlay,editor):
             editor.save_file(target_file)
         boot_into_file('', overlay)
 
-def boot_into_file(target_file,overlay):
+
+def boot_into_file(target_file, overlay):
     """Restart and load into target file."""
     overlay.draw_textbox("Restarting...", _MH_DISPLAY_WIDTH//2, _MH_DISPLAY_HEIGHT//2)
     DISPLAY.show()
 
     RTC.memory(target_file)
     machine.reset()
+
 
 def run_file_here(filepath, overlay, editor):
     """Try running the target file here"""
@@ -230,24 +250,37 @@ def run_file_here(filepath, overlay, editor):
         overlay.error(f"File closed with error: {e}")
 
 
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~ String formatting/classification: ~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        
 
-def classify_char(char) -> int:
+@micropython.viper
+def classify_char(ch) -> int:
     """Classify char types for comparison. Returns an int representing the type."""
-    if char is None:
+    if not ch:
         return _NONE_CLASS
-    elif char.isalpha() or char == "_":
-        return _ALPHA_CLASS
-    elif char.isdigit():
-        return _DIGIT_CLASS
-    elif char == ".":
-        return _DOT_CLASS
-    elif char.isspace():
+
+    char = int(ord(ch))
+
+    if char < 33:
         return _SPACE_CLASS
-    elif char == _INDENT_SYM:
+
+    if 97 <= char <= 122 \
+    or 65 <= char <= 90 \
+    or char == 95:
+        return _ALPHA_CLASS
+
+    if 48 <= char <= 57:
+        return _DIGIT_CLASS
+
+    if char == 46:
+        return _DOT_CLASS
+
+    if char == 8201:
         return _INDENT_CLASS
+
     return _OTHER_CLASS
 
 
@@ -333,43 +366,49 @@ def format_display_line(line):
     return line
 
 
-def segment_from_str(string, index):
-    """Extract word segment from index, based on classify_char"""
-    output_str = ""
-    start_class = classify_char(string[index])
-    idx = index
-    while idx < len(string): # look right
-        if (classify_char(string[idx]) == start_class
-            # allow numbers on vars
-            )or (start_class == _ALPHA_CLASS and classify_char(string[idx]) == _DIGIT_CLASS
-            # allow numbers to start with a "."
-            )or (start_class == _DOT_CLASS and classify_char(string[idx]) == _DIGIT_CLASS
-            # allow numbers with "." at the end or middle
-            )or (start_class == _DIGIT_CLASS and classify_char(string[idx]) == _DOT_CLASS):
 
-            output_str += string[idx]
-            idx += 1
-        else: break
-    idx = index - 1
-    while idx >= 0: # look left
-        if classify_char(string[idx]) == start_class:
-            output_str = string[idx] + output_str
-            idx -= 1
-        else: break
-    return output_str
+@micropython.native
+def segment_from_str(string:str, index:int) -> str:
+    """Extract word segment from index, based on classify_char"""
+    start_class = classify_char(string[index])
+    end_idx = index
+    start_idx = index
+
+    while end_idx < len(string)-1: # look right
+        char_class = classify_char(string[end_idx+1])
+        if (char_class == start_class
+            # allow numbers on vars
+            )or (start_class == _ALPHA_CLASS and char_class == _DIGIT_CLASS
+            # allow numbers to start with a "."
+            )or (start_class == _DOT_CLASS and char_class == _DIGIT_CLASS
+            # allow numbers with "." at the end or middle
+            )or (start_class == _DIGIT_CLASS and char_class == _DOT_CLASS):
+
+            end_idx += 1
+        else:
+            break
+
+    while start_idx > 0: # look left
+        if classify_char(string[start_idx-1]) == start_class:
+            start_idx -= 1
+
+        else:
+            break
+
+    return string[start_idx:end_idx+1]
 
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Graphics Functions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+@micropython.native
 def draw_small_line(line,x,y,fade=0):
     """apply special styling to a small line and display it."""
     line = format_display_line(line)
     is_comment = False
     string_char = None
-    for idx, char in enumerate(line):
+    for char in line:
         # find comments
         if char == "#" and string_char == None:
             is_comment = True
@@ -381,7 +420,7 @@ def draw_small_line(line,x,y,fade=0):
                 string_char = "END"
 
         # decide on color
-        clr_idx = 4 - fade
+        clr_idx = 6 - fade
         if x < _LEFT_PADDING: # fade left chars
             color = CONFIG.palette[3]
             clr_idx -= 2
@@ -415,6 +454,7 @@ def draw_rule(x,y,small=False, highlight=False):
         )
 
 
+
 def draw_rules(line,x,y,small=False,highlight=False):
     """Draw indentaiton rule lines for given line"""
     while line.startswith(_INDENT_SYM):
@@ -423,6 +463,7 @@ def draw_rules(line,x,y,small=False,highlight=False):
         x += 8
 
 
+@micropython.native
 def draw_fancy_line(line, x, y, highlight=False, trim=True):
     """apply special styling to a line and display it."""
     _KEYWORDS = const(('and','as','assert','break','class','continue','def','del','elif','else','except',
@@ -431,6 +472,8 @@ def draw_fancy_line(line, x, y, highlight=False, trim=True):
     _OPERATORS = const("<>,|[]{}()*^%!=-+/:;&@")
 
     # TODO: I worry this may be extremely unoptomized. Should maybe be tested/optimized further.
+    # It might be worth it to try pre-processing lines into a colored 
+    # format so that we dont need to redo this between frames
 
     line = format_display_line(line)
     # trim right part of line to speed up styling
@@ -440,14 +483,13 @@ def draw_fancy_line(line, x, y, highlight=False, trim=True):
             offset_px = (x - _LEFT_RULE) * - 1
             offset = offset_px // 8
         start_trim = max(offset - 20,0)
-        line = line[start_trim:_HORIZONTAL_CHARACTERS + offset + 1]
-        x += start_trim*8
+        line = line[start_trim:_HORIZONTAL_CHARACTERS + offset]
+        x += start_trim * 8
 
     # track if this line is commented
     is_comment = False
     # track if string found
     string_char = None
-    num_char = False
 
     var_char = False
 
@@ -518,7 +560,6 @@ def draw_fancy_line(line, x, y, highlight=False, trim=True):
 
         # reset style trackers for next cycle
         if string_char == "END": string_char = None
-        if num_char: num_char = False
         segment_counter -= 1
 
         x += 8
@@ -549,30 +590,22 @@ class Editor:
         draw_y = 0
         line_x = _LEFT_PADDING - (self.display_index[0] * 8)
 
-        # TODO: these if/else statements are too much. They should be simplified.
-
         for i in range(self.display_index[1], self.display_index[1] + _NUM_LINES_ALL):
-            if i <= self.display_index[1] or i >= self.display_index[1] + _NUM_LINES_ALL - 3:
-                #top/bottom lines
-                # only draw lines that are in the file:
+            
+            # if line outside main interaction area (draw small lines):
+            if i <= self.display_index[1] + 2 or i >= self.display_index[1] + _NUM_LINES_ALL - 5:
+                # only draw lines that exist:
                 if i >= 0 and i < len(self.lines):
-                    draw_rules(self.lines[i],line_x,draw_y,small=True,highlight=False)
-                    draw_small_line(self.lines[i], line_x, draw_y, 2)
-                draw_y += 8
+                    draw_rules(self.lines[i], line_x, draw_y, small=True, highlight=False)
 
-            elif i <= self.display_index[1] + 1 or i >= self.display_index[1] + _NUM_LINES_ALL - 4:
-                #top/bottom lines
-                if i >= 0 and i < len(self.lines):
-                    draw_rules(self.lines[i],line_x,draw_y,small=True,highlight=False)
-                    draw_small_line(self.lines[i], line_x, draw_y, 1)
+                    if i < self.display_index[1] + 3:
+                        fade = self.display_index[1] - i + 2
+                    else:
+                        fade = i - (self.display_index[1] + _NUM_LINES_ALL) + 5
+                    
+                    draw_small_line(self.lines[i], line_x, draw_y, fade)
                 draw_y += 8
-
-            elif i <= self.display_index[1] + 2 or i >= self.display_index[1] + _NUM_LINES_ALL - 5:
-                # compact lines
-                if i >= 0 and i < len(self.lines):
-                    draw_rules(self.lines[i],line_x,draw_y,small=True,highlight=False)
-                    draw_small_line(self.lines[i], line_x, draw_y, 0)
-                draw_y += 8
+                
 
             else:
                 if i == self.cursor_index[1]:
@@ -580,9 +613,10 @@ class Editor:
                 if i >= 0 and i < len(self.lines):
                     is_currentline = (i == self.cursor_index[1])
                     draw_rules(self.lines[i],line_x,draw_y,small=False,highlight=is_currentline)
-                    draw_fancy_line(self.lines[i], line_x, draw_y, highlight=is_currentline,trim=is_currentline)
+                    draw_fancy_line(self.lines[i], line_x, draw_y, highlight=is_currentline, trim= not is_currentline)
 
                 draw_y += 16 + _DISPLAY_PADDING
+
 
     def get_current_indentation(self):
         """Return the indentation of selected line."""
@@ -590,8 +624,9 @@ class Editor:
 
         # if current_line is indented at all:
         if current_line and current_line[0] == _INDENT_SYM:
-            return segment_from_str(current_line,0)
+            return segment_from_str(current_line, 0)
         return ""
+
 
     def jump_backspace(self):
         """Repeat backspace until we hit a new char class"""
@@ -601,27 +636,31 @@ class Editor:
                 break
             self.backspace()
 
+
     def jump_left(self):
         """Repeat left until we hit a new char class"""
         start_type = classify_char(self.get_left_char())
-        for _ in range(0,100): # let's not go forever here
+        for _ in range(0, 100): # let's not go forever here
             if classify_char(self.get_left_char()) != start_type:
                 break
             self.move_left()
 
+
     def jump_right(self):
         """Repeat right until we hit a new char class"""
         start_type = classify_char(self.get_right_char())
-        for _ in range(0,100): # let's not go forever here
+        for _ in range(0, 100): # let's not go forever here
             if classify_char(self.get_right_char()) != start_type:
                 break
             self.move_right()
+
 
     def get_right_char(self):
         """get the character to the right of the cursor"""
         line = self.lines[self.cursor_index[1]]
         if self.cursor_index[0] < len(line):
             return line[self.cursor_index[0]]
+
 
     def get_left_char(self):
         """get the character to the left of the cursor"""
@@ -631,10 +670,12 @@ class Editor:
         elif self.cursor_index[0] - 1 < len(line):
             return line[self.cursor_index[0] - 1]
 
+
     def split_line_at_cursor(self):
         """Get 2 tuple of (left_line, right_line) based on cursor position."""
         line = self.lines[self.cursor_index[1]]
         return line[:self.cursor_index[0]], line[self.cursor_index[0]:]
+
 
     def insert_char(self, char):
         """insert a character at the cursor"""
@@ -642,12 +683,14 @@ class Editor:
         self.lines[self.cursor_index[1]] = l_line + char + r_line
         self.move_right()
 
+
     def insert_tab(self):
         """insert a tab at the cursor"""
         l_line, r_line = self.split_line_at_cursor()
 
         self.lines[self.cursor_index[1]] = l_line + _INDENT_SYM + r_line
         self.move_right()
+
 
     def insert_line(self):
         """insert a new line at the cursor"""
@@ -682,6 +725,7 @@ class Editor:
             self.move_left()
             self.cursor_index[0] -= len(r_line)
 
+
         # else, delete one char:
         else:
             self.lines[self.cursor_index[1]] = l_line[:-1] + r_line
@@ -699,33 +743,39 @@ class Editor:
         if self.display_index[0] < 0:
             self.display_index[0] = 0
 
+
     def display_to_cursor_y(self):
         """Move view to cursor on the Y axis"""
         if self.cursor_index[1] < self.display_index[1] + 3:
             self.display_index[1] = self.cursor_index[1] - 3
 
-        elif self.cursor_index[1] > self.display_index[1] + 7:
-            self.display_index[1] = self.cursor_index[1] - 7
+        elif self.cursor_index[1] > self.display_index[1] + _NUM_LINES + 2:
+            self.display_index[1] = self.cursor_index[1] - (_NUM_LINES + 2)
+
 
     def display_snap_right(self):
         """Move view all the way right"""
         self.display_index[0] += 100
         self.display_to_cursor_x()
 
+
     def display_snap_left(self):
         """Move view all the way left"""
         self.display_index[0] = 0
         self.display_to_cursor_x()
+
 
     def display_snap_up(self):
         """Move view all the way up"""
         self.display_index[1] = -3
         self.display_to_cursor_y()
 
+
     def display_snap_down(self):
         """Move view all the way down"""
         self.display_index[1] = len(self.lines)
         self.display_to_cursor_y()
+
 
     def clamp_cursor(self):
         """
@@ -738,6 +788,7 @@ class Editor:
             self.cursor_index[0] = 0
             self.move_down()
 
+
     def snap_cursor_x(self):
         """Keep cursor x within current line length."""
         if self.cursor_index[0] < 0:
@@ -745,6 +796,7 @@ class Editor:
         elif self.cursor_index[0] > len(self.lines[self.cursor_index[1]]):
             self.cursor_index[0] = len(self.lines[self.cursor_index[1]])
         self.display_to_cursor_x()
+
 
     def move_end(self):
         """Jump to bottom of document"""
@@ -795,6 +847,7 @@ class Editor:
         self.display_to_cursor_y()
         self.snap_cursor_x()
 
+
     def draw_scrollbar(self):
         """Draw the x and y scrollbars based on view position."""
         # y scrollbar
@@ -804,7 +857,7 @@ class Editor:
             scrollbar_position = int((_MH_DISPLAY_HEIGHT - scrollbar_height) * ((self.display_index[1] + 3) / max_screen_index))
             DISPLAY.rect(_MH_DISPLAY_WIDTH-2,0,2,_MH_DISPLAY_HEIGHT, CONFIG.palette[0])
             DISPLAY.vline(_MH_DISPLAY_WIDTH-3,scrollbar_position - 10, scrollbar_height + 20, CONFIG.palette[1])
-            DISPLAY.rect(_MH_DISPLAY_WIDTH-2,scrollbar_position - 10, 2, scrollbar_height + 20, CONFIG.palette[3])
+            DISPLAY.rect(_MH_DISPLAY_WIDTH-2,scrollbar_position - 10, 2, scrollbar_height + 20, CONFIG.palette[5])
 
         #x scrollbar
         max_screen_index = (len(self.lines[self.cursor_index[1]]) - _HORIZONTAL_CHARACTERS) + 4
@@ -813,7 +866,8 @@ class Editor:
             scrollbar_position = int((_MH_DISPLAY_WIDTH - scrollbar_width) * ((self.display_index[0]) / max_screen_index) )
             DISPLAY.hline(scrollbar_position, _MH_DISPLAY_HEIGHT-3, scrollbar_width, CONFIG.palette[1])
             DISPLAY.rect(0,_MH_DISPLAY_HEIGHT-2, _MH_DISPLAY_WIDTH,2, CONFIG.palette[0])
-            DISPLAY.rect(scrollbar_position, _MH_DISPLAY_HEIGHT-2, scrollbar_width, 2, CONFIG.palette[3])
+            DISPLAY.rect(scrollbar_position, _MH_DISPLAY_HEIGHT-2, scrollbar_width, 2, CONFIG.palette[5])
+
 
     def get_current_lines(self):
         """Get the lines currently within the "main" portion of the display"""
@@ -825,19 +879,22 @@ class Editor:
                 output.append("")
         return output
 
+
     def draw_cursor(self):
-        cursor_x = 8 * (self.cursor_index[0] - self.display_index[0]) + _LEFT_PADDING
-        cursor_y = _TEXT_HEIGHT * (self.cursor_index[1] - self.display_index[1]) - 28
+        cursor_x = _FONT_WIDTH * (self.cursor_index[0] - self.display_index[0]) + _LEFT_PADDING
+        cursor_y = (_SMALL_FONT_HEIGHT * 3) + (self.cursor_index[1] - self.display_index[1] - 3) * _TEXT_HEIGHT
         if time.ticks_ms() % _CURSOR_BLINK_MS < _CURSOR_BLINK_HALF:
-            DISPLAY.rect(cursor_x, cursor_y, 1, 16, CONFIG.palette[5])
+            DISPLAY.vline(cursor_x, cursor_y, 16, CONFIG.palette[9])
         else:
-            DISPLAY.rect(cursor_x, cursor_y, 1, 16, CONFIG.palette[3])
+            DISPLAY.vline(cursor_x, cursor_y, 16, CONFIG.palette[4])
+
 
     def draw_bg(self):
         """fill the background"""
         DISPLAY.fill(CONFIG.palette[2])
         if self.display_index[0] == 0: # left rule
             DISPLAY.vline(_LEFT_RULE, 0, _MH_DISPLAY_HEIGHT, CONFIG.palette[1])
+
 
     def save_file(self, filepath):
         """Reverse temporary formatting and Save the file."""
@@ -850,14 +907,17 @@ class Editor:
                     )
                 file.write(line + "\r\n")
 
+
     def copy_line(self):
         """Copy the current line to the clipboard"""
         self.clipboard = self.lines[self.cursor_index[1]]
+
 
     def paste(self):
         """Paste clipboard contents."""
         for char in self.clipboard:
             self.insert_char(char)
+
 
     def cut_line(self):
         """Copy line, and delete line."""
@@ -865,6 +925,7 @@ class Editor:
         self.lines[self.cursor_index[1]] = ''
         self.cursor_index[0] = 0
         self.clamp_cursor()
+
 
     def del_line(self):
         """Delete current line"""
@@ -929,16 +990,17 @@ def main_loop():
     editor.move_end()
     editor.draw_lines()
     DISPLAY.show()
-    KB.get_new_keys()
+    INPUT.get_new_keys()
 
     redraw_display = True
-
+    
+    
     while True:
-        keys = KB.get_new_keys()
+        keys = INPUT.get_new_keys()
         if keys:
             redraw_display = True
             for key in keys:
-                if "CTL" in KB.key_state:
+                if "CTL" in INPUT.key_state:
                     # CTRL KEY SHORTCUTS
 
                     if key == ";":
@@ -947,14 +1009,15 @@ def main_loop():
                     elif key == ".":
                         for _ in range(0,4):
                             editor.move_down()
+
                     elif key == "/":
                         editor.jump_right()
-
                     elif key == ",":
                         editor.jump_left()
 
                     elif key == "BSPC":
                         editor.jump_backspace()
+
                     elif key == "s":
                         editor.save_file(target_file)
                     elif key == "F5":
@@ -967,7 +1030,7 @@ def main_loop():
                     elif key == "v":
                         editor.paste()
 
-                elif "OPT" in KB.key_state:
+                elif "OPT" in INPUT.key_state:
                     # OPT KEY SHORTCUTS
 
                     if "." == key:
@@ -975,7 +1038,7 @@ def main_loop():
                     elif ";" == key:
                         editor.move_home()
 
-                elif "ALT" in KB.key_state:
+                elif "ALT" in INPUT.key_state:
                     # OPT KEY SHORTCUTS
                     if key == "/":
                         editor.display_snap_right()
@@ -993,14 +1056,18 @@ def main_loop():
                         editor.move_up()
                     elif key == 'DOWN':
                         editor.move_down()
+
                     elif key == "LEFT":
                         editor.move_left()
                     elif key == "RIGHT":
                         editor.move_right()
+
                     elif key == "ENT":
                         editor.insert_line()
+
                     elif key == "F5":
                         run_file_here(target_file,overlay,editor)
+
                     elif key == "BSPC":
                         editor.backspace()
 
@@ -1010,7 +1077,7 @@ def main_loop():
                     elif key == "TAB":
                         editor.insert_tab()
 
-                    elif key == "GO":
+                    elif key == "G0":
                         # file actions menu
                         file_options(target_file,overlay,editor)
 
@@ -1033,3 +1100,4 @@ def main_loop():
         DISPLAY.show()
 
 main_loop()
+

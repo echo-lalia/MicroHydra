@@ -44,8 +44,8 @@ class UIOverlay:
         return TextEntry(start_text=start_value, title=title, ui_overlay=self).main()
 
 
-    def popup_options(self, options:list[list], title=None):
-        return PopupOptions(options, title=title, ui_overlay=self).main()
+    def popup_options(self, options:list[list], title=None, depth=0):
+        return PopupOptions(options, title=title, depth=depth, ui_overlay=self).main()
 
 
     def draw_textbox(self, text, x, y, padding=8, shadow=True, extended_border=False):
@@ -257,7 +257,7 @@ class PopupOptions(PopupObject):
     Pop up options menu, can be 1D or 2D
     options parameter should be a list of lists, where each list is a separate column
     """
-    def __init__(self, options:list[list], title:str|None, ui_overlay:UIOverlay):
+    def __init__(self, options:list[list], title:str|None, depth:int, ui_overlay:UIOverlay):
 
         # parse 1-dimensional options into 2d for consistency
         if options and not isinstance(options[0], (list, tuple)):
@@ -266,6 +266,8 @@ class PopupOptions(PopupObject):
         
         # calculate bg width and height
         self.total_width, self.total_height, self.col_xs = self._find_width_height(options)
+        
+        self.depth = depth
         
         self.title = title
         self.cursor_x = 0
@@ -297,17 +299,19 @@ class PopupOptions(PopupObject):
         x -= box_width // 2
         y -= _OPTION_BOX_HEIGHT // 2
         
+        depth = self.depth
+        
         self.display.rect(
             x, y, box_width, _OPTION_BOX_HEIGHT,
-            self.config.palette[6 if selected else 4],
+            self.config.palette[(6 + depth) % 11 if selected else (4 + depth) % 11],
             fill=True)
         self.display.rect(
             x, y, box_width, _OPTION_BOX_HEIGHT,
-            self.config.palette[7 if selected else 5]
+            self.config.palette[(7 + depth) % 11 if selected else (5 + depth) % 11]
             )
         self.display.text(
             text, x + _OPTION_X_PADDING, y + _OPTION_Y_PADDING + 1,
-            self.config.palette[10 if selected else 6])
+            self.config.palette[(9 + depth) % 11 if selected else (6 + depth) % 11])
     
     
     def draw(self):
@@ -317,10 +321,11 @@ class PopupOptions(PopupObject):
         
         col_half_width = self.total_width // (num_columns * 2)
         
+        depth = self.depth
         
         bg_y = (display_height - self.total_height) // 2
         
-         # draw title:
+        # draw title:
         if self.title is not None:
             title_width = len(self.title) * _FONT_WIDTH
             title_box_width = max(title_width + _OPTION_X_PADDING_TOTAL, self.total_width)
@@ -329,19 +334,21 @@ class PopupOptions(PopupObject):
             title_box_x = display_width // 2 - title_box_width // 2
             title_box_y = bg_y - _OPTION_BOX_HEIGHT - _OPTION_Y_PADDING
             
+            
+            
             self.display.rect(
                 title_box_x, title_box_y,
                 title_box_width, _OPTION_BOX_HEIGHT + _OPTION_Y_PADDING,
-                self.config.palette[3], fill=True)
+                self.config.palette[(3 + depth) % 11], fill=True)
             self.display.text(
                 self.title,
                 title_x, title_box_y + _OPTION_Y_PADDING + 1,
-                self.config.palette[5],
+                self.config.palette[(5 + depth) % 11],
                 )
             self.display.text(
                 self.title,
                 title_x, title_box_y + _OPTION_Y_PADDING,
-                self.config.palette[6],
+                self.config.palette[(6 + depth) % 11],
                 )
         else:
             title_box_width = 0
@@ -356,7 +363,7 @@ class PopupOptions(PopupObject):
             bg_x,
             bg_y,
             bg_width, self.total_height,
-            self.config.palette[3],
+            self.config.palette[(3 + depth) % 11],
             fill=True
             )
         
@@ -413,7 +420,7 @@ class PopupOptions(PopupObject):
                 elif key == "DOWN":
                     self.cursor_y = (self.cursor_y + 1) % len(self.options[self.cursor_x])
 
-                elif key == "ESC" or key == "BSPC":
+                elif key == "ESC":
                     return None
 
                 elif key == "ENT" or key == "G0":
@@ -477,5 +484,6 @@ if __name__ == "__main__":
 #     
 #     tft.fill(0)
     #tft.show()
+
 
 
