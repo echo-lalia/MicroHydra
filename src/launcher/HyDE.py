@@ -13,10 +13,33 @@ machine.freq(240_000_000)
 _MH_DISPLAY_HEIGHT = const(240)
 _MH_DISPLAY_WIDTH = const(320)
 
-_HORIZONTAL_CHARACTERS = const((_MH_DISPLAY_WIDTH // 8) - 1)
 
-_DISPLAY_LINES = const(10)
-_DISPLAY_PADDING = const(1) # padding between lines
+_FONT_HEIGHT = const(16)
+_FONT_WIDTH = const(8)
+_SMALL_FONT_HEIGHT = const(8)
+_SMALL_FONT_WIDTH = const(8)
+
+
+_HORIZONTAL_CHARACTERS = const((_MH_DISPLAY_WIDTH // _FONT_WIDTH) - 1)
+
+
+# number of regular sized lines (always 6 small lines)
+_NUM_LINES = const((_MH_DISPLAY_HEIGHT - (_SMALL_FONT_HEIGHT * 6)) // _FONT_HEIGHT)
+_NUM_LINES_ALL = const(_NUM_LINES + 8)
+
+# padding between lines calculated by dividing the unused screen space by number of lines
+_DISPLAY_PADDING = const(
+    (_MH_DISPLAY_HEIGHT - ((6 * _SMALL_FONT_HEIGHT) + (_NUM_LINES * _FONT_HEIGHT))) \
+    // (_NUM_LINES)
+    ) 
+
+_TEXT_HEIGHT = const(_FONT_HEIGHT + _DISPLAY_PADDING)
+_TEXT_WIDTH = const(_FONT_WIDTH)
+_SMALL_TEXT_HEIGHT = const(_SMALL_FONT_HEIGHT + _DISPLAY_PADDING)
+
+_TEXT_HEIGHT_HALF = const(_TEXT_HEIGHT//2)
+_SMALL_TEXT_HEIGHT_HALF = const(_SMALL_TEXT_HEIGHT//2)
+
 
 _LEFT_PADDING = const(8)
 _LEFT_RULE = const(6)
@@ -24,10 +47,7 @@ _INDENT_RULE_OFFSET = const(_LEFT_RULE - _LEFT_PADDING)
 
 _RIGHT_TEXT_FADE = const(_MH_DISPLAY_WIDTH - 8)
 
-_TEXT_HEIGHT = const(16 + _DISPLAY_PADDING)
-_SMALL_TEXT_HEIGHT = const(8 + _DISPLAY_PADDING)
-_TEXT_HEIGHT_HALF = const(_TEXT_HEIGHT//2)
-_SMALL_TEXT_HEIGHT_HALF = const(_SMALL_TEXT_HEIGHT//2)
+
 
 _CURSOR_BLINK_MS = const(1000)
 _CURSOR_BLINK_HALF = const(_CURSOR_BLINK_MS // 2)
@@ -82,30 +102,33 @@ def shift_color565_hue(clr, shift):
 
     return clr
 
-STR_COLOR = shift_color565_hue(CONFIG.palette[5], -0.4)
-DARK_STR_COLOR = shift_color565_hue(CONFIG.palette[3], -0.2)
+STR_COLOR = color.mix_color565(
+    CONFIG.palette[15], CONFIG.palette[8], mix_factor=1.0, hue_mix_fac=0.0, sat_mix_fac=0.5
+    )
+DARK_STR_COLOR = color.mix_color565(
+    STR_COLOR, CONFIG.palette[2], mix_factor=0.6, hue_mix_fac=0.5, sat_mix_fac=0.5
+    )
 
 NUM_COLOR = shift_color565_hue(
-    color.mix_color565(CONFIG.palette[1], CONFIG.palette[5], mix_factor=0.95, hue_mix_fac=0, sat_mix_fac=0.95),
+    color.mix_color565(CONFIG.palette[2], CONFIG.palette[8], mix_factor=0.95, hue_mix_fac=0, sat_mix_fac=0.95),
     -0.15
     )
 
 OP_COLOR = color.mix_color565(
-    CONFIG.palette[1], CONFIG.palette[5], mix_factor=0.9, hue_mix_fac=0.7, sat_mix_fac=0.8
+    CONFIG.palette[2], CONFIG.palette[8], mix_factor=0.9, hue_mix_fac=0.7, sat_mix_fac=0.8
     )
 
 KEYWORD_COLOR = color.mix_color565(
-    CONFIG.palette[1], CONFIG.palette[5], mix_factor=1, hue_mix_fac=0.3, sat_mix_fac=0.7
+    CONFIG.palette[2], CONFIG.palette[8], mix_factor=1, hue_mix_fac=0.3, sat_mix_fac=0.7
     )
 
 COMMENT_COLOR = color.mix_color565(
-    CONFIG.palette[1], CONFIG.palette[5], mix_factor=0.5, hue_mix_fac=0, sat_mix_fac=0.1
+    CONFIG.palette[2], CONFIG.palette[8], mix_factor=0.5, hue_mix_fac=0, sat_mix_fac=0.1
     )
 
 DARK_COMMENT_COLOR = color.mix_color565(
-    CONFIG.palette[1], CONFIG.palette[5], mix_factor=0.25, hue_mix_fac=0, sat_mix_fac=0.1
+    CONFIG.palette[2], CONFIG.palette[8], mix_factor=0.25, hue_mix_fac=0, sat_mix_fac=0.1
     )
-
 
 
 
@@ -388,7 +411,7 @@ def draw_rule(x,y,small=False, highlight=False):
     DISPLAY.vline(
         x+6,y,
         _SMALL_TEXT_HEIGHT if small else _TEXT_HEIGHT,
-        CONFIG.palette[1] if highlight else CONFIG.palette[0]
+        CONFIG.palette[2] if highlight else CONFIG.palette[1]
         )
 
 
@@ -478,13 +501,13 @@ def draw_fancy_line(line, x, y, highlight=False, trim=True):
             color = OP_COLOR
 
         elif x < _LEFT_PADDING: # fade left chars
-            color = CONFIG.palette[3]
+            color = CONFIG.palette[6]
 
         elif x >= _RIGHT_TEXT_FADE:
-            color = CONFIG.palette[4]
+            color = CONFIG.palette[7]
 
         else:
-            color = CONFIG.palette[5]
+            color = CONFIG.palette[8]
 
         DISPLAY.text(
             char,
@@ -528,8 +551,8 @@ class Editor:
 
         # TODO: these if/else statements are too much. They should be simplified.
 
-        for i in range(self.display_index[1],self.display_index[1] + 11):
-            if i <= self.display_index[1] or i >= self.display_index[1] + 10:
+        for i in range(self.display_index[1], self.display_index[1] + _NUM_LINES_ALL):
+            if i <= self.display_index[1] or i >= self.display_index[1] + _NUM_LINES_ALL - 3:
                 #top/bottom lines
                 # only draw lines that are in the file:
                 if i >= 0 and i < len(self.lines):
@@ -537,14 +560,14 @@ class Editor:
                     draw_small_line(self.lines[i], line_x, draw_y, 2)
                 draw_y += 8
 
-            elif i <= self.display_index[1] + 1 or i >= self.display_index[1] + 9:
+            elif i <= self.display_index[1] + 1 or i >= self.display_index[1] + _NUM_LINES_ALL - 4:
                 #top/bottom lines
                 if i >= 0 and i < len(self.lines):
                     draw_rules(self.lines[i],line_x,draw_y,small=True,highlight=False)
                     draw_small_line(self.lines[i], line_x, draw_y, 1)
                 draw_y += 8
 
-            elif i <= self.display_index[1] + 2 or i >= self.display_index[1] + 8:
+            elif i <= self.display_index[1] + 2 or i >= self.display_index[1] + _NUM_LINES_ALL - 5:
                 # compact lines
                 if i >= 0 and i < len(self.lines):
                     draw_rules(self.lines[i],line_x,draw_y,small=True,highlight=False)
@@ -553,7 +576,7 @@ class Editor:
 
             else:
                 if i == self.cursor_index[1]:
-                    DISPLAY.rect(0,draw_y, 238,16,CONFIG.palette[0],fill=True)
+                    DISPLAY.rect(0,draw_y, _MH_DISPLAY_WIDTH-2,16,CONFIG.palette[0],fill=True)
                 if i >= 0 and i < len(self.lines):
                     is_currentline = (i == self.cursor_index[1])
                     draw_rules(self.lines[i],line_x,draw_y,small=False,highlight=is_currentline)
@@ -779,18 +802,18 @@ class Editor:
         if max_screen_index > 0:
             scrollbar_height = (_MH_DISPLAY_HEIGHT // max_screen_index) + 10
             scrollbar_position = int((_MH_DISPLAY_HEIGHT - scrollbar_height) * ((self.display_index[1] + 3) / max_screen_index))
-            DISPLAY.rect(238,0,2,_MH_DISPLAY_HEIGHT, CONFIG.palette[0])
-            DISPLAY.vline(237,scrollbar_position - 10, scrollbar_height + 20, CONFIG.palette[1])
-            DISPLAY.rect(238,scrollbar_position - 10, 2, scrollbar_height + 20, CONFIG.palette[3])
+            DISPLAY.rect(_MH_DISPLAY_WIDTH-2,0,2,_MH_DISPLAY_HEIGHT, CONFIG.palette[0])
+            DISPLAY.vline(_MH_DISPLAY_WIDTH-3,scrollbar_position - 10, scrollbar_height + 20, CONFIG.palette[1])
+            DISPLAY.rect(_MH_DISPLAY_WIDTH-2,scrollbar_position - 10, 2, scrollbar_height + 20, CONFIG.palette[3])
 
         #x scrollbar
         max_screen_index = (len(self.lines[self.cursor_index[1]]) - _HORIZONTAL_CHARACTERS) + 4
         if max_screen_index > 0:
             scrollbar_width = (_MH_DISPLAY_WIDTH // max_screen_index) + 10
             scrollbar_position = int((_MH_DISPLAY_WIDTH - scrollbar_width) * ((self.display_index[0]) / max_screen_index) )
-            DISPLAY.hline(scrollbar_position, 132, scrollbar_width, CONFIG.palette[1])
-            DISPLAY.rect(0,133, _MH_DISPLAY_WIDTH,2, CONFIG.palette[0])
-            DISPLAY.rect(scrollbar_position, 133, scrollbar_width, 2, CONFIG.palette[3])
+            DISPLAY.hline(scrollbar_position, _MH_DISPLAY_HEIGHT-3, scrollbar_width, CONFIG.palette[1])
+            DISPLAY.rect(0,_MH_DISPLAY_HEIGHT-2, _MH_DISPLAY_WIDTH,2, CONFIG.palette[0])
+            DISPLAY.rect(scrollbar_position, _MH_DISPLAY_HEIGHT-2, scrollbar_width, 2, CONFIG.palette[3])
 
     def get_current_lines(self):
         """Get the lines currently within the "main" portion of the display"""
