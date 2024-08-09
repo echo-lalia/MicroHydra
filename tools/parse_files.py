@@ -153,6 +153,7 @@ def main():
             if dir_entry.name != "definition.yml":
                 file_parser = FileParser(dir_entry, file_path)
                 file_parser.save_unparsable_file(DEST_PATH, device)
+        device.create_device_module(DEST_PATH)
 
 
     print_completed()
@@ -185,6 +186,54 @@ class Device:
 
     def __repr__(self):
         return f"Device({self.name})"
+
+    def create_device_module(self, dest_path):
+        """Create lib.device.py file containing device-specific values."""
+        # reformat device constants into plain 'snake case'
+        new_dict = {}
+        for key, val in self.constants.items():
+            key = key.removeprefix('_MH_').lower()
+
+            # convert None's
+            if val == 'None':
+                val = None
+            else:
+                # attempt conversion to int:
+                try:
+                    val = int(val)
+                except:
+                    pass
+
+            new_dict[key] = val
+        
+        new_feats = self.features.copy()
+        new_feats.append(self.name)
+
+        # find target path
+        destination = os.path.join(dest_path, self.name, 'lib', 'device.py')
+
+        file_str = f'''\
+"""
+This is an automatically generated module that contains the MH configuration for this specific device.
+"""
+
+class Device:
+    vals = {new_dict}
+    feats = {tuple(new_feats)}
+
+    @staticmethod
+    def __getattr__(name:str):
+        return Device.vals[name]
+
+    @staticmethod
+    def __contains__(val:str):
+        return val in Device.feats
+
+Device = Device()
+'''
+        with open(destination, 'w') as file:
+            file.write(file_str)
+
 
 
 class FileParser:
