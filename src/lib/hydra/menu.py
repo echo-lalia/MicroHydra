@@ -1,6 +1,5 @@
 import math, array, time
-from lib import microhydra as mh
-from lib import beeper
+from lib.hydra import color, beeper
 from lib.display import Display
 from lib.hydra.config import Config
 from font import vga2_16x32 as font
@@ -68,7 +67,7 @@ class Menu:
 
         CONFIG = Config()
         BEEP = beeper.Beeper()
-        DISPLAY = Display()
+        DISPLAY = Display.instance if hasattr(Display, 'instance') else Display()
 
 
         self.items = []
@@ -334,10 +333,10 @@ class RGBItem(MenuItem):
         instant_callback:callable|None=None,
         **kwargs):
         
-        super().__init__(menu=menu, text=text, value=list(mh.separate_color565(value)), selected=selected, callback=callback, instant_callback=instant_callback)
+        super().__init__(menu=menu, text=text, value=list(color.separate_color565(value)), selected=selected, callback=callback, instant_callback=instant_callback)
         self.in_item = False
         self.cursor_index = 0
-        self.init_value = list(mh.separate_color565(value))
+        self.init_value = list(color.separate_color565(value))
 
 
     def __repr__(self):
@@ -368,7 +367,7 @@ class RGBItem(MenuItem):
             self.value[self.cursor_index] += 1
             self.value[self.cursor_index] %= _MAX_RANGE[self.cursor_index]
             if self.instant_callback:
-                self.instant_callback(self, mh.combine_color565(self.value[0],self.value[1],self.value[2]))
+                self.instant_callback(self, color.combine_color565(self.value[0],self.value[1],self.value[2]))
             input_accepted = True
                 
         elif (key == "DOWN"):
@@ -376,7 +375,7 @@ class RGBItem(MenuItem):
             self.value[self.cursor_index] -= 1
             self.value[self.cursor_index] %= _MAX_RANGE[self.cursor_index]
             if self.instant_callback:
-                self.instant_callback(self, mh.combine_color565(self.value[0],self.value[1],self.value[2]))
+                self.instant_callback(self, color.combine_color565(self.value[0],self.value[1],self.value[2]))
             input_accepted = True
 
         elif (key == "G0" or key == "ENT") and self.in_item:
@@ -385,7 +384,7 @@ class RGBItem(MenuItem):
             self.in_item = False
             #self.menu.draw()
             if self.callback != None:
-                self.callback(self, mh.combine_color565(self.value[0],self.value[1],self.value[2]))
+                self.callback(self, color.combine_color565(self.value[0],self.value[1],self.value[2]))
             return True
 
         elif key == "ESC" and self.in_item:
@@ -394,7 +393,7 @@ class RGBItem(MenuItem):
             self.menu.in_submenu = False
             self.in_item = False
             if self.instant_callback:
-                self.instant_callback(self, mh.combine_color565(self.value[0],self.value[1],self.value[2]))
+                self.instant_callback(self, color.combine_color565(self.value[0],self.value[1],self.value[2]))
             return True
 
         self.in_item = True
@@ -426,7 +425,7 @@ class RGBItem(MenuItem):
         # draw pointer
         draw_select_arrow(
             _CENTERED_X[self.cursor_index], _SELECTION_ARROW_Y,
-            mh.combine_color565(self.value[0],self.value[1],self.value[2])
+            color.combine_color565(self.value[0],self.value[1],self.value[2])
             )
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Int Item ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -632,20 +631,20 @@ class PopUpWin:
 # ___________________________________________________________________________________________________________
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Shape Functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def draw_small_arrow(x, y, color, direction=1):
+def draw_small_arrow(x, y, clr, direction=1):
     for i in range(0,8):
         DISPLAY.hline(
             x = (x - i),
             y = y + (i * direction),
             length = 2 + (i*2),
-            color = color)
+            color = clr)
 
 
-def draw_select_arrow(x, y, color):
+def draw_select_arrow(x, y, clr):
     x -= 16
     _ARROW_COORDS = array.array('h', (16,0, 17,0, 33,16, 33,24, 0,24, 0,16))
     
-    DISPLAY.polygon(_ARROW_COORDS, x, y, color, fill=True)
+    DISPLAY.polygon(_ARROW_COORDS, x, y, clr, fill=True)
     DISPLAY.polygon(_ARROW_COORDS, x, y, 31695)
 
 
@@ -653,23 +652,23 @@ def draw_select_arrow(x, y, color):
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Text Functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def draw_small_text(text, x, y, color, bg_color=None):
+def draw_small_text(text, x, y, clr, bg_color=None):
     # draw small text on either st7789py or st7789fbuf
-    DISPLAY.text(text, x, y, color)
+    DISPLAY.text(text, x, y, clr)
 
 
-def draw_big_text(text, x, y, color, bg_color=None):
+def draw_big_text(text, x, y, clr, bg_color=None):
     # draw big text on either st7789py or st7789fbuf
-    DISPLAY.text(text, x, y, color, font=font)
+    DISPLAY.text(text, x, y, clr, font=font)
 
 
-def draw_centered_text(text, x, y, color, font=None):
+def draw_centered_text(text, x, y, clr, font=None):
     # draw text centered on the x axis
     if font:
         x = x - (len(text) * _FONT_WIDTH_HALF)
     else:
         x = x - (len(text) * _SMALL_FONT_WIDTH_HALF)
-    DISPLAY.text(text, x, y, color, font=font)
+    DISPLAY.text(text, x, y, clr, font=font)
 
 
 def get_text_center(text:str):
@@ -701,9 +700,7 @@ def draw_right_text(text:str, y_pos:int, selected=False):
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Sound Functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def play_sound(notes, time_ms=80):
-    if not CONFIG['ui_sound']:
-        return
-    BEEP.play(notes, time_ms=time_ms, volume=CONFIG['volume'])
+    BEEP.play(notes, time_ms=time_ms)
 
 
 

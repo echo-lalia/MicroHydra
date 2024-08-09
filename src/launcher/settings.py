@@ -2,7 +2,6 @@ from lib import userinput
 from lib.hydra import config
 from lib.hydra import menu as hydramenu
 from lib.display import Display
-from font import vga2_16x32 as font
 import time
 import machine
 

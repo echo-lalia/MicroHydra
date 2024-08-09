@@ -119,7 +119,7 @@ class ListView:
                 else:
                     #style based on directory or not
                     if self.dir_dict[self.items[item_index]]:
-                        tft.text(self.items[item_index] + "/", 2, idx*_LINE_HEIGHT + _TOP_PADDING, self.config.palette[4], font=font)
+                        tft.text(self.items[item_index] + "/", 2, idx*_LINE_HEIGHT + _TOP_PADDING, self.config.palette[5], font=font)
                     else:
                         tft.text(self.items[item_index], _LEFT_PADDING, idx*_LINE_HEIGHT + _TOP_PADDING, self.config.palette[6], font=font)
         
@@ -272,14 +272,9 @@ def file_options(file, overlay):
     elif option == "copy":
         # store copied file to clipboard
         clipboard = (os.getcwd(), file)
-#         new_name = overlay.text_entry(start_value=file, title=f"Rename '{file}':", blackout_bg=True)
+
         play_sound(("D3","G3","D3"), 30)
-#         with open(file,"rb") as source:
-#             with open(new_name, "wb") as dest:
-#                 while True:
-#                     l = source.read(512)
-#                     if not l: break
-#                     dest.write(l)
+
         
     elif option == "rename":
         play_sound(("B3"), 30)
@@ -316,10 +311,10 @@ def open_file(file):
     rtc.memory(full_path)
     time.sleep_ms(10)
     machine.reset()
-    
+
+
 def play_sound(notes, time_ms=30):
-    if config['ui_sound']:
-        beep.play(notes, time_ms, config['volume'])
+    beep.play(notes, time_ms)
 
 def main_loop(tft, kb, config, overlay):
     
