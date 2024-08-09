@@ -1,0 +1,3 @@
+[submodule "MicroPython"]
+	path = MicroPython
+	url = https://github.com/echo-lalia/microhydra-frozen.git
