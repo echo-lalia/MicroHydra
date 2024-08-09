@@ -89,6 +89,12 @@ class Keys:
     tb_move_thresh : int = 2
         how much the trackball must move before sending a directional keystroke.
     """
+    
+    # optional values set preferred main/secondary action keys:
+    main_action = "G0"
+    secondary_action = "ENT"
+    ext_dir_dict = {'w':'UP', 'a':'LEFT', 's':'DOWN', 'd':'RIGHT'}
+    
     def __init__(self, tb_move_thresh = 1, **kwargs):
         # turn on keyboard
         KBD_PWR.value(1)
@@ -125,8 +131,17 @@ class Keys:
         self.tb_move_thresh = tb_move_thresh
         
         self.key_state = []
-        
-        
+
+
+    @staticmethod
+    def ext_dir_keys(keylist):
+        """Convert typical (aphanumeric) keys into extended movement-specific keys"""
+        for idx, key in enumerate(keylist):
+            if key in Keys.ext_dir_dict:
+                keylist[idx] = Keys.ext_dir_dict[key]
+        return keylist
+
+
     def _handle_irq(self, tb_pin):
         """Respond to trackball movements"""
         if tb_pin == self.tb_left:
@@ -285,6 +300,8 @@ class Keys:
 if __name__ == "__main__":
     keys = Keys()
     while True:
-        print(keys.get_pressed_keys())
+        print(keys.ext_dir_keys(keys.get_pressed_keys()))
 
         time.sleep_ms(50)
+
+

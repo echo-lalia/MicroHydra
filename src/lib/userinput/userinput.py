@@ -262,17 +262,6 @@ class UserInput(_keys.Keys):
             # mh_end_if
 
     
-    def rebind_keys(self, new_keys:dict):
-        """
-        Rebind keyboard keys.
-        Pass a dictionary in the format {'OLD_KEY':'NEW_KEY'},
-        updates keymap in the userinput._keys module.
-        """
-        for key, val in _keys.KEYMAP.items():
-            if val in new_keys:
-                _keys.KEYMAP[key] = new_keys[val]
-
-    
     def _locked_keys_overlay(self, display):
         """Draw currently locked keys to the display."""
         width = display.width

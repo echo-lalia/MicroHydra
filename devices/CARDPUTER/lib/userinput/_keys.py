@@ -48,11 +48,17 @@ class Keys():
     Keys class is responsible for reading and returning currently pressed keys.
     It is intented to be used by the Input module.
     """
+    
+    # optional values set preferred main/secondary action keys:
+    main_action = "ENT"
+    secondary_action = "G0"
+    ext_dir_dict = {';':'UP', ',':'LEFT', '.':'DOWN', '/':'RIGHT'}
+    
     def __init__(self, **kwargs):
         self._key_list_buffer = []
         
-        #setup the "Go" button!
-        self.go = Pin(0, Pin.IN, Pin.PULL_UP)
+        #setup the "G0" button!
+        self.G0 = Pin(0, Pin.IN, Pin.PULL_UP)
 
         #setup column pins. These are read as inputs.
         c0 = Pin(13, Pin.IN, Pin.PULL_UP)
@@ -105,6 +111,15 @@ class Keys():
         return key_list_buffer
 
 
+    @staticmethod
+    def ext_dir_keys(keylist):
+        """Convert typical (aphanumeric) keys into extended movement-specific keys"""
+        for idx, key in enumerate(keylist):
+            if key in Keys.ext_dir_dict:
+                keylist[idx] = Keys.ext_dir_dict[key]
+        return keylist
+
+
     def get_pressed_keys(self, force_fn=False, force_shift=False):
         """
         Get a readable list of currently held keys.
@@ -125,8 +140,8 @@ class Keys():
         self.scan()
         self.key_state = []
         
-        if self.go.value() == 0:
-            self.key_state.append("GO")
+        if self.G0.value() == 0:
+            self.key_state.append("G0")
         
         if not self._key_list_buffer and not self.key_state: # if nothing is pressed, we can return an empty list
             return self.key_state
@@ -144,3 +159,4 @@ class Keys():
                 self.key_state.append(KEYMAP[keycode])
         
         return self.key_state
+

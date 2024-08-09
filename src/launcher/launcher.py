@@ -37,8 +37,6 @@ import os
 import math
 import ntptime
 import network
-import framebuf
-import array
 import machine
 from launcher.icons import battery, appicons
 from font import vga2_16x32 as font
@@ -46,10 +44,6 @@ from lib import userinput, battlevel, sdcard
 from lib.hydra import beeper
 from lib.hydra.config import Config
 from lib import display
-import gc
-
-gc.collect()
-gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ _CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -129,10 +123,6 @@ DISPLAY = display.Display(
 BEEP = beeper.Beeper()
 CONFIG = Config()
 KB = userinput.UserInput()
-# mh_if CARDPUTER:
-# Make Cardputer arrow keys bahave as expected
-KB.rebind_keys({',':'LEFT', '/':'RIGHT'})
-# mh_end_if
 
 SD = sdcard.SDCard()
 RTC = machine.RTC()
@@ -154,9 +144,6 @@ LASTDRAWN_MINUTE = -1
 def scan_apps():
     global SD, APP_NAMES, APP_PATHS
     # first we need a list of apps located on the flash or SDCard
-    
-    gc.collect()
-    gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
 
     SD.mount()
     main_directory = os.listdir("/")
@@ -648,7 +635,6 @@ def try_sync_clock():
 # --------------------------------------------------------------------------------------------------
 def main_loop():
     global APP_SELECTOR_INDEX, PREV_SELECTOR_INDEX, SYNCING_CLOCK
-    gc.collect()
     # scan apps asap to populate app names/paths and SD
     scan_apps()
 
@@ -692,6 +678,11 @@ def main_loop():
 
         # ----------------------- check for key presses on the keyboard. Only if they weren't already pressed. --------------------------
         new_keys = KB.get_new_keys()
+
+        # mh_if CARDPUTER:
+        # # Cardputer should use extended movement keys in the launcher
+        # KB.ext_dir_keys(new_keys)
+        # mh_end_if
         
         # mh_if touchscreen:
         # add swipes to direcitonal input

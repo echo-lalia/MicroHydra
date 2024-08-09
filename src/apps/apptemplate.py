@@ -1,6 +1,3 @@
-from lib import st7789fbuf, mhconfig, keyboard
-import machine, time
-
 """
 MicroHydra App Template
 Version: 1.0
@@ -21,39 +18,37 @@ Have fun!
 TODO: replace the above description with your own!
 """
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-_DISPLAY_HEIGHT = const(135)
-_DISPLAY_WIDTH = const(240)
-_DISPLAY_WIDTH_HALF = const(_DISPLAY_WIDTH // 2)
+
+
+from lib import display, userinput
+from lib.hydra import config
+import time
+
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ _CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_MH_DISPLAY_HEIGHT = const(135)
+_MH_DISPLAY_WIDTH = const(240)
+_DISPLAY_WIDTH_HALF = const(_MH_DISPLAY_WIDTH // 2)
 
 _CHAR_WIDTH = const(8)
 _CHAR_WIDTH_HALF = const(_CHAR_WIDTH // 2)
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GLOBAL OBJECTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GLOBAL_OBJECTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # init object for accessing display
-tft = st7789fbuf.ST7789(
-    machine.SPI(
-        1,baudrate=40000000,sck=machine.Pin(36),mosi=machine.Pin(35),miso=None),
-    _DISPLAY_HEIGHT,
-    _DISPLAY_WIDTH,
-    reset=machine.Pin(33, machine.Pin.OUT),
-    cs=machine.Pin(37, machine.Pin.OUT),
-    dc=machine.Pin(34, machine.Pin.OUT),
-    backlight=machine.Pin(38, machine.Pin.OUT),
-    rotation=1,
-    color_order=st7789fbuf.BGR
-    )
+DISPLAY = display.Display()
 
 # object for accessing microhydra config (Delete if unneeded)
-config = mhconfig.Config()
+CONFIG = config.Config()
 
-# object for reading keypresses
-kb = keyboard.KeyBoard()
+# object for reading keypresses (or other user input)
+INPUT = userinput.UserInput()
 
 
 #--------------------------------------------------------------------------------------------------
-#-------------------------------------- FUNCTION DEFINITIONS: -------------------------------------
+#-------------------------------------- function_definitions: -------------------------------------
 #--------------------------------------------------------------------------------------------------
 
 # Add any function definitions you want here
@@ -62,15 +57,13 @@ kb = keyboard.KeyBoard()
 
 
 #--------------------------------------------------------------------------------------------------
-#--------------------------------------- CLASS DEFINITIONS: ---------------------------------------
+#---------------------------------------- ClassDefinitions: ---------------------------------------
 #--------------------------------------------------------------------------------------------------
 
 # Add any class definitions you want here
 # class Placeholder:
 #     def __init__(self):
 #         print("Placeholder")
-
-
 
 
 #--------------------------------------------------------------------------------------------------
@@ -86,21 +79,21 @@ def main_loop():
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ INITIALIZATION: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
     # If you need to do any initial work before starting the loop, this is a decent place to do that.
-    
+
     # create variable to remember text between loops
-    current_text = "Hello World!" 
-    
-    
-    
-    while True: # Fill this loop with your program logic! (delete old code you dont need)
-        
+    current_text = "Hello World!"
+
+
+
+    while True: # Fill this loop with your program logic! (delete old code you don't need)
+
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ INPUT: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        
+
         # put user input logic here
         
         # get list of newly pressed keys
-        keys = kb.get_new_keys()
+        keys = INPUT.get_new_keys()
         
         # if there are keys, convert them to a string, and store for display
         if keys:
@@ -113,19 +106,19 @@ def main_loop():
         # put graphics rendering logic here
         
         # clear framebuffer 
-        tft.fill(config['bg_color'])
+        DISPLAY.fill(CONFIG.palette[2])
         
         # write current text to framebuffer
-        tft.text(
+        DISPLAY.text(
             text=current_text,
             # center text on x axis:
             x=_DISPLAY_WIDTH_HALF - (len(current_text) * _CHAR_WIDTH_HALF), 
             y=50,
-            color=config['ui_color']
+            color=CONFIG.palette[8]
             )
         
         # write framebuffer to display
-        tft.show()
+        DISPLAY.show()
         
         
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -135,6 +128,7 @@ def main_loop():
         
         # do nothing for 10 milliseconds
         time.sleep_ms(10)
+
 
 
 # start the main loop
