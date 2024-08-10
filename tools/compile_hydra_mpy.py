@@ -29,17 +29,19 @@ DEVICE_PATH = SCRIPT_ARGS.devices
 MPY_PATH = SCRIPT_ARGS.mpy
 VERBOSE = SCRIPT_ARGS.verbose
 
-
+# files that shouldn't be compiled
+NO_COMPILE = ('main.py', 'apptemplate.py')
 
 # set defaults for args not given:
 CWD = os.getcwd()
+OG_DIRECTORY = CWD
 
 if SOURCE_PATH is None:
     SOURCE_PATH = os.path.join(CWD, 'MicroHydra')
 if DEVICE_PATH is None:
     DEVICE_PATH = os.path.join(CWD, 'devices')
 if MPY_PATH is None:
-    MPY_PATH = os.path.join(CWD, 'MicroPython', 'mpy-cross', 'build', 'mpy-cross')
+    MPY_PATH = os.path.join(CWD, 'MicroPython', 'mpy-cross', 'build')
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main():
@@ -49,6 +51,7 @@ def main():
     This file is organized such that the "main" logic lives near the top,
     and all of the functions/classes used here are defined below.
     """
+    os.chdir(MPY_PATH)
 
     # parse devices into list of Device objects
     devices = []
@@ -65,15 +68,16 @@ def main():
         for dir_entry in os.scandir(source_path):
             source_files += extract_file_data(dir_entry, '')
         
-        for dir_entry, file_path in all_file_data:
+        for dir_entry, file_path in source_files:
             file_compiler = FileCompiler(dir_entry, file_path)
 
-            if file_compiler.can_parse_file():
+            if file_compiler.can_compile():
                 file_compiler.compile(dest_path, device.march)
             else:
                 file_compiler.copy_to(dest_path)
 
-        print(source_files)
+    os.chdir(OG_DIRECTORY)
+
         
 
 
@@ -114,9 +118,9 @@ class FileCompiler:
         self.path = dir_entry.path
 
 
-    def can_parse_file(self) -> bool:
+    def can_compile(self) -> bool:
         """Check if we can actually parse this file (don't parse non-python data files.)"""
-        if self.name.endswith('.py'):
+        if self.name.endswith('.py') and self.name not in NO_COMPILE:
             return True
         return False
 
@@ -136,17 +140,14 @@ class FileCompiler:
                 new_file.write(source_file.read())
 
 
-    def save(self, dest_path, device):
-        """Save modified contents to given destination."""
-        dest_path = os.path.join(dest_path, device.name, self.relative_path, self.name)
+    def compile(self, dest_path, mpy_arch):
+        """Compile using mpy-cross."""
+        dest_name = self.name.removesuffix('.py') + '.mpy'
+        dest_path = os.path.join(dest_path, self.relative_path, dest_name)
         # make target directory:
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-        # write our modified lines:
-        with open(dest_path, 'w', encoding="utf-8") as file:
-            file.writelines(self.lines)
-
-
-    def compile(self, dest_path, mpy_arch):
+        # compile with mpy-cross
+        os.system(f'./mpy-cross "{self.path}" -o "{dest_path}" -march={mpy_arch}')
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -160,5 +161,19 @@ def extract_file_data(dir_entry, path_dir):
         return output
     else:
         return [(dir_entry, path_dir)]
-    
-main()
+
+
+
+def launch_wsl():
+    """Attempt to use WSL if run from Windows"""
+    subprocess.call('wsl -e sh -c "python3 tools/compile_hydra_mpy.py"')
+
+# build process is convoluted on Windows (and not supported by this script)
+# so if we are on Windows, try launching WSL instead:
+is_windows = os.name == 'nt'
+
+if is_windows:
+    print("Running in Windows, attempting to use WSL...")
+    launch_wsl()
+else:
+    main()
