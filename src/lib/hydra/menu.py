@@ -2,6 +2,7 @@ import math, array, time
 from lib.hydra import color, beeper
 from lib.display import Display
 from lib.hydra.config import Config
+from lib.userinput import UserInput
 from font import vga2_16x32 as font
 
 
@@ -165,7 +166,10 @@ class Menu:
         if self.in_submenu:
             return self.items[self.cursor_index].handle_input(key)
         
-        elif key == 'UP':
+        # this applies extra device-specific navigation keys
+        key = UserInput.ext_dir_dict.get(key, key)
+
+        if key == 'UP':
             self.cursor_index = (self.cursor_index - 1) % len(self.items)
             play_sound(("G3","B3"), time_ms=30)
             return True
@@ -177,7 +181,7 @@ class Menu:
 
         elif key == 'G0' or key == 'ENT':
             play_sound(("G3","B3","D3"), time_ms=30)
-            return (self.items[self.cursor_index].handle_input("GO"))
+            return (self.items[self.cursor_index].handle_input("G0"))
 
         elif key == "ESC":
             # pass control back when menu is backed out of.
@@ -275,14 +279,12 @@ class BoolItem(MenuItem):
 
 
     def handle_input(self, key):
-        if (key == "GO" or key == "ENT"):
-            self.value = not self.value
-            #self.draw()
-            if self.callback != None:
-                self.callback(self, self.value)
-            return True
-        
-        return False
+        self.value = not self.value
+        #self.draw()
+        if self.callback != None:
+            self.callback(self, self.value)
+
+        return True
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Do Item ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -346,7 +348,9 @@ class RGBItem(MenuItem):
     def handle_input(self, key):
         _MAX_RANGE = const((32, 64, 32))
         input_accepted = False
-        
+
+        key = UserInput.ext_dir_dict.get(key, key)
+
         if not self.in_item:
             # remember original value
             self.init_value = self.value.copy()
@@ -461,6 +465,8 @@ class IntItem(MenuItem):
             # remember original value
             self.init_value = self.value
         
+        key = UserInput.ext_dir_dict.get(key, key)
+
         if (key == "UP"):
             self.value += 1
             if self.value > self.max_int:
@@ -583,6 +589,7 @@ class WriteItem(MenuItem):
             
         self.in_item = True
         self.draw_win()
+
 
 # ____________________________________________________________________________________________________________
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Popup Window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

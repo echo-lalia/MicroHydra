@@ -51,8 +51,10 @@ class Keys():
     
     # optional values set preferred main/secondary action keys:
     main_action = "ENT"
-    secondary_action = "G0"
-    ext_dir_dict = {';':'UP', ',':'LEFT', '.':'DOWN', '/':'RIGHT'}
+    secondary_action = "SPC"
+    aux_action = "G0"
+
+    ext_dir_dict = {';':'UP', ',':'LEFT', '.':'DOWN', '/':'RIGHT', '`':'ESC'}
     
     def __init__(self, **kwargs):
         self._key_list_buffer = []

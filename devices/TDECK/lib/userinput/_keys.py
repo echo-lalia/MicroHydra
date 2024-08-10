@@ -93,7 +93,9 @@ class Keys:
     # optional values set preferred main/secondary action keys:
     main_action = "G0"
     secondary_action = "ENT"
-    ext_dir_dict = {'w':'UP', 'a':'LEFT', 's':'DOWN', 'd':'RIGHT'}
+    aux_action = "SPC"
+
+    ext_dir_dict = {'i':'UP', 'j':'LEFT', 'k':'DOWN', 'l':'RIGHT', 'q':'ESC'}
     
     def __init__(self, tb_move_thresh = 1, **kwargs):
         # turn on keyboard

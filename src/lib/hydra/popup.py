@@ -4,8 +4,8 @@ from lib.hydra.config import Config
 from lib.userinput import UserInput
 
 
-_MH_DISPLAY_WIDTH = const(320)
-_MH_DISPLAY_HEIGHT = const(240)
+_MH_DISPLAY_WIDTH = const(240)
+_MH_DISPLAY_HEIGHT = const(135)
 
 _DISPLAY_WIDTH_CENTER = const(_MH_DISPLAY_WIDTH//2)
 _DISPLAY_HEIGHT_CENTER = const(_MH_DISPLAY_HEIGHT//2)
@@ -230,7 +230,7 @@ class TextEntry(PopupObject):
                     self.text += " "
                 elif key == "BSPC":
                     self.text = self.text[:-1]
-                elif key == "ENT":
+                elif key == "ENT" or key == "G0":
                     return self.text
                 elif key == "ESC":
                     return self.start_text
@@ -403,11 +403,11 @@ class PopupOptions(PopupObject):
         Blocks until "enter" key pressed, returning option str.
         """
         self.draw()
-        
-        draw_time = time.ticks_ms()
+
         
         while True:
             keys = self.kb.get_new_keys()
+            self.kb.ext_dir_keys(keys)
             
             for key in keys:
                 if key == "RIGHT":
@@ -420,10 +420,10 @@ class PopupOptions(PopupObject):
                 elif key == "DOWN":
                     self.cursor_y = (self.cursor_y + 1) % len(self.options[self.cursor_x])
 
-                elif key == "ESC":
+                elif key == "ESC" or key == "BSPC":
                     return None
 
-                elif key == "ENT" or key == "G0":
+                elif key == self.kb.main_action or key == self.kb.secondary_action:
                     return self.options[self.cursor_x][self.cursor_y]
             
             if keys:
@@ -431,59 +431,3 @@ class PopupOptions(PopupObject):
             else:
                 time.sleep_ms(10)
     
-    
-
-if __name__ == "__main__":
-    # just for testing
-    from lib import display
-    from lib.hydra.config import Config
-
-    tft = Display()
-
-    overlay = UIOverlay()
-    
-    tft.fill(Config().palette[2])
-    
-    print(overlay.popup_options(['1','2','3','4','5']))
-    print(overlay.popup_options((
-        ["do","re","mi","fa","so"],
-        ["la","ti","do"],
-        ["this", "is","a","test"],
-        ), title="popup options!"))
-#     print(overlay.text_entry("Hello, world!", title="test:"))
-    print("DONE")
-
-#     # popup demo:
-#     tft.fill(0)
-#     #tft.show()
-#     time.sleep(0.5)
-# 
-#     choices = ("popup", "error", "palette", "enter_text")
-#     choice = overlay.popup_options(choices, title="Choose demo:")
-#     if choice == "popup":
-#         tft.fill(0)
-#         #tft.show()
-#         overlay.popup("Lorem ipsum is placeholder text commonly used in the graphic, print, and publishing industries for previewing layouts and visual mockups.")
-#     elif choice == "error":
-#         tft.fill(0)
-#         #tft.show()
-#         overlay.error("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt")
-#     elif choice == "palette":
-#         tft.fill(0)
-#         #tft.show()
-#         # color palette
-#         bar_width = 240 // len(config.palette)
-#         for i in range(0,len(config.palette)):
-#             tft.fill_rect(bar_width*i, 0, bar_width, 135, config.palette[i])
-#     elif choice == "enter_text":
-#         tft.fill(0)
-#         print(overlay.text_entry(start_value="Demo!"))
-#         
-#     config.save() # this should do nothing
-#     
-#     
-#     tft.fill(0)
-    #tft.show()
-
-
-

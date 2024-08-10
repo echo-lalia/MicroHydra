@@ -326,6 +326,8 @@ def main_loop(tft, kb, config, overlay):
     
     while True:
         new_keys = kb.get_new_keys()
+        kb.ext_dir_keys(new_keys)
+
         for key in new_keys:
             if key == "UP":
                 view.up()
@@ -333,7 +335,8 @@ def main_loop(tft, kb, config, overlay):
             elif key == "DOWN":
                 view.down()
                 play_sound(("D3","B3"), 30)
-            elif key == "ENT" or key == "SPC":
+
+            elif key == kb.main_action or key == kb.secondary_action:
                 play_sound(("G3","B3","D3"), 30)
                 selection_name = file_list[view.cursor_index]
                 if selection_name == "/.../": # new file
@@ -372,7 +375,7 @@ def main_loop(tft, kb, config, overlay):
                 view.cursor_index = 0
                 view.view_index = 0
                 
-            elif key == "G0":
+            elif key == kb.aux_action:
                     ext_options(overlay)
                     file_list, dir_dict = parse_files()
                     view.items = file_list
