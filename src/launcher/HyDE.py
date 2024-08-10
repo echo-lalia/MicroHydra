@@ -999,6 +999,7 @@ def main_loop():
     
     while True:
         keys = INPUT.get_new_keys()
+        mod_keys = INPUT.get_mod_keys()
         
         # redraw bg to erase/refresh locking keys overlay
         if prev_locked_keys != INPUT.locked_keys:
@@ -1008,7 +1009,7 @@ def main_loop():
         if keys:
             redraw_display = True
             for key in keys:
-                if "CTL" in INPUT.key_state:
+                if "CTL" in mod_keys:
                     # CTRL KEY SHORTCUTS
 
                     if key == ";":
@@ -1038,7 +1039,7 @@ def main_loop():
                     elif key == "v":
                         editor.paste()
 
-                elif "OPT" in INPUT.key_state:
+                elif "OPT" in mod_keys:
                     # OPT KEY SHORTCUTS
 
                     if "." == key:
@@ -1046,7 +1047,7 @@ def main_loop():
                     elif ";" == key:
                         editor.move_home()
 
-                elif "ALT" in INPUT.key_state:
+                elif "ALT" in mod_keys:
                     # OPT KEY SHORTCUTS
                     if key == "/":
                         editor.display_snap_right()

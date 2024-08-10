@@ -167,6 +167,11 @@ class UserInput(_keys.Keys):
         return super().get_pressed_keys(force_fn=force_fn, force_shift=force_shift)
 
 
+    def get_mod_keys(self):
+        """Return modifier keys that are being held, or that are currently locked."""
+        return [key for key in self.key_state + self.locked_keys if key in _keys.MOD_KEYS]
+
+
     def populate_tracker(self):
         """Move currently pressed keys to tracker"""
         # add new keys
