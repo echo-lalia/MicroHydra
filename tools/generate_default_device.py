@@ -55,7 +55,13 @@ def combine_constants(dict_list):
     
     return combined_dict
 
+def add_line_break(string, breakpoint):
+    return string.replace(breakpoint, f'\n{breakpoint}')
 
+def add_line_breaks(string, breaks):
+    for breakpoint in breaks:
+        string = add_line_break(string, breakpoint)
+    return string
 
 
 def main():
@@ -74,7 +80,8 @@ def main():
 
     default_def = {
         "constants": combine_constants(all_constants),
-        "features": list(all_features)
+        "features": list(all_features),
+        "mpy_arch": 'xtensawin',
         }
     
     default_file_text = """\
@@ -88,10 +95,10 @@ def main():
 #
 # 'features' contains every single feature that exists in a device definition.
 
-""" + yaml.dump(default_def, ).replace(
-    "features:",
-    "\nfeatures:"
-)
+""" + add_line_breaks(
+    yaml.dump(default_def), 
+    ("features:", "mpy_arch:", "constants:")
+    )
 
     with open(os.path.join(DEVICE_PATH, "default.yml"), "w") as default_file:
         default_file.write(default_file_text)

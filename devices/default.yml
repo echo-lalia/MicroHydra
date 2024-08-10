@@ -8,6 +8,7 @@
 #
 # 'features' contains every single feature that exists in a device definition.
 
+
 constants:
   _MH_BATT_ADC: '10'
   _MH_DISPLAY_BACKLIGHT: '38'
@@ -33,14 +34,16 @@ constants:
   _MH_SDCARD_SLOT: '2'
 
 features:
-- touchscreen
-- wifi
-- keyboard
-- trackball
-- ir_blaster
-- pdm_microphone
-- bluetooth
 - display
-- kb_light
+- wifi
+- trackball
+- pdm_microphone
+- touchscreen
 - spi_ram
 - i2s_speaker
+- ir_blaster
+- bluetooth
+- kb_light
+- keyboard
+
+mpy_arch: xtensawin

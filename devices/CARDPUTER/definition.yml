@@ -30,3 +30,5 @@ features:
 - ir_blaster
 - wifi
 - bluetooth
+
+mpy_arch: xtensawin

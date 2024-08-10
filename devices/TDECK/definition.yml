@@ -36,3 +36,5 @@ features:
 - bluetooth
 - kb_light
 - spi_ram
+
+mpy_arch: xtensawin
