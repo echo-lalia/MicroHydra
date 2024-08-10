@@ -88,7 +88,7 @@ DISPLAY = display.Display()
 
 RTC = machine.RTC()
 CONFIG = config.Config()
-INPUT = userinput.UserInput()
+INPUT = userinput.UserInput(allow_locking_keys=True)
 NVS = esp32.NVS("HyDE")
 
 
@@ -994,9 +994,17 @@ def main_loop():
 
     redraw_display = True
     
+    # track previously locked keys for graphics redrawing
+    prev_locked_keys = []
     
     while True:
         keys = INPUT.get_new_keys()
+        
+        # redraw bg to erase/refresh locking keys overlay
+        if prev_locked_keys != INPUT.locked_keys:
+            prev_locked_keys = INPUT.locked_keys.copy()
+            redraw_display = True
+
         if keys:
             redraw_display = True
             for key in keys:

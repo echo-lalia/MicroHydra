@@ -39,7 +39,7 @@ KEYMAP_FN = {
     }
 
 
-MOD_KEYS = const(('ALT', 'CTRL', 'FN', 'SHIFT', 'OPT'))
+MOD_KEYS = const(('ALT', 'CTL', 'FN', 'SHIFT', 'OPT'))
 ALWAYS_NEW_KEYS = const(())
 
 
