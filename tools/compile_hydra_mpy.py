@@ -5,9 +5,8 @@ Compile .mpy version of MicroHydra for each device.
 import os
 import yaml
 import argparse
-import re
 import subprocess
-import time
+import shutil
 
 
 # argparser stuff:
@@ -61,6 +60,8 @@ def main():
 
 
     for device in devices:
+        print(f"Compiling .mpy files for {device.name.title()}...")
+
         source_path = os.path.join(SOURCE_PATH, device.name)
         dest_path = os.path.join(SOURCE_PATH, f"{device.name}_compiled")
 
@@ -76,6 +77,9 @@ def main():
             else:
                 file_compiler.copy_to(dest_path)
 
+        shutil.make_archive(dest_path, 'zip', dest_path)
+    
+    print("Finished making compiled archives.")
     os.chdir(OG_DIRECTORY)
 
         
