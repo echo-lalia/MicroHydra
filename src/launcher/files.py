@@ -41,11 +41,19 @@ _SCROLL_TIME = const(5000) # ms per one text scroll
 
 _PATH_JOIN = const("|//|")
 
+# mh_if frozen:
+# FILE_HANDLERS = {
+#     "":".frozen/launcher/HyDE.py", # default
+#     "py":".frozen/launcher/HyDE.py",
+#     "txt":".frozen/launcher/HyDE.py",
+#     }
+# mh_else:
 FILE_HANDLERS = {
     "":"/launcher/HyDE.py", # default
     "py":"/launcher/HyDE.py",
     "txt":"/launcher/HyDE.py",
     }
+# mh_end_if
 
 
 

@@ -61,7 +61,11 @@ _CURSOR_BLINK_HALF = const(_CURSOR_BLINK_MS // 2)
 
 
 # used for "exit to file browser" option:
-_FILE_BROWSER = const("/launcher/files.py")
+# mh_if frozen:
+# _FILE_BROWSER = const(".frozen/launcher/files")
+# mh_else:
+_FILE_BROWSER = const("/launcher/files")
+# mh_end_if
 
 
 

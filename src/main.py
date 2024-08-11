@@ -1,15 +1,20 @@
 import os
 import machine
+from lib import sdcard
 import sys
 
 sys.path = ['', '/lib', '.frozen', '.frozen/lib']
 
 #default app path is the path to the launcher
-app_path = "/launcher/launcher.py"
+# mh_if frozen:
+# app_path = ".frozen/launcher/launcher"
+# mh_else:
+app_path = "/launcher/launcher"
+# mh_end_if
 
 # mh_if TDECK:
 # # T-Deck must manually power on its peripherals
-# machine.Pin(10, machine.Pin.OUT).on()
+# machine.Pin(10, machine.Pin.OUT, value=True)
 # mh_end_if
 
 if machine.reset_cause() != machine.PWRON_RESET: #if this was not a power reset, we are probably launching an app!
@@ -26,12 +31,7 @@ if machine.reset_cause() != machine.PWRON_RESET: #if this was not a power reset,
 
 # only mount the sd card if the app is on the sd card.
 if app_path.startswith("/sd"):
-    sd = machine.SDCard(slot=2, sck=machine.Pin(40), miso=machine.Pin(39), mosi=machine.Pin(14), cs=machine.Pin(12))
-    try:
-        os.mount(sd, '/sd')
-    except OSError:
-        with open('log.txt', 'a') as log:
-            log.write(f"Couldn't mount SDCard!\n")
+    sdcard.SDCard().mount()
 
 # import the requested app!
 try:
@@ -40,6 +40,10 @@ except Exception as e:
     with open('log.txt', 'a') as log:
         log.write(f"Tried to launch '{app_path}', but failed: '{e}'\n")
     try:
-        __import__("/launcher/launcher.py")
+        # mh_if frozen:
+        # __import__(".frozen/launcher/launcher")
+        # mh_else:
+        __import__("/launcher/launcher")
+        # mh_end_if
     except ImportError:
         print("Launcher couldn't be imported")

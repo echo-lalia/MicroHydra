@@ -114,7 +114,7 @@ except RuntimeError as e:
 
 DISPLAY = display.Display(
     # mh_if spi_ram:
-    use_tiny_buf=False,
+    # use_tiny_buf=False,
     # mh_else:
     use_tiny_buf=True,
     # mh_end_if
@@ -202,14 +202,24 @@ def scan_apps():
 
     # add an appname for builtin file browser
     app_names.append("Files")
-    app_paths["Files"] = "/launcher/files.py"
+    # mh_if frozen:
+    # app_paths["Files"] = ".frozen/launcher/files"
+    # mh_else:
+    app_paths["Files"] = "/launcher/files"
+    # mh_end_if
+
     # add an appname to refresh the app list
     app_names.append("Reload Apps")
     # add an appname to control the beeps
     app_names.append("UI Sound")
+
     # add an appname to open settings app
     app_names.append("Settings")
-    app_paths["Settings"] = "/launcher/settings.py"
+    # mh_if frozen:
+    # app_paths["Settings"] = ".frozen/launcher/settings"
+    # mh_else:
+    app_paths["Settings"] = "/launcher/settings"
+    # mh_end_if
 
     APP_NAMES = app_names
     APP_PATHS = app_paths

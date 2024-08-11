@@ -137,7 +137,7 @@ def main():
                 vprint(f"    {bcolors.OKCYAN}{device}{bcolors.ENDC}")
                 file_parser.init_lines()
                 file_parser.parse_constants(device)
-                file_parser.parse_conditionals(device, frozen=False)
+                file_parser.parse_conditionals(device, frozen=FROZEN)
                 file_parser.save(DEST_PATH, device)
             else:
                 # This script is only designed for .py files.
