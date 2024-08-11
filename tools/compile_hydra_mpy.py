@@ -60,7 +60,7 @@ def main():
 
 
     for device in devices:
-        print(f"Compiling .mpy files for {device.name.title()}...")
+        print(f"{bcolors.OKBLUE}Compiling .mpy files for {device.name.title()}...{bcolors.ENDC}")
 
         source_path = os.path.join(SOURCE_PATH, device.name)
         dest_path = os.path.join(SOURCE_PATH, f"{device.name}_compiled")
@@ -79,7 +79,7 @@ def main():
 
         shutil.make_archive(dest_path, 'zip', dest_path)
     
-    print("Finished making compiled archives.")
+    print(f"{bcolors.OKGREEN}Finished making compiled archives.{bcolors.ENDC}")
     os.chdir(OG_DIRECTORY)
 
         

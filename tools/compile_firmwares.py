@@ -57,12 +57,11 @@ def main():
 
 
     for device in devices:
-        print(f"Building for {device.name.title()}...")
-        print(os.getcwd())
+        print(f"{bcolors.OKBLUE}Building for {device.name.title()}...{bcolors.ENDC}")
         subprocess.call(["tools/build_device_bin.sh", device.name])
         os.chdir(OG_DIRECTORY)
     
-    print("Finished making compiled bins")
+    print(f"{bcolors.OKGREEN}Finished making compiled bins.{bcolors.ENDC}")
     os.chdir(OG_DIRECTORY)
 
         
