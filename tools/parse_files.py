@@ -84,7 +84,10 @@ if SOURCE_PATH is None:
 if DEVICE_PATH is None:
     DEVICE_PATH = os.path.join(CWD, 'devices')
 if DEST_PATH is None:
-    DEST_PATH = os.path.join(CWD, 'MicroHydra')
+    if FROZEN:
+        DEST_PATH = os.path.join(CWD, 'MicroPython', 'ports', 'esp32', 'boards')
+    else:
+        DEST_PATH = os.path.join(CWD, 'MicroHydra')
 
 
 

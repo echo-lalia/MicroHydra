@@ -82,6 +82,7 @@ def main():
         "constants": combine_constants(all_constants),
         "features": list(all_features),
         "mpy_arch": 'xtensawin',
+        "source_board": "ESP32_GENERIC_S3",
         }
     
     default_file_text = """\
@@ -97,7 +98,7 @@ def main():
 
 """ + add_line_breaks(
     yaml.dump(default_def), 
-    ("features:", "mpy_arch:", "constants:")
+    ("features:", "mpy_arch:", "constants:", "source_board:")
     )
 
     with open(os.path.join(DEVICE_PATH, "default.yml"), "w") as default_file:

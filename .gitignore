@@ -2,3 +2,5 @@
 /.vscode
 *.bak
 /src/config.json
+/MicroPython
+/esp-idf

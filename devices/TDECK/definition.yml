@@ -38,3 +38,4 @@ features:
 - spi_ram
 
 mpy_arch: xtensawin
+source_board: ESP32_GENERIC_S3
