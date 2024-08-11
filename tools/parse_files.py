@@ -96,7 +96,7 @@ with open(os.path.join(DEVICE_PATH, 'default.yml'), 'r', encoding="utf-8") as de
 DEFAULT_CONSTANTS = default['constants']
 DEFAULT_FEATURES = default['features']
 
-
+DONT_COPY_DEVICE_FILES = ('definition.yml', 'manifest.py', 'mpconfigboard.cmake')
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main():
@@ -635,6 +635,9 @@ def get_device_files(device):
 
     for dir_entry in os.scandir(source_path):
         device_file_data += extract_file_data(dir_entry, '')
+
+    # remove banned device file names
+    device_file_data = [x for x in device_file_data if x[0].name not in DONT_COPY_DEVICE_FILES]
 
     return device_file_data
 

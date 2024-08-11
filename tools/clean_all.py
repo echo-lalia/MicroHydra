@@ -35,12 +35,14 @@ def main():
     print(f"{bcolors.OKBLUE}Cleaning ./MicroHydra...{bcolors.ENDC}")
     shutil.rmtree(PARSE_PATH)
 
-    # remove each device build folder
+    # remove each device build folder, and board folder
     for device in devices:
         print(f"{bcolors.OKBLUE}Cleaning files for {device.name.title()}...{bcolors.ENDC}")
         device_build_path = os.path.join(ESP32_PATH, f"build-{device.name}")
-
         shutil.rmtree(device_build_path)
+
+        device_board_path = os.path.join(ESP32_PATH, 'boards', device.name)
+        shutil.rmtree(device_board_path)
         
     
     print(f"{bcolors.OKGREEN}Finished cleaning MicroPython build files.{bcolors.ENDC}")

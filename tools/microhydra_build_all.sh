@@ -17,6 +17,9 @@ python3 tools/setup_esp_idf.py
 # now create device folders under esp32/boards
 python3 tools/create_frozen_folders.py
 
+# Run file parsing script for frozen device folders
+python3 tools/parse_files.py --frozen
+
 # now run script to build each device
 python3 tools/compile_firmwares.py
 
