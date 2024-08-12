@@ -3,31 +3,38 @@ import machine
 from lib import sdcard
 import sys
 
+
+
+# mh_if frozen:
+# _LAUNCHER = const(".frozen/launcher/launcher")
+# mh_else:
+_LAUNCHER = const("/launcher/launcher")
+# mh_end_if
 sys.path = ['', '/lib', '.frozen', '.frozen/lib']
 
+
+
 #default app path is the path to the launcher
-# mh_if frozen:
-# app_path = ".frozen/launcher/launcher"
-# mh_else:
-app_path = "/launcher/launcher"
-# mh_end_if
+app_path = _LAUNCHER
 
 # mh_if TDECK:
 # # T-Deck must manually power on its peripherals
 # machine.Pin(10, machine.Pin.OUT, value=True)
 # mh_end_if
 
-if machine.reset_cause() != machine.PWRON_RESET: #if this was not a power reset, we are probably launching an app!
+# if this was not a power reset, we are probably launching an app:
+if machine.reset_cause() != machine.PWRON_RESET: 
     rtc = machine.RTC()
     app_path = rtc.memory().decode()
-    
+
     # special case for passing data along to an app:
     if "|//|" in app_path:
         paths = app_path.split("|//|")
         rtc.memory(app_path.replace(paths[0] + "|//|", ""))
         app_path = paths[0]
     else:
-        rtc.memory("/launcher/launcher.py") # for when we reset again
+        # for when we reset again
+        rtc.memory(_LAUNCHER)
 
 # only mount the sd card if the app is on the sd card.
 if app_path.startswith("/sd"):
@@ -40,10 +47,6 @@ except Exception as e:
     with open('log.txt', 'a') as log:
         log.write(f"Tried to launch '{app_path}', but failed: '{e}'\n")
     try:
-        # mh_if frozen:
-        # __import__(".frozen/launcher/launcher")
-        # mh_else:
-        __import__("/launcher/launcher")
-        # mh_end_if
+        __import__(_LAUNCHER)
     except ImportError:
         print("Launcher couldn't be imported")
