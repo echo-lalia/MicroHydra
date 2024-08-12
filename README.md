@@ -25,6 +25,7 @@ MicroHydra is a simple MicroPython based app launcher designed for the M5Stack C
 
 *MicroHydra is currently going through a major overhaul to enable multi-platform support. Many features and APIs will likely undergo significant change by version 2.0.*   
 *You can find these changes in the experimental-multiplatform branch.*   
+please use the "releases" section for stable versions of MicroHydra.
 
 This code was built with MicroPython v1.23.0 (preview), for a Generic ESP32-S3 controller.
 
