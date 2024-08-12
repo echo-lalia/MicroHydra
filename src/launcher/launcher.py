@@ -509,6 +509,27 @@ class IconWidget:
             )
 
 
+    def _draw_custom_icon(self):
+        # TODO: MAKE THIS LESS STUPID!!!
+        # (do not recreate and reload the data every single frame!)
+        buf = bytearray(32*32//8)
+        palette = framebuf.FrameBuffer(bytearray(1), 2, 1, framebuf.GS4_HMSB)
+        palette.pixel(0, 0, 2)
+        palette.pixel(1, 0, 8)
+        with open(self.drawn_icon, 'rb') as f:
+            f.readinto(buf)
+        tempfbuf = framebuf.FrameBuffer(buf, 32, 32, framebuf.MONO_HLSB)
+        DISPLAY.blit_buffer(
+            tempfbuf,
+            self.x - _ICON_WIDTH_HALF,
+            _ICON_Y,
+            32,
+            32,
+            palette=palette
+            )
+
+
+
     def draw(self):
         if self.x == _DISPLAY_WIDTH_HALF \
         and self.prev_x == _DISPLAY_WIDTH_HALF:
@@ -525,7 +546,10 @@ class IconWidget:
         if isinstance(self.drawn_icon, int):
             self._draw_bitmap_icon()
         elif isinstance(self.drawn_icon, str):
-            self._draw_str_icon()
+            if len(self.drawn_icon) == 2:
+                self._draw_str_icon()
+            else:
+                self._draw_custom_icon()
 
 
     def _choose_icon(self):
@@ -547,15 +571,16 @@ class IconWidget:
         elif current_app_text == "Settings":
             return _GEAR_ICON_IDX
         
+        current_app_path = APP_PATHS[current_app_text]
+        
+        if (not ((current_app_path.endswith('.py') or current_app_path.endswith('.mpy'))) \
+        and 'icon.raw' in os.listdir(current_app_path)):
+            return f"{current_app_path}/icon.raw"
+        
         else:
-            current_app_path = APP_PATHS[current_app_text]
             if current_app_path.startswith("/sd"):
                 return _SD_ICON_IDX
         return _FLASH_ICON_IDX
-        
-        # else:
-        # load custom icon!
-        # TODO: load icon bitmaps!
 
 
     def _erase_icon(self):
