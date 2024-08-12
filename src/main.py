@@ -45,7 +45,8 @@ try:
     __import__(app_path)
 except Exception as e:
     with open('log.txt', 'a') as log:
-        log.write(f"Tried to launch '{app_path}', but failed: '{e}'\n")
+        log.write(f"[{app_path}]\n")
+        sys.print_exception(e, log)
     try:
         __import__(_LAUNCHER)
     except ImportError:
