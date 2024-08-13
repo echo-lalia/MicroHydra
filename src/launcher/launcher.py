@@ -38,6 +38,7 @@ import math
 import ntptime
 import network
 import machine
+import framebuf
 from launcher.icons import battery, appicons
 from font import vga2_16x32 as font
 from lib import userinput, battlevel, sdcard
@@ -439,6 +440,7 @@ _ICON_ERASE_WIDTH = const(_FONT_WIDTH * 3)
 _ICON_BITMAP_SIZE = const(_ICON_HEIGHT * _ICON_WIDTH)
 _ICON_BUFFER_LEN = const(_ICON_BITMAP_SIZE // 2)
 
+
 class IconWidget:
     def __init__(self):
         self.drawn_icon = None
@@ -448,6 +450,12 @@ class IconWidget:
         self.prev_x = 0
         self.scroll_start_ms = time.ticks_ms()
         self.force_update()
+        
+        # buffer for storing one custom icon
+        self.buf = bytearray(32*32//8)
+        self.fbuf = framebuf.FrameBuffer(self.buf, 32, 32, framebuf.MONO_HLSB)
+        # 40 == bg color and ui color as one byte (2, 8)
+        self.icon_palette = framebuf.FrameBuffer(bytearray([40]), 2, 1, framebuf.GS4_HMSB)
 
 
     def force_update(self):
@@ -510,22 +518,13 @@ class IconWidget:
 
 
     def _draw_custom_icon(self):
-        # TODO: MAKE THIS LESS STUPID!!!
-        # (do not recreate and reload the data every single frame!)
-        buf = bytearray(32*32//8)
-        palette = framebuf.FrameBuffer(bytearray(1), 2, 1, framebuf.GS4_HMSB)
-        palette.pixel(0, 0, 2)
-        palette.pixel(1, 0, 8)
-        with open(self.drawn_icon, 'rb') as f:
-            f.readinto(buf)
-        tempfbuf = framebuf.FrameBuffer(buf, 32, 32, framebuf.MONO_HLSB)
         DISPLAY.blit_buffer(
-            tempfbuf,
+            self.fbuf,
             self.x - _ICON_WIDTH_HALF,
             _ICON_Y,
             32,
             32,
-            palette=palette
+            palette=self.icon_palette
             )
 
 
@@ -542,6 +541,11 @@ class IconWidget:
         and ((self.direction == -1 and self.x < _DISPLAY_WIDTH_HALF) \
         or   (self.direction == +1 and self.x > _DISPLAY_WIDTH_HALF)):
             self.drawn_icon = self.next_icon
+            
+            # if this is a custom icon, it needs to be loaded
+            if isinstance(self.drawn_icon, str) and self.drawn_icon.endswith(".raw"):
+                with open(self.drawn_icon, 'rb') as f:
+                    f.readinto(self.buf)
         
         if isinstance(self.drawn_icon, int):
             self._draw_bitmap_icon()
