@@ -215,7 +215,7 @@ def scan_apps():
     for entry in main_app_list:
         this_name, this_path = get_app_paths(entry, "/apps/")
         if this_name:
-
+            this_name = this_name.replace('.cli','')
             if this_name not in app_names:
                 app_names.append(this_name)
 
@@ -224,7 +224,7 @@ def scan_apps():
     for entry in sd_app_list:
         this_name, this_path = get_app_paths(entry, "/sd/apps/")
         if this_name:
-
+            this_name = this_name.replace('.cli','')
             if this_name not in app_names:
                 app_names.append(this_name)
 
@@ -537,7 +537,9 @@ def draw_icon(icon_def):
 
 
 def draw_default_icon(current_app_path):
-    if current_app_path.startswith("/sd"):
+    if current_app_path[-7:] == '.cli.py':
+        draw_icon(_TERMINAL_ICON)
+    elif current_app_path.startswith("/sd"):
         draw_icon(_SD_ICON)
     else:
         draw_icon(_FLASH_ICON)
