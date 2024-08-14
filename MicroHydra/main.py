@@ -34,17 +34,11 @@ if app_path.startswith("/sd"):
 MAIN_RUN_PRGM = ""
 
 try:
-    if '.mpy' in app_path:
-        __import__(app_path)
+    if app_path[-7:] == '.cli.py': # CLI based app
+        rtc.memory('$' + app_path)
+        __import__("/launcher/terminal.py")
     else:
-        with open(app_path,'r') as f:
-            tt = f.read()
-        
-        if 'st7789' in tt or 'ST7789' in tt: #Adapted for CardPuter
-            __import__(app_path)
-        else:
-            rtc.memory('$' + app_path)
-            __import__("/launcher/terminal.py")
+        __import__(app_path)
 except Exception as e:
     with open('log.txt', 'a') as log:
         log.write(f"Tried to launch '{app_path}', but failed: '{e}'\n")
