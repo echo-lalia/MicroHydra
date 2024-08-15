@@ -566,24 +566,27 @@ class IconWidget:
             else:
                 return "Off"
         
-        elif current_app_text == "Files":
+        if current_app_text == "Files":
             return _FILE_ICON_IDX
 
-        elif current_app_text == "Reload Apps":
+        if current_app_text == "Reload Apps":
             return _REFRESH_ICON_IDX
 
-        elif current_app_text == "Settings":
+        if current_app_text == "Settings":
             return _GEAR_ICON_IDX
         
         current_app_path = APP_PATHS[current_app_text]
         
-        if (not ((current_app_path.endswith('.py') or current_app_path.endswith('.mpy'))) \
-        and 'icon.raw' in os.listdir(current_app_path)):
-            return f"{current_app_path}/icon.raw"
+        if not (current_app_path.endswith('.py') or current_app_path.endswith('.mpy')):
+            # too many ways for `os.listdir` to fail here, so just capture the error:
+            try:
+                if 'icon.raw' in os.listdir(current_app_path):
+                    return f"{current_app_path}/icon.raw"
+            except OSError: pass
         
-        else:
-            if current_app_path.startswith("/sd"):
-                return _SD_ICON_IDX
+        # default to sd or flash storage icon
+        if current_app_path.startswith("/sd"):
+            return _SD_ICON_IDX
         return _FLASH_ICON_IDX
 
 
