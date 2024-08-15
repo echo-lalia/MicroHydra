@@ -1,6 +1,6 @@
 from lib import smartkeyboard, st7789fbuf, mhconfig, mhoverlay
 import machine
-from machine import Pin, SPI, RTC
+from machine import Pin, SPI, RTC, I2S
 from font import vga1_8x16 as font
 from lib import microhydra as mh
 import os, time, sys
@@ -48,6 +48,13 @@ _INDENT_SYM = const(' ')
 _SPACE_INDENT = const('    ')
 _TAB_INDENT = const('	')
 
+# Define pin constants
+_SCK_PIN = const(41)
+_WS_PIN = const(43)
+_SD_PIN = const(42)
+
+# Initialize global i2s variable
+i2s = None
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Global Objects: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # sd needs to be mounted for any files in /sd
@@ -512,8 +519,118 @@ def draw_fancy_line(line, x, y, highlight=False, trim=True):
 
         x += 8
 
+#--------------------------------------------------------------------------------------------------
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ WAV Functions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#--------------------------------------------------------------------------------------------------
+        
+# Function to read WAV file header and get sample rate
+def read_wav_header(file):
+    # Read and parse the WAV file header
+    file.seek(0)
+    riff = file.read(12)
+    fmt = file.read(24)
+    data_hdr = file.read(8)
+    
+    # Extract the sample rate from the header
+    sample_rate = int.from_bytes(fmt[12:16], 'little')
+    return sample_rate*2
 
+# Set up I2S for audio output
+def setup_i2s(sample_rate):
+    global i2s
+    i2s = machine.I2S(0,
+                      sck=machine.Pin(_SCK_PIN),  # Serial Clock (BCLK)
+                      ws=machine.Pin(_WS_PIN),    # Word Select (LRCLK)
+                      sd=machine.Pin(_SD_PIN),    # Serial Data (SDATA)
+                      mode=machine.I2S.TX,
+                      bits=16,
+                      format=machine.I2S.MONO,
+                      rate=sample_rate,
+                      ibuf=1024)
 
+def parse_filename(filepath):
+    # Split the filepath and get the last part (the filename)
+    filename = filepath.split('/')[-1]
+    
+    # Remove the file extension if it's .wav
+    if filename.lower().endswith('.wav'):
+        filename = filename[:-4]
+    
+    # Split the name by ' - '
+    parts = filename.split(' - ')
+    
+    if len(parts) == 3:
+        artist, album, song = parts
+    elif len(parts) == 2:
+        artist, song = parts
+        album = "Unknown Album"
+    else:
+        artist = "Unknown Artist"
+        album = "Unknown Album"
+        song = filename
+    
+    return artist, album, song
+
+def play_wav(target_file, overlay):
+    try:
+        artist, album, song = parse_filename(target_file)
+        
+        # Display track information
+        DISPLAY.fill(CONFIG['bg_color'])
+        DISPLAY.text("Now Playing:", 10, 10, CONFIG['ui_color'])
+        DISPLAY.text(f"Artist: {artist}", 10, 30, CONFIG['ui_color'])
+        DISPLAY.text(f"Album: {album}", 10, 50, CONFIG['ui_color'])
+        DISPLAY.text(f"Song: {song}", 10, 70, CONFIG['ui_color'])
+        DISPLAY.text("Press GO to stop", 10, 110, CONFIG['ui_color'])
+        DISPLAY.show()
+        
+        with open(target_file, 'rb') as file:
+            sample_rate = read_wav_header(file)
+            setup_i2s(sample_rate)
+            
+            file.seek(44)  # Skip WAV header
+            
+            while True:
+                data = file.read(1024)
+                if not data:
+                    break
+                
+                i2s.write(data)
+                
+                # Check for stop command
+                if 'GO' in KB.get_new_keys():
+                    load_file_browser(overlay)
+        
+        overlay.draw_textbox("Playback finished", _DISPLAY_WIDTH//2, _DISPLAY_HEIGHT//2)
+        DISPLAY.show()
+        time.sleep(2)
+        
+    except Exception as e:
+        overlay.error(f"Error: {str(e)}")
+        DISPLAY.show()
+        time.sleep(3)
+    finally:
+        if 'i2s' in globals() and i2s is not None:
+            i2s.deinit()
+            
+def load_file_browser(overlay):
+    try:
+        # First, change to the root directory
+        os.chdir('/')
+        
+        # Now, load the file browser
+        overlay.draw_textbox("Loading file browser...", _DISPLAY_WIDTH//2, _DISPLAY_HEIGHT//2)
+        DISPLAY.show()
+        
+        # Use the boot_into_file function to load the file browser
+        boot_into_file("/launcher/files.py", overlay)
+        
+    except Exception as e:
+        overlay.error(f"Error loading file browser: {str(e)}")
+        DISPLAY.show()
+        time.sleep(3)
 #--------------------------------------------------------------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Editor Class: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -860,13 +977,11 @@ class Editor:
         self.lines[self.cursor_index[1]] = ''
         self.cursor_index[0] = 0
         self.backspace()
-
-
-
-
+        
 #--------------------------------------------------------------------------------------------------
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main Loop: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 def main_loop():
     """Main loop of the program."""
 
@@ -884,7 +999,11 @@ def main_loop():
         STR_COLOR = CONFIG['ui_color']; DARK_STR_COLOR = CONFIG['ui_color']
         KEYWORD_COLOR = CONFIG['ui_color']
         COMMENT_COLOR = CONFIG['ui_color']; DARK_COMMENT_COLOR = CONFIG['ui_color']
-
+        
+    if target_file.endswith('.wav'):
+        play_wav(target_file, overlay)
+        redraw_display = True
+        time.sleep(1)
 
     try:
         with open(target_file,'r') as file:
