@@ -1,3 +1,6 @@
+"""
+This simple module configures and mounts an SDCard.
+"""
 import machine
 import os
 

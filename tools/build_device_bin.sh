@@ -14,6 +14,8 @@ cd esp-idf || { echo "Failed to enter esp-idf directory"; exit 1; }
 # Source the export.sh script
 source export.sh || { echo "Failed to source export.sh"; exit 1; }
 
+echo "esp-idf setup done."
+
 # Navigate to the MicroPython esp32 port directory
 cd ../MicroPython/ports/esp32 || { echo "Failed to enter MicroPython/ports/esp32 directory"; exit 1; }
 

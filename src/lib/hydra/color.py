@@ -1,3 +1,11 @@
+"""
+This module contains some color logic used by MicroHydra.
+
+Previously these functions lived in lib/mhconfig, and lib/microhydra before that.
+
+Several of these functions could almost certainly be significantly sped up by 
+converting the float math to integer math, and using Viper.
+"""
 
 def mix(val2, val1, fac=0.5):
     """Mix two values to the weight of fac"""

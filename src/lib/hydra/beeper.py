@@ -1,3 +1,22 @@
+"""
+This module wraps lib/audio with a simple API for making square wave beeps.
+
+Known issue:
+  The audio produced in this version of beeper.py is much higher quality than
+  it was in previous versions (thanks to the precision of mavica's I2SSound module), 
+  but there is a noticable delay due to the somewhat infrequent updating of the I2S IRQ.
+  At the time of writing I am not sure how I might fix that. 
+  It may require a complete rewrite.
+
+  I have already tried:
+  - Instantly calling the IRQ handler function after playing a sound. This does make the 
+    sound happen faster, but also makes the timing very inconsistent and strange sounding.
+  - Calling the IRQ handler AND setting a timer to stop the audio, but this sounds horrible
+    when multiple sounds happen rapidly.
+  - Unregistering/reregistering the IRQ function with I2S. This seems to cause a silent 
+    crash of MicroPython for some reason.
+"""
+
 from lib.audio import Audio
 from lib.hydra.config import Config
 from machine import Timer
@@ -110,52 +129,3 @@ class Beeper:
             self.note_buf.append((note, volume, time_ms))
         
         self.play_next()
-
-
-if __name__ == "__main__":
-    import time
-    from lib import userinput
-    
-    user_input = userinput.UserInput()
-    beep = Beeper()
-    
-    
-#     beep.play(
-#         (
-#             ("G3"),
-#             ("G3", "C4"),
-#             ("G3", "C4", "E4"),
-#             ("G3", "C4", "E4", "A4"),
-#             ("C4", "E4", "A4"),
-#             ("E4", "A4"),
-#             ("A4"),
-#         ),
-#         time_ms=400,
-#         volume=10,
-#         )
-
-    beep.play(
-        (
-            ("C3"),
-            ("C3", "C#3"),
-            ("c3", "cs3"),
-            "C4",
-        ),
-        time_ms=400,
-        )
-    
-#     correct = 0
-#     incorrect = 0
-#     for key, val in tone_map.items():
-#         if val != note_to_int(key):
-#             print("tone map: ", key, val)
-#             print("note_to_int: ", note_to_int(key))
-#             incorrect += 1
-#         else:
-#             correct += 1
-    
-#     print(f"\nCorrect notes: {correct}")
-#     print(f"Incorrect notes: {incorrect}")
-    
-    time.sleep(1)
-    

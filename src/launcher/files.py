@@ -1,3 +1,8 @@
+"""
+This file browser app for MicroHydra provides a simple way to view and manage files on the device.
+It is also able to launch specific file types using built-in file viewing/editing apps (such as HyDE.py)
+"""
+
 from lib import sdcard, userinput
 from lib.display import Display
 from lib.hydra import beeper, popup

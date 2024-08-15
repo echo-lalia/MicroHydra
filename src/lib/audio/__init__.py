@@ -1,3 +1,7 @@
+"""
+This module provides a simple API for accessing audio features in MicroHydra.
+"""
+
 from .i2ssound import I2SSound
 
 

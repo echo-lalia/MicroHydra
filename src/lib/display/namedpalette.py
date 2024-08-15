@@ -1,5 +1,6 @@
 """
-This module is intended to be a helpful, and optional, companion for lib.display.pallete
+This module is intended to be a helpful, and optional, companion for lib.display.pallete,
+for reference and convenience.
 """
 
 from .palette import Palette

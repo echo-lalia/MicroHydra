@@ -1,3 +1,8 @@
+"""
+Builtin Settings app for MicroHydra.
+This app provides a useful GUI for changing the values in /config.json
+"""
+
 from lib import userinput
 from lib.hydra import config
 from lib.hydra import menu as hydramenu

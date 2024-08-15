@@ -1,31 +1,12 @@
 """
-VERSION: 1.0
-
-CHANGES:
-    Overhaul launcher.py! (FINALLY)
-    - overhauled scrolling graphics to use a framebuffer, now the statusbar doesn't blink out on scroll
-    - broke code up into smaller functions to save memory (and make it easier to read!)
-    - added key-repeater logic from settings.py
-    - added custom 'st7789hybrid.py' for launcher-specific use
-    - replaced bitmap icons with vector icons to save memory
-    - added support for app icons
-    
-    Added log output on launch failure to main.py
-    Improved copy/paste in Files app
-    Added smartkeyboard to lib
-    general bugfixes
-    
-This program is designed to be used in conjunction with "main.py" apploader, to select and launch MPy apps.
+This program is designed to be used in conjunction with "main.py" apploader, to select and launch MicroPython apps.
 
 The basic app loading logic works like this:
  - apploader reads reset cause and RTC.memory to determine which app to launch
  - apploader launches 'launcher.py' when hard reset, or when RTC.memory is blank
- - launcher scans app directories on flash and SDCard to find apps
- - launcher shows list of apps, allows user to select one
+ - launcher scans app directories on flash and SDCard to find apps, allows user to select app
  - launcher stores path to app in RTC.memory, and soft-resets the device
- - apploader reads RTC.memory to find path of app to load
- - apploader clears the RTC.memory, and imports app at the given path
- - app at given path now has control of device.
+ - apploader reads RTC.memory again, and imports given app
  - pressing the reset button will relaunch the launcher program, and so will calling machine.reset() from the app. 
 
 This approach was chosen to reduce the chance of conflicts or memory errors when switching apps.

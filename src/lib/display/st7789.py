@@ -30,7 +30,7 @@ https://github.com/russhughes/st7789py_mpy, which is based on
 https://github.com/devbis/st7789py_mpy.
 
 This driver has been modified to use the fast MicroPython framebuf module as much as possible.
-Specifically, it has been made for MicroHydra on the Cardputer
+Specifically, it has been made for MicroHydra.
 
 This module will use a lot more ram than the original, but it should be much faster too.
 
@@ -43,7 +43,6 @@ This driver supports:
 - Drawing text using 8 and 16 bit wide bitmap fonts with heights that are
   multiples of 8.  Included are 12 bitmap fonts derived from classic pc
   BIOS text mode fonts.
-- Drawing text using converted TrueType fonts.
 - Drawing converted bitmaps
 - Named color constants
 
@@ -59,8 +58,7 @@ This driver supports:
 """
 
 from .palette import Palette
-from math import sin, cos, floor, pi, sqrt, pow
-import framebuf, struct, array
+import framebuf, struct
 from time import sleep_ms
 
 

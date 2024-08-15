@@ -14,7 +14,6 @@ DEFAULT_CONFIG = const("""{
 "ui_color": 65430,
 "ui_sound": true,
 "timezone": 0,
-"kb_light": false,
 "sync_clock": true
 }""")
 

@@ -1,4 +1,4 @@
-import os
+# see launcher/launcher.py for a full explanation of this module
 import machine
 from lib import sdcard
 import sys

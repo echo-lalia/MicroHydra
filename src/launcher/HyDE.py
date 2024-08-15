@@ -1,3 +1,8 @@
+"""
+HyDE (short for Hydra Development Environment)
+is a simple text editor for MicroHydra, particularly  designed around editing MicroPython code.
+"""
+
 from lib import userinput, display, sdcard
 from lib.hydra import config, popup, color
 import machine

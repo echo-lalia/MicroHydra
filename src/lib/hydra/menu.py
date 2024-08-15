@@ -1,3 +1,8 @@
+"""
+This module provides an API for creating menus.
+lib/Settings.py uses this module heavily.
+"""
+
 import math, array, time
 from lib.hydra import color, beeper
 from lib.display import Display

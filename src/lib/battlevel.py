@@ -1,3 +1,6 @@
+"""
+This very basic module reads the battery ADC values and converts it into a percentage or 0-3 level.
+"""
 import machine
 
 

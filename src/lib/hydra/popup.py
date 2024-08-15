@@ -1,3 +1,7 @@
+"""
+Previously called lib/mhoverlay,
+this module provides an easy way to create popup messages, options, and input fields.
+"""
 import time
 from lib.display import Display
 from lib.hydra.config import Config
