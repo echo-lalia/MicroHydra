@@ -252,34 +252,30 @@ def file_options(file, overlay):
     """Create popup with file options for given file."""
     global clipboard
     
-    options = ("open", "copy", "rename", "delete")
+    if file.endswith('.wav'):
+        options = ["play", "copy", "rename", "delete"]
+    else:
+        options = ["open", "copy", "rename", "delete"]
+    
     option = overlay.popup_options(options, title=f'"{file}":')
     
-    if option == "open":
-        play_sound(("G3"), 30)
+    if option == "open" or option == "play":
+        play_sound(("G3",), 30)
         open_file(file)
     elif option == "copy":
         # store copied file to clipboard
         clipboard = (os.getcwd(), file)
-#         new_name = overlay.text_entry(start_value=file, title=f"Rename '{file}':", blackout_bg=True)
-        play_sound(("D3","G3","D3"), 30)
-#         with open(file,"rb") as source:
-#             with open(new_name, "wb") as dest:
-#                 while True:
-#                     l = source.read(512)
-#                     if not l: break
-#                     dest.write(l)
-        
+        play_sound(("D3", "G3", "D3"), 30)
     elif option == "rename":
-        play_sound(("B3"), 30)
+        play_sound(("B3",), 30)
         new_name = overlay.text_entry(start_value=file, title=f"Rename '{file}':", blackout_bg=True)
-        os.rename(file,new_name)
-        
+        if new_name and new_name != file:
+            os.rename(file, new_name)
     elif option == "delete":
-        play_sound(("D3"), 30)
+        play_sound(("D3",), 30)
         confirm = overlay.popup_options(("cancel", "confirm"), title=f'Delete "{file}"?', extended_border=True)
         if confirm == "confirm":
-            play_sound(("D3","B3","G3","G3"), 30)
+            play_sound(("D3", "B3", "G3", "G3"), 30)
             os.remove(file)
 
 
@@ -289,7 +285,11 @@ def open_file(file):
     filepath = cwd + file
     
     # visual feedback
-    overlay.draw_textbox("Opening...", _DISPLAY_WIDTH//2, _DISPLAY_HEIGHT//4)
+    if file.endswith('.wav'):
+        overlay.draw_textbox("Playing...", _DISPLAY_WIDTH//2, _DISPLAY_HEIGHT//4)
+    else:
+        overlay.draw_textbox("Opening...", _DISPLAY_WIDTH//2, _DISPLAY_HEIGHT//4)
+    
     overlay.draw_textbox(filepath, _DISPLAY_WIDTH//2, _DISPLAY_HEIGHT//2)
     tft.show()
     
@@ -380,3 +380,4 @@ def main_loop(tft, kb, config, overlay):
     
     
 main_loop(tft, kb, config, overlay)
+
