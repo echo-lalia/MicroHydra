@@ -40,7 +40,7 @@ blueish = condfig.palette[13]
 bg_compliment = config.palette[14]
 ui_complement = config.palette[15]
 ```
-For a more complete overview, take a look at the wiki for `lib.display.palette`
+For a more complete overview, take a look at the wiki for [lib.display.palette](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/Palette)
 
 -----
 
