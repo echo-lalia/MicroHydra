@@ -87,6 +87,7 @@ _REFRESH_ICON = const(
 _FILES_ICON = const(
     "a0,3,1,2,9,2,12,5,29,5,30,6,30,8,31,9,28,28,27,29,1,29,0,28ut,a1,4,1,19,2,10,4,8,30,8,29,8,29,7,28,6,12,6,10,5,8,3,2,3bt")
 
+_MUSIC_ICON = const("a20,2,20,20,18,24,16,24,12,24,12,20,12,16,16,16,18,16,18,4,10,6,10,24,8,28,6,28,2,28,2,24,2,20,6,20,8,20,8,4,8,2,10,1,22,0,24,0,24,2ut,a14,16,14,20,16,22,18,20,18,16ut")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GLOBALS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -564,6 +565,9 @@ def draw_icon_fbuf():
 
     elif current_app_text == "Files":
         draw_icon(_FILES_ICON)
+        
+    elif current_app_text == "Music":
+        draw_icon(_MUSIC_ICON)
 
     elif current_app_text == "Reload Apps":
         draw_icon(_REFRESH_ICON)
@@ -870,3 +874,4 @@ def main_loop():
 
 # run the main loop!
 main_loop()
+
