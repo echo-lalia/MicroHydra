@@ -1,6 +1,6 @@
 from lib import st7789fbuf, mhconfig, mhoverlay, smartkeyboard, beeper
 from font import vga2_16x32 as font
-import os, machine, time, math, framebuf, random
+import os, machine, time, math, framebuf, random, urequests
 from machine import SDCard, Pin
 machine.freq(240000000)
 
@@ -173,11 +173,10 @@ class EasyWavMenu:
     def __init__(self, tft, config):
         self.tft = tft
         self.config = config
-        self.main_items = ['Library', 'Shuffle', 'Settings']
-        self.settings_items = ['Volume', 'Theme', 'Back']
+        self.main_items = ['Library', 'Shuffle', 'Download']
         self.cursor_index = 0
         self.view_index = 0
-        self.current_view = 'main'  # 'main', 'library', 'shuffle', or 'settings'
+        self.current_view = 'main'  # 'main', 'library', or 'shuffle'
         self.wav_list_view = None
         self.items = self.main_items
 
@@ -187,35 +186,12 @@ class EasyWavMenu:
             self._draw_main_menu()
         elif self.current_view == 'library':
             self.wav_list_view.draw()
-        elif self.current_view == 'settings':
-            self._draw_settings_menu()
         self.tft.show()
 
     def _draw_main_menu(self):
         for idx, item in enumerate(self.main_items):
             color = self.config.palette[5] if idx == self.cursor_index else self.config.palette[4]
             self.tft.bitmap_text(font, item, 10, idx * _CHAR_HEIGHT, color)
-
-    def _draw_settings_menu(self):
-        for idx, item in enumerate(self.settings_items):
-            color = self.config.palette[5] if idx == self.cursor_index else self.config.palette[4]
-            self.tft.bitmap_text(font, item, 10, idx * _CHAR_HEIGHT, color)
-
-    def up(self):
-        if self.current_view in ['main', 'settings']:
-            self.cursor_index = (self.cursor_index - 1) % len(self.items)
-        elif self.current_view == 'library':
-            self.wav_list_view.up()
-            self.cursor_index = self.wav_list_view.cursor_index
-            self.items = self.wav_list_view.items
-
-    def down(self):
-        if self.current_view in ['main', 'settings']:
-            self.cursor_index = (self.cursor_index + 1) % len(self.items)
-        elif self.current_view == 'library':
-            self.wav_list_view.down()
-            self.cursor_index = self.wav_list_view.cursor_index
-            self.items = self.wav_list_view.items
 
     def select(self):
         if self.current_view == 'main':
@@ -224,25 +200,17 @@ class EasyWavMenu:
                 self.open_library()
             elif selected_item == 'Shuffle':
                 return self.shuffle_play()
-            elif selected_item == 'Settings':
-                self.open_settings()
+            elif selected_item == 'Download':
+                return self.show_download_message()
         elif self.current_view == 'library':
             return "play"
-        elif self.current_view == 'settings':
-            selected_item = self.settings_items[self.cursor_index]
-            if selected_item == 'Back':
-                self.back()
-            else:
-                print(f"Setting {selected_item} selected")
-                # Implement setting change logic here
 
-    def back(self):
-        if self.current_view in ['library', 'settings', 'shuffle']:
-            self.current_view = 'main'
-            self.cursor_index = 0
-            self.items = self.main_items
-            return True
-        return False
+    def show_download_message(self):
+        overlay.draw_textbox("Download feature", _DISPLAY_WIDTH//2, _DISPLAY_HEIGHT//2 - 20)
+        overlay.draw_textbox("coming soon!", _DISPLAY_WIDTH//2, _DISPLAY_HEIGHT//2 + 20)
+        self.tft.show()
+        time.sleep(2)  # Display the message for 2 seconds
+        return "refresh"
 
     def open_library(self):
         print("Opening Library")
@@ -267,14 +235,32 @@ class EasyWavMenu:
             print("No songs available for shuffle play")
             return None
 
-    def open_settings(self):
-        print("Opening Settings")
-        self.current_view = 'settings'
-        self.cursor_index = 0
-        self.items = self.settings_items
+    def up(self):
+        if self.current_view == 'main':
+            self.cursor_index = (self.cursor_index - 1) % len(self.main_items)
+        elif self.current_view == 'library':
+            self.wav_list_view.up()
+            self.cursor_index = self.wav_list_view.cursor_index
+            self.items = self.wav_list_view.items
+
+    def down(self):
+        if self.current_view == 'main':
+            self.cursor_index = (self.cursor_index + 1) % len(self.main_items)
+        elif self.current_view == 'library':
+            self.wav_list_view.down()
+            self.cursor_index = self.wav_list_view.cursor_index
+            self.items = self.wav_list_view.items
+
+    def back(self):
+        if self.current_view in ['library', 'shuffle']:
+            self.current_view = 'main'
+            self.cursor_index = 0
+            self.items = self.main_items
+            return True
+        return False
 
     def handle_input(self, key):
-        if self.current_view in ['main', 'settings']:
+        if self.current_view == 'main':
             if key == ";":
                 self.up()
                 return "up"
@@ -404,6 +390,10 @@ def main_loop():
                 play_sound(("D3","B3"), 30)
             elif action == "select":
                 play_sound(("G3","B3","D3"), 30)
+            elif action == "refresh":
+                # Refresh the WAV file list
+                if view.wav_list_view:
+                    view.wav_list_view.load_wav_files() 
             elif action == "play" or (isinstance(action, tuple) and action[0] == "play_shuffle"):
                 if view.current_view in ['library', 'shuffle'] and view.items:
                     if isinstance(action, tuple) and action[0] == "play_shuffle":
