@@ -330,7 +330,15 @@ class WavListView:
                 if item_index < len(self.items):
                     color = self.config.palette[5] if item_index == self.cursor_index else self.config.palette[4]
                     text = self.items[item_index]
-                    self.tft.bitmap_text(font, text, 10, idx * _CHAR_HEIGHT, color)
+                    
+                    # Apply ping-pong scrolling for long text
+                    if len(text) > _CHARS_PER_SCREEN:
+                        scroll_distance = (len(text) - _CHARS_PER_SCREEN) * -16
+                        x = int(ping_pong_ease(time.ticks_ms(), _SCROLL_TIME) * scroll_distance)
+                    else:
+                        x = 10  # Default x position for short text
+                    
+                    self.tft.bitmap_text(font, text, x, idx * _CHAR_HEIGHT, color)
 
     def up(self):
         if self.items:
@@ -350,6 +358,14 @@ class WavListView:
             
     def back(self):
         return True
+
+def ping_pong_ease(value, maximum):
+    odd_pong = ((value // maximum) % 2 == 1)
+    fac = ease_in_out_sine((value % maximum) / maximum)
+    return 1 - fac if odd_pong else fac
+
+def ease_in_out_sine(x):
+    return -(math.cos(math.pi * x) - 1) / 2
 
 def play_sound(notes, time_ms=30):
     if config['ui_sound']:
