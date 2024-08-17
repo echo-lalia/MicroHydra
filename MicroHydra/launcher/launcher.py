@@ -86,7 +86,8 @@ _REFRESH_ICON = const(
     "a12,27,9,26,5,22,3,19,3,12,5,8,8,5,12,3,18,3,21,4,24,6,27,10,28,13,28,18,25,23uf,a20,18,29,27,20,27ut,a19,25,14,26bf")
 _FILES_ICON = const(
     "a0,3,1,2,9,2,12,5,29,5,30,6,30,8,31,9,28,28,27,29,1,29,0,28ut,a1,4,1,19,2,10,4,8,30,8,29,8,29,7,28,6,12,6,10,5,8,3,2,3bt")
-
+_TERMINAL_ICON = const(
+    "a0,0,0,31,31,31,31,0uf,a0,0,8,8,0,16uf,a10,15,17,15,9,15,18,15uf")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GLOBALS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -214,7 +215,7 @@ def scan_apps():
     for entry in main_app_list:
         this_name, this_path = get_app_paths(entry, "/apps/")
         if this_name:
-
+            this_name = this_name.replace('.cli','')
             if this_name not in app_names:
                 app_names.append(this_name)
 
@@ -223,7 +224,7 @@ def scan_apps():
     for entry in sd_app_list:
         this_name, this_path = get_app_paths(entry, "/sd/apps/")
         if this_name:
-
+            this_name = this_name.replace('.cli','')
             if this_name not in app_names:
                 app_names.append(this_name)
 
@@ -235,6 +236,9 @@ def scan_apps():
     # add an appname for builtin file browser
     app_names.append("Files")
     app_paths["Files"] = "/launcher/files.py"
+    # add an appname for Micropython Terminal
+    app_names.append("Terminal")
+    app_paths["Terminal"] = "/launcher/terminal.py"
     # add an appname to refresh the app list
     app_names.append("Reload Apps")
     # add an appname to control the beeps
@@ -533,7 +537,9 @@ def draw_icon(icon_def):
 
 
 def draw_default_icon(current_app_path):
-    if current_app_path.startswith("/sd"):
+    if current_app_path[-7:] == '.cli.py':
+        draw_icon(_TERMINAL_ICON)
+    elif current_app_path.startswith("/sd"):
         draw_icon(_SD_ICON)
     else:
         draw_icon(_FLASH_ICON)
@@ -570,7 +576,10 @@ def draw_icon_fbuf():
 
     elif current_app_text == "Settings":
         draw_icon(_SETTINGS_ICON)
-
+    
+    elif current_app_text == "Terminal":
+        draw_icon(_TERMINAL_ICON)
+        
     else:
         # check if custom icon exists!
         current_app_path = APP_PATHS[current_app_text]
@@ -870,3 +879,4 @@ def main_loop():
 
 # run the main loop!
 main_loop()
+
