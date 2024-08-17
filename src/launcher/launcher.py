@@ -164,7 +164,7 @@ def scan_apps():
     for entry in main_app_list:
         this_name, this_path = get_app_paths(entry, "/apps/")
         if this_name:
-
+            this_name = this_name.replace('.cli','')
             if this_name not in app_names:
                 app_names.append(this_name)
 
@@ -173,7 +173,7 @@ def scan_apps():
     for entry in sd_app_list:
         this_name, this_path = get_app_paths(entry, "/sd/apps/")
         if this_name:
-
+            this_name = this_name.replace('.cli','')
             if this_name not in app_names:
                 app_names.append(this_name)
 
@@ -189,6 +189,10 @@ def scan_apps():
     # mh_else:
     app_paths["Files"] = "/launcher/files"
     # mh_end_if
+
+    # add an appname for Micropython Terminal
+    app_names.append("Terminal")
+    app_paths["Terminal"] = "/launcher/terminal.py"
 
     # add an appname to refresh the app list
     app_names.append("Reload Apps")

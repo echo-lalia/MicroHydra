@@ -42,7 +42,11 @@ if app_path.startswith("/sd"):
 
 # import the requested app!
 try:
-    __import__(app_path)
+    if app_path.endswith('.cli.py'): # CLI based app
+        rtc.memory('$' + app_path)
+        __import__("/launcher/terminal.py")
+    else:
+        __import__(app_path)
 except Exception as e:
     with open('log.txt', 'a') as log:
         log.write(f"[{app_path}]\n")
