@@ -1,0 +1,4 @@
+/MicroHydra
+/.vscode
+*.bak
+/src/config.json

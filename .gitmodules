@@ -1,0 +1,8 @@
+[submodule "MicroPython"]
+	path = MicroPython
+	url = https://github.com/echo-lalia/microhydra-frozen.git
+	ignore = all
+[submodule "esp-idf"]
+	path = esp-idf
+	url = https://github.com/espressif/esp-idf.git
+	ignore = all
