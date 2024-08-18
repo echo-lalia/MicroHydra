@@ -5,7 +5,7 @@ on:
     paths:
       - 'wiki/**'
     branches:
-      - master
+      - main
 jobs:
   update-wiki:
     runs-on: ubuntu-latest
