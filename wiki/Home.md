@@ -6,22 +6,32 @@ For any developers using MicroPython but not MicroHydra, feel free to take the f
 *(Of course, just make sure you respect that file's license.)*
 
 ----
-## Accessing the hardware
-* [Display](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/Display)
-* [Keyboard](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/Keyboard)
-* [Playing Sound](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/Playing-Sound)
-
-----
-
-### [Config](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/Accessing-config-files)
-*To learn how to access (or create) configuration, using JSON, or the built-in mhconfig module.*
-
-----
-
-### [HydraMenu](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/HydraMenu)
-*For easily creating menu screens.*
-
-----
-
-### [UI_Overlay](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/mhoverlay)
-*To learn how to use the builtin mhoverlay module, for easily creating simple UI popups.*
+*MicroHydra*  
+├── $font$  
+├── $launcher$  
+│ &nbsp; &nbsp; &nbsp; ├── $icons$  
+│ &nbsp; &nbsp; &nbsp; ├── files  
+│ &nbsp; &nbsp; &nbsp; ├── HyDE  
+│ &nbsp; &nbsp; &nbsp; ├── launcher  
+│ &nbsp; &nbsp; &nbsp; ├── settings  
+│ &nbsp; &nbsp; &nbsp; └── terminal  
+│  
+├── $lib$  
+│ &nbsp; &nbsp; &nbsp; ├── [$audio$](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/Playing-Sound)  
+│ &nbsp; &nbsp; &nbsp; ├── [$display$](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/Display)  
+│ &nbsp; &nbsp; &nbsp; │ &nbsp; &nbsp; &nbsp; ├── palette  
+│ &nbsp; &nbsp; &nbsp; │ &nbsp; &nbsp; &nbsp; └── named_palette  
+│ &nbsp; &nbsp; &nbsp; │  
+│ &nbsp; &nbsp; &nbsp; ├── $hydra$  
+│ &nbsp; &nbsp; &nbsp; │ &nbsp; &nbsp; &nbsp; ├── beeper  
+│ &nbsp; &nbsp; &nbsp; │ &nbsp; &nbsp; &nbsp; ├── color  
+│ &nbsp; &nbsp; &nbsp; │ &nbsp; &nbsp; &nbsp; ├── [config](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/Accessing-config-files)  
+│ &nbsp; &nbsp; &nbsp; │ &nbsp; &nbsp; &nbsp; ├── [menu](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/HydraMenu)  
+│ &nbsp; &nbsp; &nbsp; │ &nbsp; &nbsp; &nbsp; └── [popup](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/popup)  
+│ &nbsp; &nbsp; &nbsp; │  
+│ &nbsp; &nbsp; &nbsp; ├── [$userinput$](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/userinput)  
+│ &nbsp; &nbsp; &nbsp; ├── battlevel  
+│ &nbsp; &nbsp; &nbsp; ├── kanji  
+│ &nbsp; &nbsp; &nbsp; └── sdcard  
+│  
+└── main
