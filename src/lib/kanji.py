@@ -1,4 +1,4 @@
-class mhKanji:
+class Kanji:
     def __init__(self,tft):
         self.tft = tft
         self.ascii_font = {'a': '0x6556000', 'b': '0x3553110', 'c': '0x6116000', 'd': '0x6556440', 'e': '0x6352000', 'f': '0x2227260', 'g': '0x74757000', 'h': '0x5553110',

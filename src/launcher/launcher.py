@@ -192,7 +192,11 @@ def scan_apps():
 
     # add an appname for Micropython Terminal
     app_names.append("Terminal")
-    app_paths["Terminal"] = "/launcher/terminal.py"
+    # mh_if frozen:
+    # app_paths["Terminal"] = ".frozen/launcher/terminal"
+    # mh_else:
+    app_paths["Terminal"] = "/launcher/terminal"
+    # mh_end_if
 
     # add an appname to refresh the app list
     app_names.append("Reload Apps")
@@ -414,6 +418,7 @@ _SD_ICON_IDX = const(1)
 _GEAR_ICON_IDX = const(2)
 _REFRESH_ICON_IDX = const(3)
 _FILE_ICON_IDX = const(4)
+_TERMINAL_ICON_IDX = const(5)
 
 _ICON_WIDTH_HALF = const(_ICON_WIDTH // 2)
 
@@ -561,6 +566,10 @@ class IconWidget:
             return _GEAR_ICON_IDX
         
         current_app_path = APP_PATHS[current_app_text]
+        
+        if current_app_text == 'Terminal' \
+        or current_app_path.endswith('.cli.py'):
+            return _TERMINAL_ICON_IDX
         
         if not (current_app_path.endswith('.py') or current_app_path.endswith('.mpy')):
             # too many ways for `os.listdir` to fail here, so just capture the error:
