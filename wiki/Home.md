@@ -1,9 +1,8 @@
 Welcome to the MicroHydra wiki!
 
-This program includes a few libraries that can help you quickly get a new app up and running. Your apps are free to add and import any libraries not listed here, but this is what comes with MicroHydra itself.
+*This wiki is community-editable! If you'd like to help clarify or expand its contents, just fork this repo, make your changes to [/wiki](https://github.com/echo-lalia/Cardputer-MicroHydra/tree/main/wiki), and submit a pull request :)*
 
-For any developers using MicroPython but not MicroHydra, feel free to take the files from /lib/ and use them for your own purposes.   
-*(Of course, just make sure you respect that file's license.)*
+MicroHydra includes a built-in library, intended to help you easily make apps. Click on a module below to learn more about it.
 
 ----
 
@@ -19,8 +18,8 @@ For any developers using MicroPython but not MicroHydra, feel free to take the f
 │ &nbsp; &nbsp; &nbsp; └── terminal  
 │  
 ├── $lib$  
-│ &nbsp; &nbsp; &nbsp; ├── [$audio$](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/Playing-Sound)  
-│ &nbsp; &nbsp; &nbsp; ├── [$display$](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/Display)  
+│ &nbsp; &nbsp; &nbsp; ├── [audio](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/Playing-Sound)  
+│ &nbsp; &nbsp; &nbsp; ├── [display](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/Display)  
 │ &nbsp; &nbsp; &nbsp; │ &nbsp; &nbsp; &nbsp; ├── palette  
 │ &nbsp; &nbsp; &nbsp; │ &nbsp; &nbsp; &nbsp; └── named_palette  
 │ &nbsp; &nbsp; &nbsp; │  
@@ -31,7 +30,7 @@ For any developers using MicroPython but not MicroHydra, feel free to take the f
 │ &nbsp; &nbsp; &nbsp; │ &nbsp; &nbsp; &nbsp; ├── [menu](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/HydraMenu)  
 │ &nbsp; &nbsp; &nbsp; │ &nbsp; &nbsp; &nbsp; └── [popup](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/popup)  
 │ &nbsp; &nbsp; &nbsp; │  
-│ &nbsp; &nbsp; &nbsp; ├── [$userinput$](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/userinput)  
+│ &nbsp; &nbsp; &nbsp; ├── [userinput](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/userinput)  
 │ &nbsp; &nbsp; &nbsp; ├── battlevel  
 │ &nbsp; &nbsp; &nbsp; ├── kanji  
 │ &nbsp; &nbsp; &nbsp; └── sdcard  
