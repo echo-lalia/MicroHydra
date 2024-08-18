@@ -1,4 +1,4 @@
-## lib.display.Palette
+## lib.display.palette.Palette
 
 This Palette class is designed to be used for storing a list of RGB565 colors,
 and for returning the apropriate colors by index to be used with MicroHydra's display module.
@@ -58,4 +58,28 @@ For your reference, here is a complete list of the colors, by index, contained i
   <li>compliment ui_color</li>
 </ol>
 
-<br /><br />
+<br /><br /><br /><br />
+
+
+## lib.display.namedpalette.NamedPalette
+
+As an alternative, for improved readability and simplicity, you can import the optional `NamedPalette` class, which works similarly to the normal `Palette`, but also accepts strings containing color names.
+
+``` Py
+names = {
+  'black':0,
+  'bg_dark':1,
+  'bg_color':2,
+  'mid_color':5,
+  'ui_color':8,
+  'ui_light':9,
+  'white':10,
+  'red':11,
+  'green':12,
+  'blue':13,
+  'bg_complement':14,
+  'ui_complement':15,
+}
+```
+
+<br />
