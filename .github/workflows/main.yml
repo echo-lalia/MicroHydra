@@ -1,5 +1,8 @@
 name: Update Wiki
 
+permissions:
+  contents: write
+
 on:
   push:
     paths:
