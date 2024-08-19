@@ -3,11 +3,15 @@ There are two main modules built-in to MicroHydra currently, which can be used f
 
 <br />
 
-### M5Sound.py
-[M5Sound](https://github.com/echo-lalia/Cardputer-MicroHydra/blob/main/MicroHydra/lib/M5Sound.py) is a module contributed by [Lana-chan](https://github.com/echo-lalia/Cardputer-MicroHydra/commits?author=Lana-chan) for playing high-quality sound on the Cardputer.
+### lib.audio.Audio
+MicroHydra's [audio](https://github.com/echo-lalia/Cardputer-MicroHydra/tree/wikiimprovements/src/lib/audio) module subclasses the apropriate audio module for the current device (Currently this is only `i2ssound`, but may be expanded in the future), and initializes it with the apropriate values for the device.
 
-It can play samples stored in a variable, or read large samples from storage using little memory.   
-It also can change the pitch of those samples, and even play several at the same time, overlapping. Unlike the beeper module, this one is non-blocking (your code can continue to execute while sound is playing).
+Note:  
+> *`i2ssound` was previously named `M5Sound`, and was contributed by [Lana-chan](https://github.com/echo-lalia/Cardputer-MicroHydra/commits?author=Lana-chan), for playing high-quality sound on the Cardputer.  
+> It has been renamed for consistency with MicroHydras other modules.*
+
+It can play samples stored in a variable, or read large samples from storage using little memory.  
+It also can change the pitch of those samples, and even play several at the same time, overlapping.
 
 <br />
 
@@ -16,9 +20,9 @@ It also can change the pitch of those samples, and even play several at the same
 
 ``` Python
 import time
-from lib import M5Sound
+from lib.audio import Audio
 
-sound = M5Sound.M5Sound()
+audio = Audio()
 
 _SQUARE = const(\
     b'\x00\x80\x00\x80\x00\x80\x00\x80\x00\x80\x00\x80'\
@@ -32,17 +36,17 @@ _SQUARE = const(\
 SQUARE = memoryview(_SQUARE)
 
 for note in range(24,60): # note values, C-3 to B-5
-    sound.play(SQUARE, note, 0, 14, 0, True)
+    audio.play(SQUARE, note, 0, 14, 0, True)
     for i in range(13,1,-1): # fade out volume
-        sound.setvolume(i)
+        audio.setvolume(i)
         time.sleep(0.05)
-    sound.stop(0)
+    audio.stop(0)
 ```
 
 Samples can also be loaded from a 'raw' file on the flash or SDCard. 
 
 ``` Python
-M5Sound.Sample(source, buffer_size=1024)
+i2ssound.Sample(source, buffer_size=1024)
 """Initialize a sample for playback
 
 - source: If string, filename. Otherwise, use MemoryView.
@@ -55,16 +59,17 @@ M5Sound.Sample(source, buffer_size=1024)
 <br /><br /><br />
 
 ### beeper
-[beeper.py](https://github.com/echo-lalia/Cardputer-MicroHydra/blob/main/MicroHydra/lib/beeper.py) is a module for playing simple UI beeps.
+[beeper.py](https://github.com/echo-lalia/Cardputer-MicroHydra/blob/wikiimprovements/src/lib/hydra/beeper.py) is a module for playing simple UI beeps.
 
-This module is very imperfect. It is somewhat limited in its use, and it uses more memory than what is probably needed. However, it *is* simple to use, and it thankfully does work decent for short UI tones.
+This module is very imperfect. It is somewhat limited in its use, however, it *is* simple to use.  
+> In previous versions, this module used its own, blocking, implementation for sending audio to the speaker. However, the current version is just a wrapper for the `Audio` class above. The audio is now much higher quality and more consistent, however there is a noticable delay in it. I would like to fix this in the future, but I'm not sure how to do that. 
 
 
 
 To use it: 
 
 ``` Python
-from lib import beeper
+from lib.hydra import beeper
 ```   
 
 ``` Python
@@ -72,9 +77,13 @@ from lib import beeper
 beep = beeper.Beeper()
 
 beep.play(
-    notes=('C4',('D4','D4')), # a tuple of strings containing notes to play. a nested tuple can be used to play multiple notes together.
-    time_ms=120, # how long to play each note
-    volume=4) # an integer from 0-10 representing the volume of the playback. Default is 2, 0 is almost inaudible, 10 is loud.
+    # a tuple of strings containing notes to play. a nested tuple can be used to play multiple notes together.
+    notes=('C4',('D4','D4')),
+    # how long to play each note
+    time_ms=120,
+    # an integer from 0-10 representing the volume of the playback. Default is 2, 0 is almost inaudible, 10 is loud.
+    volume=10,
+) 
 ```
 
 <br /><br /><br />
