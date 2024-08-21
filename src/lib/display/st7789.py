@@ -472,7 +472,8 @@ class ST7789:
         source_start_idx = self._show_y_min * self.width * 2
         source_end_idx = self._show_y_max * self.width * 2
         
-        self._write(None, memoryview(self.fbuf)[source_start_idx:source_end_idx])
+        if source_start_idx < source_end_idx:
+            self._write(None, memoryview(self.fbuf)[source_start_idx:source_end_idx])
 
 
     def hard_reset(self):
