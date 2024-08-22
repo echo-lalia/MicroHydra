@@ -78,6 +78,7 @@ jobs:
         replacesArtifacts: true
         omitBodyDuringUpdate: true
         omitDraftDuringUpdate: true
+        omitNameDuringUpdate: true
   
         
 
