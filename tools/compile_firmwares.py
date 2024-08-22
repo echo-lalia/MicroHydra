@@ -32,6 +32,7 @@ VERBOSE = SCRIPT_ARGS.verbose
 CWD = os.getcwd()
 OG_DIRECTORY = CWD
 
+
 if SOURCE_PATH is None:
     SOURCE_PATH = os.path.join(CWD, 'MicroPython', 'ports', 'esp32')
 if DEVICE_PATH is None:
@@ -61,8 +62,16 @@ def main():
         subprocess.call(["tools/build_device_bin.sh", device.name])
         os.chdir(OG_DIRECTORY)
     
+        os.rename(
+            os.path.join(SOURCE_PATH, f'build-{device.name}', 'firmware.bin'),
+            os.path.join(OG_DIRECTORY, 'MicroHydra', f'{device.name}.bin'),
+        )
+
+
     print(f"{bcolors.OKGREEN}Finished making compiled bins.{bcolors.ENDC}")
     os.chdir(OG_DIRECTORY)
+
+
 
         
 
