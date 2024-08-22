@@ -1,14 +1,14 @@
 # This workflow will install Python dependencies, run tests and lint with a single version of Python
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
 
-name: Python application
+name: MicroHydra Build
 
 on: 
   workflow_dispatch:
     inputs:
       releaseTag:
-        description: 'Log level'
-        required: true
+        description: "Tag to use when creating release. If blank, don't create release."
+        required: false
         default: ''
         type: string
 
@@ -22,15 +22,20 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
     - name: Set up Python 3.10
       uses: actions/setup-python@v5
       with:
         python-version: "3.10"
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         python -m pip install pyyaml
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    
     - name: Run Build Scripts
       run: |
         ./tools/microhydra_build_all.sh
