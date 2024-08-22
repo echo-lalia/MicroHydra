@@ -51,11 +51,12 @@ jobs:
 
 
   release:
+    needs: test-api
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
-    if: ${{ inputs.perform_deploy }}
+    if: ${{ inputs.releaseTag }}
 
     steps:
     - uses: actions/checkout@v4
@@ -66,7 +67,7 @@ jobs:
     - uses: ncipollo/release-action@v1
       with:
         artifacts: "*.bin,*.zip"
-        tag: ${{ inputs.perform_deploy }}
+        tag: ${{ inputs.releaseTag }}
         
         commit: main
         generateReleaseNotes: true
