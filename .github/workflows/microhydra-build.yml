@@ -51,7 +51,7 @@ jobs:
 
 
   release:
-    needs: test-api
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: write
