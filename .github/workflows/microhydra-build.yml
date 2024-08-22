@@ -22,8 +22,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-      with:
-        submodules: recursive
 
     - name: Set up Python 3.10
       uses: actions/setup-python@v5
@@ -38,4 +36,6 @@ jobs:
     
     - name: Run Build Scripts
       run: |
+        git submodule update --init --recursive esp-idf
+        ./esp-idf/install.sh
         ./tools/microhydra_build_all.sh
