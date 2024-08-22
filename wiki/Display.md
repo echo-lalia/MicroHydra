@@ -14,19 +14,6 @@ display.show()
 <br /><br /><br />
 
 
-## Functions:
-
->`display.color565(r:int, g:int, b:int) -> int`  
->> Convert 24bit (0-255) RGB values into 16bit 565 format.  
->> Returns a single 565-encoded integer.  
->> <br />
-
->`swap_bytes(color:int) -> int`
->> Swap the left and right bytes in a 16 bit color.  
->> This is mainly used internally to unswap colors that would be swapped when writing to the display.  
->> <br />
-
-
 <br /><br />
 
 
