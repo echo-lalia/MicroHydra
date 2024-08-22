@@ -5,7 +5,13 @@ from lib.hydra.color import *
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ CONSTANT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-DEFAULT_CONFIG = const("""{
+DEFAULT_CONFIG = const(
+"""{
+"""
+# mh_if kb_light:
+'"kb_light": false,'
+# mh_end_if
+"""
 "24h_clock": false,
 "wifi_ssid": "",
 "bg_color": 2051,
