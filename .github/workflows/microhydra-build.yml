@@ -37,5 +37,6 @@ jobs:
     - name: Run Build Scripts
       run: |
         git submodule update --init --recursive esp-idf
+        git submodule update --init MicroPython
         ./esp-idf/install.sh
         ./tools/microhydra_build_all.sh
