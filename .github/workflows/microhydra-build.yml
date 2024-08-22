@@ -40,3 +40,10 @@ jobs:
         git submodule update --init MicroPython
         ./esp-idf/install.sh
         ./tools/microhydra_build_all.sh
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: finished-build
+        path: |
+          MicroHydra/*.zip
+          MicroHydra/*.bin
