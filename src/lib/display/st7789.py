@@ -188,24 +188,6 @@ _ST7789_INIT_CMDS = const((
 
 # fmt: on
 
-@micropython.viper
-def color565(r:int, g:int, b:int) -> int:
-    """
-    Convert red, green and blue values (0-255) into a 16-bit 565 encoding.
-    """
-    r = (r * 31) // 255
-    g = (g * 63) // 255
-    b = (b * 31) // 255
-    return (r << 11) | (g << 5) | b
-
-
-@micropython.viper
-def swap_bytes(color:int) -> int:
-    """
-    this just flips the left and right byte in the 16 bit color.
-    """
-    return ((color & 255) << 8) | (color >> 8)
-
 
 
 class ST7789:
