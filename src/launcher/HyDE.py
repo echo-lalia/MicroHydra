@@ -1017,20 +1017,21 @@ def main_loop():
 
         if keys:
             redraw_display = True
+
             for key in keys:
                 if "CTL" in mod_keys:
                     # CTRL KEY SHORTCUTS
 
-                    if key == ";":
+                    if key == "UP":
                         for _ in range(0,4):
                             editor.move_up()
-                    elif key == ".":
+                    elif key == "DOWN":
                         for _ in range(0,4):
                             editor.move_down()
 
-                    elif key == "/":
+                    elif key == "RIGHT":
                         editor.jump_right()
-                    elif key == ",":
+                    elif key == "LEFT":
                         editor.jump_left()
 
                     elif key == "BSPC":
@@ -1051,20 +1052,20 @@ def main_loop():
                 elif "OPT" in mod_keys:
                     # OPT KEY SHORTCUTS
 
-                    if "." == key:
+                    if "DOWN" == key:
                         editor.move_end()
-                    elif ";" == key:
+                    elif "UP" == key:
                         editor.move_home()
 
                 elif "ALT" in mod_keys:
                     # OPT KEY SHORTCUTS
-                    if key == "/":
+                    if key == "RIGHT":
                         editor.display_snap_right()
-                    elif key == ",":
+                    elif key == "LEFT":
                         editor.display_snap_left()
-                    elif key == ";":
+                    elif key == "UP":
                         editor.display_snap_up()
-                    elif key == ".":
+                    elif key == "DOWN":
                         editor.display_snap_down()
 
                 else:
