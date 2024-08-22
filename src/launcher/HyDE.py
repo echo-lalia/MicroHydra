@@ -1059,13 +1059,13 @@ def main_loop():
 
                 elif "ALT" in mod_keys:
                     # OPT KEY SHORTCUTS
-                    if key == "/":
+                    if key == "RIGHT":
                         editor.display_snap_right()
-                    elif key == ",":
+                    elif key == "LEFT":
                         editor.display_snap_left()
-                    elif key == ";":
+                    elif key == "UP":
                         editor.display_snap_up()
-                    elif key == ".":
+                    elif key == "DOWN":
                         editor.display_snap_down()
 
                 else:
