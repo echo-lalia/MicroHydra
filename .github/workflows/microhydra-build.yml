@@ -47,3 +47,38 @@ jobs:
         path: |
           MicroHydra/*.zip
           MicroHydra/*.bin
+
+
+
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    if: ${{ inputs.perform_deploy }}
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/download-artifact@v4
+      with:
+        name: finished-build
+  
+    - uses: ncipollo/release-action@v1
+      with:
+        artifacts: "*.bin,*.zip"
+        tag: ${{ inputs.perform_deploy }}
+        
+        commit: main
+        generateReleaseNotes: true
+        draft: true
+        
+        allowUpdates: true
+        updateOnlyUnreleased: true
+        replacesArtifacts: true
+        omitBodyDuringUpdate: true
+        omitDraftDuringUpdate: true
+  
+        
+
+        
+        
