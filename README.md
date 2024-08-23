@@ -26,7 +26,7 @@ MicroHydra is a simple MicroPython based app launcher with some OS-like features
 *MicroHydra is currently going through a major overhaul to enable multi-platform support. Many features and APIs will likely undergo significant change by version 2.0.*   
 please use the "releases" section for stable versions of MicroHydra.
 
-This code was built with MicroPython v1.23.0 (preview), for a Generic ESP32-S3 controller.
+This code was built with MicroPython v1.23, for the ESP32-S3.
 
 The main function of MicroHydra is to provide an interface to easily switch between MicroPython apps.   
 And to help lower the barriers to entry for anyone wanting to develop apps for their Cardputer. 
@@ -36,9 +36,7 @@ Python scripts can be placed in the /apps folder on the flash, or in a /apps fol
 
 Take a look at the [wiki](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki) for some basic guides to get you started with a MicroPython app.
 
-If you're looking for the compiled firmware, that lives over [here](https://github.com/echo-lalia/microhydra-frozen).
-
-And for a work-in-progress repository of MicroHydra apps, see [here](https://github.com/echo-lalia/MicroHydra-Apps)
+And for a repository of community-made MicroHydra apps, see [here](https://github.com/echo-lalia/MicroHydra-Apps).
 
 <br /><br /><br />
 
@@ -67,9 +65,7 @@ Apps are designed to work very simply in this launcher. Any Python file placed i
 This means that a simple app can be contained as one script, which will be executed when the app is selected from the launcher.   
 It also means more complicated apps can place a startup file in the apps directory, which imports anything it needs from another folder in the filesystem. 
 
-Some apps for MH can be found [here](https://github.com/echo-lalia/MicroHydra-Apps), but there are many other apps (especially work-in-progress apps) living in other locations, as well. 
-
-*Quick note about apps on the SD card: The apps wont be able to use SPI slot 2 for the display (or anything else) because it will be occupied by the SD card. Thankfully, the display works fine in slot 1.*
+Some apps for MH can be found [here](https://github.com/echo-lalia/MicroHydra-Apps), but there are other apps (especially work-in-progress apps) living in other locations, as well. 
 
 <br /><br /><br />
 
@@ -77,6 +73,10 @@ Some apps for MH can be found [here](https://github.com/echo-lalia/MicroHydra-Ap
 
 
 # Installing MicroHydra:
+
+> NOTE: This guide is for MicroHydra 1.x, and will not work for 2.x due to the new way device-specific source files are dynamically created.
+> If you want to test out v2.0, check out the preview binaries in the 'releases' section.
+> The full 2.x guides will be coming soon :)
 
 You can install MicroHydra a few different ways. 
 
