@@ -1,6 +1,17 @@
-Welcome to the MicroHydra wiki!
+### Welcome to the MicroHydra wiki!
 
 *This wiki is community-editable! If you'd like to help clarify or expand its contents, just fork this repo, make your changes to [/wiki](https://github.com/echo-lalia/Cardputer-MicroHydra/tree/main/wiki), and submit a pull request :)*
+
+<br/>
+
+
+## Making Apps 
+For a basic overview of how MicroHydra apps work, see the [App Format](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki/App-Format) section.
+
+<br/>
+
+
+## Lib
 
 MicroHydra includes a built-in library, intended to help you easily make apps. Click on a module below to learn more about it.
 
