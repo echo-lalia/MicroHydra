@@ -101,7 +101,7 @@ _MH_DISPLAY_WIDTH = const(240)
 
 
 
-<br/> <br/>
+<br/> <br/> <br/>
 
 ## Hydra conditionals
 
@@ -110,7 +110,7 @@ This is especially true because of the limited memory available to work with on 
 
 That's where this final (and most complicated) feature of `tools/parse_files.py` comes in.
 
-<br/>
+<br/> <br/>
 
 Hydra conditionals are used to selectively include or exclude blocks of code from `src/` based on device names, included features, and whether the code is 'frozen' or not.
 
@@ -123,6 +123,8 @@ my_code()
 In the above example, if {feature} is in the device-specific `definition.yml` file, then the line `my_code()` will be included in the output code for that device. Otherwise, the entire line is removed.  
 The `# mh_if...` and `# mh_end_if` lines will be removed regardless of whether or not {feature} matches a feature in the device definition.
 
+<br/>
+
 You can also use the "not" keyword:
 ``` Py
 # mh_if not {feature}:
@@ -130,6 +132,8 @@ my_code()
 # mh_end_if
 ```
 Which, as expected, will exclude this line of code when {feature} exists on a device.
+
+<br/>
 
 If/elif/else statements are also supported:  
 ``` Py
@@ -141,6 +145,8 @@ other_feature_code()
 no_features_code()
 # mh_end_if
 ```
+
+<br/>
 
 In order to make testing this code directly a bit easier, these conditionals also work on 'commented-out' code.  
 In this example, the commented out code will be uncommented if the device has no touchscreen:
@@ -155,30 +161,69 @@ print("this device has a touchscreen!")
 > Note the spacing after the `#`. In order for the commenting/uncommenting to work correctly, this extra space needs to be there.
 > This is because Python cares a lot about indentation, and without this space, the `parse_files` script might not correctly guess what the actual indentation was meant to be.
 
+<br/> <br/>
 
+Finally, here are some real examples from `src/` to illustrate these features further!  
 
-<br/> <br/><br/> <br/><br/> <br/>
-
-Hydra Conditionals:
-- Conditional 'if' statements that can include or exclude a block of code
-  based on a given feature.
-- Can also be used to match a device name, or whether or not a module is "frozen".
-- Follow this syntax: `# mh_if {feature}:` or `# mh_if not {feature}:`
-- elif supported using `# mh_else_if {feature}:`
-- Are closed with this syntax: `# mh_end_if`
-- If the entire conditional is commented out, 
-  automatically uncomments it (for easier development/testing)
-- Can be nested, but this is discouraged 
-  (It's hard to read because Python indentation must be maintained)
-Example:
+> From launcher/launcher.py:
+``` Py
+DISPLAY = display.Display(
+    # mh_if spi_ram:
+    # use_tiny_buf=False,
+    # mh_else:
+    use_tiny_buf=True,
+    # mh_end_if
+    )
 ```
+``` Py
+    # add an appname for builtin file browser
+    app_names.append("Files")
+    # mh_if frozen:
+    # app_paths["Files"] = ".frozen/launcher/files"
+    # mh_else:
+    app_paths["Files"] = "/launcher/files"
+    # mh_end_if
+```
+
+<br/>
+
+> From launcher/settings.py:
+``` Py
 # mh_if touchscreen:
-print("this device has a touchscreen!")
-# mh_else:
-# print("this device has no touchscreen!")
+def process_touch(keys):
+    events = kb.get_touch_events()
+    for event in events:
+        if hasattr(event, 'direction'):
+            # is a swipe
+            keys.append(event.direction)
+        
+        elif _CONFIRM_MIN_X < event.x < _CONFIRM_MAX_X \
+        and _CONFIRM_MIN_Y < event.y < _CONFIRM_MAX_Y:
+            keys.append("ENT")
 # mh_end_if
 ```
-On CARDPUTER this becomes:
+``` Py
+while True:
+    keys = kb.get_new_keys()
+    
+    # mh_if touchscreen:
+    process_touch(keys)
+    # mh_end_if
 ```
-print("this device has no touchscreen!")
+
+<br/>
+
+> From lib/display/display.py:
+``` Py
+    def __init__(self, use_tiny_buf=False, **kwargs):
+        # mh_if TDECK:
+        # # Enable Peripherals:
+        # machine.Pin(10, machine.Pin.OUT, value=1)
+        # mh_end_if
 ```
+
+<br/> <br/>
+
+*Final note on hydra conditionals:*
+> These conditionals can also be nested. However, this is discouraged because it becomes very hard to read (because indentation must be maintained to match the original code).
+> It's an option in your toolkit, but please try to find another solution first if it comes to that.
