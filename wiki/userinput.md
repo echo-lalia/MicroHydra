@@ -1,7 +1,7 @@
 
 ### lib.userinput.UserInput
 
-[userinput](https://github.com/echo-lalia/Cardputer-MicroHydra/blob/wikiimprovements/src/lib/userinput/userinput.py) provides a all of a devices physical inputs in one place.
+[userinput](https://github.com/echo-lalia/Cardputer-MicroHydra/blob/main/src/lib/userinput/userinput.py) provides a all of a devices physical inputs in one place.
 
 At its core, the module is based on the device-specific `_keys` module, which provides logic for reading the keypresses and converting them into readable strings. The `UserInput` class subclasses the `_keys.Keys` class, and inherits those device-specific features.  
 `UserInput` can also provide other kinds of input, such as providing touch data from a device with a touchscreen. These extra features, of course, are based on the specific device being used.

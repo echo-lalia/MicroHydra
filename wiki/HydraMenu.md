@@ -1,6 +1,6 @@
-[HydraMenu.py](https://github.com/echo-lalia/Cardputer-MicroHydra/blob/wikiimprovements/src/lib/hydra/menu.py) is a module contributed by [Gabriel-F-Sousa](https://github.com/echo-lalia/Cardputer-MicroHydra/commits?author=Gabriel-F-Sousa), which is designed to make it easy to create menu screens for MicroHydra apps.
+[HydraMenu.py](https://github.com/echo-lalia/Cardputer-MicroHydra/blob/main/src/lib/hydra/menu.py) is a module contributed by [Gabriel-F-Sousa](https://github.com/echo-lalia/Cardputer-MicroHydra/commits?author=Gabriel-F-Sousa), which is designed to make it easy to create menu screens for MicroHydra apps.
 
-HydraMenu is being utilized heavily by the (newly refurbished) inbuilt [settings app](https://github.com/echo-lalia/Cardputer-MicroHydra/blob/wikiimprovements/src/launcher/settings.py). Please take a look at that file for some practical examples of what can be done with the module. 
+HydraMenu is being utilized heavily by the (newly refurbished) inbuilt [settings app](https://github.com/echo-lalia/Cardputer-MicroHydra/blob/main/src/launcher/settings.py). Please take a look at that file for some practical examples of what can be done with the module. 
 
 Here's a simplified example, for your reference:
 ``` Python

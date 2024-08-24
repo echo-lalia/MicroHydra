@@ -16,7 +16,7 @@
 </p>
 
 
-# Cardputer-MicroHydra
+# MicroHydra
 MicroHydra is a simple MicroPython based app launcher with some OS-like features.
 
 <p align="center">
