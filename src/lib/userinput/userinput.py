@@ -12,6 +12,7 @@ such as key repetition, and global keyboard shortcuts.
 import time
 from lib.hydra.config import Config
 from lib.display import Display
+import machine
 from . import _keys
 
 # mh_if touchscreen:
