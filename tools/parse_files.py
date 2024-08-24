@@ -46,7 +46,7 @@ import os
 import yaml
 import argparse
 import re
-# from pathlib import Path
+import shutil
 import time
 
 
@@ -66,12 +66,14 @@ PARSER.add_argument('-s', '--source', help='Path to MicroHydra source to be pars
 PARSER.add_argument('-D', '--devices', help='Path to device definition folder.')
 PARSER.add_argument('-d', '--dest', help='Destination path for parsed MicroHydra files.')
 PARSER.add_argument('-v', '--verbose', action='store_true')
+PARSER.add_argument('-z', '--zip', action='store_true', help='Put output device files into zip archives.')
 PARSER.add_argument('--frozen', action='store_true')
 SCRIPT_ARGS = PARSER.parse_args()
 
 SOURCE_PATH = SCRIPT_ARGS.source
 DEVICE_PATH = SCRIPT_ARGS.devices
 DEST_PATH = SCRIPT_ARGS.dest
+ZIP = SCRIPT_ARGS.zip
 FROZEN = SCRIPT_ARGS.frozen
 VERBOSE = SCRIPT_ARGS.verbose
 
@@ -144,9 +146,6 @@ def main():
                 # unsupported files should just be copied instead.
                 vprint(f"    {bcolors.OKCYAN}copying directly...{bcolors.ENDC}")
                 file_parser.save_unparsable_file(DEST_PATH, device)
-
-            # TODO: Add ability to copy to additional "frozen" folder.
-            # this way, a separate script can compile and freeze the device specific code.
     
     # for each device, copy device-specific source files to output folder
     for device in devices:
@@ -157,6 +156,15 @@ def main():
                 file_parser = FileParser(dir_entry, file_path)
                 file_parser.save_unparsable_file(DEST_PATH, device)
         device.create_device_module(DEST_PATH)
+
+    # when --zip is specified, also put device files into a zip archive.
+    if ZIP:
+        for device in devices:
+            shutil.make_archive(
+                os.path.join('MicroHydra', f"{device.name}_raw"),
+                'zip',
+                os.path.join('MicroHydra', device.name),
+                )
 
 
     print_completed()
