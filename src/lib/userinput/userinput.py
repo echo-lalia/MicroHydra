@@ -12,17 +12,10 @@ such as key repetition, and global keyboard shortcuts.
 import time
 from lib.hydra.config import Config
 from lib.display import Display
-
-try:
-    from . import _keys
-except ImportError:
-    from lib.userinput import _keys
+from . import _keys
 
 # mh_if touchscreen:
-try:
-    from . import _touch
-except ImportError:
-    from lib.userinput import _touch
+from . import _touch
 # mh_end_if
 
 
@@ -250,14 +243,18 @@ class UserInput(_keys.Keys):
                 keylist.remove('m')
 
             # vol up
-            if ';' in keylist:
+            if 'UP' in keylist:
                 self.config['volume'] = (self.config['volume'] + 1) % 11
-                keylist.remove(';')
+                keylist.remove('UP')
 
             # vol down
-            elif '.' in keylist:
+            elif 'DOWN' in keylist:
                 self.config['volume'] = (self.config['volume'] - 1) % 11
-                keylist.remove('.')
+                keylist.remove('DOWN')
+            
+            if "q" in keylist:
+                machine.RTC().memory("")
+                machine.reset()
             
             # mh_if kb_light:
             if "b" in keylist:
@@ -293,10 +290,3 @@ class UserInput(_keys.Keys):
             display.text(key_txt, x, _PADDING + 2, display.palette[txt_clr])
             width = x - _RADIUS - _PADDING
 
-
-
-if __name__ == "__main__":
-    user_input = UserInput(locking_keys=True)
-    while True:
-        print(user_input.get_new_keys() + user_input.get_touch_events())
-        time.sleep_ms(30)

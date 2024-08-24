@@ -91,6 +91,9 @@ _SPACE_INDENT = const('    ')
 _TAB_INDENT = const('	')
 
 
+# lines longer than this skip the formatting step
+_MAX_FORMATTED_LEN = const(200)
+
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Global Objects: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 DISPLAY = display.Display()
@@ -414,6 +417,10 @@ def segment_from_str(string:str, index:int) -> str:
 @micropython.native
 def draw_small_line(line,x,y,fade=0):
     """apply special styling to a small line and display it."""
+    if len(line) > _MAX_FORMATTED_LEN:
+        DISPLAY.text(line, x, y, CONFIG.palette[6-fade])
+        return
+
     line = format_display_line(line)
     is_comment = False
     string_char = None
@@ -479,10 +486,19 @@ def draw_fancy_line(line, x, y, highlight=False, trim=True):
                        'False','Finally','for','from','global','if','import','in','is','lambda','None',
                        'nonlocal','not','or','pass','raise','return','True','try','while','with','yield'))
     _OPERATORS = const("<>,|[]{}()*^%!=-+/:;&@")
+    
+    # skip formatting on long lines
+    if len(line) > _MAX_FORMATTED_LEN:
+        DISPLAY.text(line, x, y, CONFIG.palette[8], font=font)
+        return
 
     # TODO: I worry this may be extremely unoptomized. Should maybe be tested/optimized further.
     # It might be worth it to try pre-processing lines into a colored 
     # format so that we dont need to redo this between frames
+    # And reworking this to split lines into tokens first, rather than drawing them character-by-character,
+    # would also probably be a lot faster.
+    # Finally, only rerunning the formatting on pre-processed lines if they have been modified, should certainly
+    # Speed things up a ton.
 
     line = format_display_line(line)
     # trim right part of line to speed up styling
@@ -961,7 +977,7 @@ def main_loop():
     target_file = RTC.memory().decode()
     # TESTING:
     if target_file == "":
-        target_file = "/misc_tdeck/testkb.py"
+        target_file = "/log.txt"
 
     # remove syntax hilighting for plain txt files.
     if target_file.endswith('.txt'):
