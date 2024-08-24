@@ -79,6 +79,7 @@ jobs:
         omitBodyDuringUpdate: true
         omitDraftDuringUpdate: true
         omitNameDuringUpdate: true
+        omitPrereleaseDuringUpdate: true
   
         
 
