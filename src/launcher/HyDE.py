@@ -977,7 +977,7 @@ def main_loop():
     target_file = RTC.memory().decode()
     # TESTING:
     if target_file == "":
-        target_file = "/misc_tdeck/testkb.py"
+        target_file = "/log.txt"
 
     # remove syntax hilighting for plain txt files.
     if target_file.endswith('.txt'):
