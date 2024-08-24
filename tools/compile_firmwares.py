@@ -32,6 +32,7 @@ VERBOSE = SCRIPT_ARGS.verbose
 CWD = os.getcwd()
 OG_DIRECTORY = CWD
 
+print(CWD)
 
 if SOURCE_PATH is None:
     SOURCE_PATH = os.path.join(CWD, 'MicroPython', 'ports', 'esp32')
@@ -56,12 +57,15 @@ def main():
         if filepath != 'default.yml':
             devices.append(Device(filepath))
 
+    # Run build script, passing each target device name.
+    print(f"{bcolors.OKBLUE}Running builds for {', '.join([device.name.title() for device in devices])}...{bcolors.ENDC}")
+    subprocess.call([os.path.join('tools', 'build_device_bin.sh')] + [device.name for device in devices])
 
+    # Rename/move firmware bins for each device.
     for device in devices:
-        print(f"{bcolors.OKBLUE}Building for {device.name.title()}...{bcolors.ENDC}")
-        subprocess.call(["tools/build_device_bin.sh", device.name])
         os.chdir(OG_DIRECTORY)
-    
+
+        print(f'{bcolors.OKBLUE}Extracting "{device.name}.bin"...{bcolors.ENDC}')
         os.rename(
             os.path.join(SOURCE_PATH, f'build-{device.name}', 'firmware.bin'),
             os.path.join(OG_DIRECTORY, 'MicroHydra', f'{device.name}.bin'),
