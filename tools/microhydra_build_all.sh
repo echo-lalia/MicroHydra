@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Run file parsing script to create device-specific python files
-python3 tools/parse_files.py
+python3 tools/parse_files.py --zip --verbose
 
 # build mpy-cross so we can compile .mpy files
 python3 tools/build_mpy_cross.py
@@ -18,7 +18,7 @@ python3 tools/setup_esp_idf.py
 python3 tools/create_frozen_folders.py
 
 # Run file parsing script for frozen device folders
-python3 tools/parse_files.py --frozen
+python3 tools/parse_files.py --frozen --verbose
 
 # now run script to build each device
 python3 tools/compile_firmwares.py
