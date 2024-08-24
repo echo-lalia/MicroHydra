@@ -225,7 +225,7 @@ def ext_options(overlay):
     option = overlay.popup_options(options, title=f"{cwd}:")
     if option == "New Directory":
         play_sound(("D3"), 30)
-        name = overlay.text_entry(title="Directory name:", blackout_bg=True)
+        name = overlay.text_entry(title="Directory name:")
         play_sound(("G3"), 30)
         try:
             os.mkdir(name)
@@ -234,7 +234,7 @@ def ext_options(overlay):
             
     elif option == "New File":
         play_sound(("B3"), 30)
-        name = overlay.text_entry(title="File name:", blackout_bg=True)
+        name = overlay.text_entry(title="File name:")
         play_sound(("G3"), 30)
         try:
             with open(name, "w") as newfile:
@@ -291,12 +291,12 @@ def file_options(file, overlay):
         
     elif option == "rename":
         play_sound(("B3"), 30)
-        new_name = overlay.text_entry(start_value=file, title=f"Rename '{file}':", blackout_bg=True)
+        new_name = overlay.text_entry(start_value=file, title=f"Rename '{file}':")
         os.rename(file,new_name)
         
     elif option == "delete":
         play_sound(("D3"), 30)
-        confirm = overlay.popup_options(("cancel", "confirm"), title=f'Delete "{file}"?', extended_border=True)
+        confirm = overlay.popup_options((("cancel",), ("confirm",)), title=f'Delete "{file}"?', depth=1)
         if confirm == "confirm":
             play_sound(("D3","B3","G3","G3"), 30)
             os.remove(file)

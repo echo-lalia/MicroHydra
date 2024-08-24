@@ -247,9 +247,9 @@ class FileParser:
         self.name = dir_entry.name
         self.path = dir_entry.path
 
-
-        with open(self.path, 'r', encoding='utf-8') as src_file:
-            self.src_lines = src_file.readlines()
+        if self.can_parse_file():
+            with open(self.path, 'r', encoding='utf-8') as src_file:
+                self.src_lines = src_file.readlines()
         self.lines = []
 
 

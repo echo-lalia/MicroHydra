@@ -453,6 +453,7 @@ class IconWidget:
         draw_app_name()
         self.next_icon = self._choose_icon()
         self.drawn_icon = self.next_icon
+        self.prev_x = 0
 
 
     def _animate_scroll(self) -> int:
@@ -540,7 +541,7 @@ class IconWidget:
         if isinstance(self.drawn_icon, int):
             self._draw_bitmap_icon()
         elif isinstance(self.drawn_icon, str):
-            if len(self.drawn_icon) == 2:
+            if len(self.drawn_icon) <= 3:
                 self._draw_str_icon()
             else:
                 self._draw_custom_icon()
