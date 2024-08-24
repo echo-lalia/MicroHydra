@@ -4,7 +4,7 @@ There are two main modules built-in to MicroHydra currently, which can be used f
 <br />
 
 ### lib.audio.Audio
-MicroHydra's [audio](https://github.com/echo-lalia/Cardputer-MicroHydra/tree/wikiimprovements/src/lib/audio) module subclasses the apropriate audio module for the current device (Currently this is only `i2ssound`, but may be expanded in the future), and initializes it with the apropriate values for the device.
+MicroHydra's [audio](https://github.com/echo-lalia/Cardputer-MicroHydra/tree/main/src/lib/audio) module subclasses the apropriate audio module for the current device (Currently this is only `i2ssound`, but may be expanded in the future), and initializes it with the apropriate values for the device.
 
 Note:  
 > *`i2ssound` was previously named `M5Sound`, and was contributed by [Lana-chan](https://github.com/echo-lalia/Cardputer-MicroHydra/commits?author=Lana-chan), for playing high-quality sound on the Cardputer.  
@@ -59,7 +59,7 @@ i2ssound.Sample(source, buffer_size=1024)
 <br /><br /><br />
 
 ### beeper
-[beeper.py](https://github.com/echo-lalia/Cardputer-MicroHydra/blob/wikiimprovements/src/lib/hydra/beeper.py) is a module for playing simple UI beeps.
+[beeper.py](https://github.com/echo-lalia/Cardputer-MicroHydra/blob/main/src/lib/hydra/beeper.py) is a module for playing simple UI beeps.
 
 This module is very imperfect. It is somewhat limited in its use, however, it *is* simple to use.  
 > In previous versions, this module used its own, blocking, implementation for sending audio to the speaker. However, the current version is just a wrapper for the `Audio` class above. The audio is now much higher quality and more consistent, however there is a noticable delay in it. I would like to fix this in the future, but I'm not sure how to do that. 
