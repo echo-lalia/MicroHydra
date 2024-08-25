@@ -201,7 +201,7 @@ class Device:
     def create_device_module(self, dest_path):
         """Create lib.device.py file containing device-specific values."""
         # reformat device constants into plain 'snake case'
-        new_dict = {}
+        new_dict = {'name': self.name}
         for key, val in self.constants.items():
             key = key.removeprefix('_MH_').lower()
 
@@ -226,6 +226,17 @@ class Device:
         file_str = f'''\
 """
 This is an automatically generated module that contains the MH configuration for this specific device.
+`Device.vals` contains a dictionary of constants for this device.
+`Device.feats` contains a tuple of features that this device has, with the final value being the device name.
+
+Usage examples:
+```
+width = Device.display_width
+height = Device.display_height
+
+if 'touchscreen' in Device:
+    get_touch()
+```
 """
 
 class Device:
