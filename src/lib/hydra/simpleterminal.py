@@ -5,6 +5,9 @@ It can be used to simply print status information to the device.
 When `immediate` is set to `True` (the default value), it draws and shows itself every time you print to it.
 When `False`, only draw when you call the draw method. You must call `Display.show` manually.
 """
+from lib.display import Display
+from lib.hydra.config import Config
+
 
 _MH_DISPLAY_HEIGHT = const(135)
 _MH_DISPLAY_WIDTH = const(240)
