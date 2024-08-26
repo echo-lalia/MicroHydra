@@ -66,7 +66,7 @@ MPY_MATCHES = True
 def connect_wifi():
     TERM.print("Enabling wifi...")
     
-    if not NIC.active:
+    if not NIC.active():
         NIC.active(True)
     
     if not NIC.isconnected():    
