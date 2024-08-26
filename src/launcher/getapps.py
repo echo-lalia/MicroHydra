@@ -61,28 +61,53 @@ MPY_MATCHES = True
 
 def connect_wifi():
     TERM.print("Enabling wifi...")
-    NIC.active(True)
     
-    attempts = 0
-    while not NIC.isconnected():
-        try:
-            NIC.connect(CONFIG['wifi_ssid'], CONFIG['wifi_pass'])
-        except OSError as e:
-            TERM.print(f"Connection error: {e}")
-        TERM.print(f"connecting... {attempts}")
-        time.sleep(1)
-        attempts += 1
+    if not NIC.active:
+        NIC.active(True)
+    
+    if not NIC.isconnected():    
+        # tell wifi to connect (with FORCE)
+        while True:
+            try: # keep trying until connect command works
+                NIC.connect(CONFIG['wifi_ssid'], CONFIG['wifi_pass'])
+                break
+            except OSError as e:
+                TERM.print(f"Error: {e}")
+                time.sleep_ms(500)
+
+        # now wait until connected
+        attempts = 0
+        while not NIC.isconnected():
+            TERM.print(f"connecting... {attempts}")
+            time.sleep_ms(500)
+            attempts += 1
+
     TERM.print("Connected!")
 
 
 def request_file(file_path):
-    return requests.get(
+    TERM.print('Making request...')
+    response = requests.get(
     f'https://api.github.com/repos/echo-lalia/MicroHydra-Apps/contents/catalog-output/{file_path}',
     headers = {
         "accept": "application/vnd.github.v3.raw",
         "User-Agent": f"{Device.name} - MicroHydra",
         }
     )
+    TERM.print(f"Returned code: {response.status_code}")
+    return response
+
+
+def try_request_file(file_path):
+    """Capture errors and keep trying to get requested file."""
+    wait = 1 # time to wait between attempts (don't get rate limited)
+    while True:
+        try:
+            return request_file(file_path)
+        except OSError as e:
+            TERM.print(f"Request failed: {e}")
+            time.sleep(wait)
+            wait += 1
 
 
 def fetch_app_catalog():
@@ -90,31 +115,11 @@ def fetch_app_catalog():
     
     TERM.print("Getting app catalog...")
     
-    try:
-        response = request_file(f"{Device.name.lower()}.json")
-    except Exception as e:
-        TERM.print(f"Got error: {e}")
-        try:
-            response = request_file(f"{Device.name.lower()}.json")
-        except:
-            TERM.print("Failed to get catalog.")
-            return
-
-    TERM.print(f"Returned code: {response.status_code}")
+    response = try_request_file(f"{Device.name.lower()}.json")
     
     result = json.loads(response.content)
     response.close()
     return result
-
-
-# def _request_app(compiled_path, app_name):
-#     return requests.get(
-#     f'https://api.github.com/repos/echo-lalia/MicroHydra-Apps/contents/catalog-output/{compiled_path}/{app_name}.zip',
-#     headers = {
-#         "accept": "application/vnd.github.v3.raw",
-#         "User-Agent": f"{Device.name} - MicroHydra",
-#         }
-#     )
 
 
 def fetch_app(app_name):
@@ -125,25 +130,12 @@ def fetch_app(app_name):
     
     compiled_path = "compiled" if MPY_MATCHES else "raw"
     
-    
-    
-    try:
-        response = request_file(f"{compiled_path}/{app_name}.zip")
-    except OSError as e:
-        TERM.print(f"ERROR: {e}")
-        try:
-            response = request_file(f"{compiled_path}/{app_name}.zip")
-        except:
-            TERM.print("Failed to get app.")
-            return
-
-    TERM.print(f"Returned code: {response.status_code}")
+    response = try_request_file(f"{compiled_path}/{app_name}.zip")
     
     TERM.print("Downloading zip...")
     
-    
+    # download file in chunks:
     buffer = memoryview(bytearray(1024))
-    
     socket = response.raw
     with open(f"tempapp.zip", "wb") as fd:
         while (n := socket.readinto(buffer)) > 0:
@@ -167,7 +159,7 @@ def fetch_app(app_name):
             TERM.print("Done!")
             return
             
-        except OSError as e:
+        except OSError:
             if wbits >= 15:
                 TERM.print("Failed to extract from zip file.")
                 return
@@ -284,12 +276,14 @@ def main_loop():
     mpy_str = f"{sys.implementation._mpy & 0xff}.{sys.implementation._mpy >> 8 & 3}"
     if mpy_str != catalog['mpy_version']:
         MPY_MATCHES = False
-
+    
+    # sleep so user can see confirmation message
+    time.sleep_ms(400)
 
     catalog_display = CatalogDisplay(catalog)
     catalog_display.draw()
 
-    time.sleep_ms(400)
+    
 
     while True:
 
