@@ -198,6 +198,14 @@ def scan_apps():
     app_paths["Terminal"] = "/launcher/terminal"
     # mh_end_if
 
+    # add an appname for 'getapps' app
+    app_names.append('Get Apps')
+    # mh_if frozen:
+    # app_paths['Get Apps'] = ".frozen/launcher/getapps"
+    # mh_else:
+    app_paths['Get Apps'] = "/launcher/getapps"
+    # mh_end_if
+
     # add an appname to refresh the app list
     app_names.append("Reload Apps")
     # add an appname to control the beeps
@@ -419,6 +427,7 @@ _GEAR_ICON_IDX = const(2)
 _REFRESH_ICON_IDX = const(3)
 _FILE_ICON_IDX = const(4)
 _TERMINAL_ICON_IDX = const(5)
+_GETAPPS_ICON_IDX = const(6)
 
 _ICON_WIDTH_HALF = const(_ICON_WIDTH // 2)
 
@@ -571,6 +580,9 @@ class IconWidget:
         if current_app_text == 'Terminal' \
         or current_app_path.endswith('.cli.py'):
             return _TERMINAL_ICON_IDX
+        
+        if current_app_text == 'Get Apps':
+            return _GETAPPS_ICON_IDX
         
         if not (current_app_path.endswith('.py') or current_app_path.endswith('.mpy')):
             # too many ways for `os.listdir` to fail here, so just capture the error:
