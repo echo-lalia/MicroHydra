@@ -453,9 +453,23 @@ class IconWidget:
         # buffer for storing one custom icon
         self.buf = bytearray(32*32//8)
         self.fbuf = framebuf.FrameBuffer(self.buf, 32, 32, framebuf.MONO_HLSB)
+
+        # mh_if spi_ram:
+        # # Construct a framebuffer palette by manually setting the 4 color bytes
+        # self.icon_palette = framebuf.FrameBuffer(
+        #     bytearray([
+        #         CONFIG.palette[2] >> 8,
+        #         CONFIG.palette[2] & 0xff,
+        #         CONFIG.palette[8] >> 8,
+        #         CONFIG.palette[8] & 0xff,
+        #     ]),
+        #     2, 1,
+        #     framebuf.RGB565,
+        # )
+        # mh_else:
         # 40 == bg color and ui color as one byte (2, 8)
         self.icon_palette = framebuf.FrameBuffer(bytearray([40]), 2, 1, framebuf.GS4_HMSB)
-
+        # mh_end_if
 
     def force_update(self):
         draw_scrollbar()
