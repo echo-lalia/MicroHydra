@@ -1,5 +1,9 @@
 """
 This app lets you download new apps from the MicroHydra apps repo.
+
+This built-in app was partially inspired by RealClearwave's "AppStore.py", 
+which was contributed to the MH apps repo with commit 014f080.
+Thank you for your contributions!
 """
 
 
