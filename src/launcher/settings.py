@@ -77,6 +77,7 @@ menu = hydramenu.Menu(
     )
 
 menu_def = [
+    (hydramenu.WriteItem, 'language', {}),
     (hydramenu.IntItem, 'volume', {
      'min_int': 0, 'max_int': 10, 'instant_callback': update_config}),
     (hydramenu.RGBItem, 'ui_color', {'instant_callback': update_config}),

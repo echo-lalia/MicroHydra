@@ -182,33 +182,42 @@ def scan_apps():
     # sort alphabetically without uppercase/lowercase discrimination:
     app_names.sort(key=lambda element: element.lower())
 
-    # add built-in app names
-    app_names += [
-        "Files",
-        "Terminal",
-        "Reload Apps",
-        "UI Sound",
-        "Settings",
-        "Get Apps",
-        ]
-    
-    # add paths for built-in apps
+    # add an appname for builtin file browser
+    app_names.append("Files")
     # mh_if frozen:
-    # app_paths.update({
-    #     "Files": ".frozen/launcher/files",
-    #     "Terminal": ".frozen/launcher/terminal",
-    #     "Settings": ".frozen/launcher/settings",
-    #     "Get Apps": ".frozen/launcher/getapps",
-    #     })
+    # app_paths["Files"] = ".frozen/launcher/files"
     # mh_else:
-    app_paths.update({
-        "Files": "/launcher/files",
-        "Terminal": "/launcher/terminal",
-        "Settings": "/launcher/settings",
-        "Get Apps": "/launcher/getapps",
-        })
+    app_paths["Files"] = "/launcher/files"
     # mh_end_if
-    
+
+    # add an appname for Micropython Terminal
+    app_names.append("Terminal")
+    # mh_if frozen:
+    # app_paths["Terminal"] = ".frozen/launcher/terminal"
+    # mh_else:
+    app_paths["Terminal"] = "/launcher/terminal"
+    # mh_end_if
+
+    # add an appname for 'getapps' app
+    app_names.append('Get Apps')
+    # mh_if frozen:
+    # app_paths['Get Apps'] = ".frozen/launcher/getapps"
+    # mh_else:
+    app_paths['Get Apps'] = "/launcher/getapps"
+    # mh_end_if
+
+    # add an appname to refresh the app list
+    app_names.append("Reload Apps")
+    # add an appname to control the beeps
+    app_names.append("UI Sound")
+
+    # add an appname to open settings app
+    app_names.append("Settings")
+    # mh_if frozen:
+    # app_paths["Settings"] = ".frozen/launcher/settings"
+    # mh_else:
+    app_paths["Settings"] = "/launcher/settings"
+    # mh_end_if
 
     APP_NAMES = app_names
     APP_PATHS = app_paths
@@ -444,23 +453,9 @@ class IconWidget:
         # buffer for storing one custom icon
         self.buf = bytearray(32*32//8)
         self.fbuf = framebuf.FrameBuffer(self.buf, 32, 32, framebuf.MONO_HLSB)
-
-        # mh_if spi_ram:
-        # # Construct a framebuffer palette by manually setting the 4 color bytes
-        # self.icon_palette = framebuf.FrameBuffer(
-        #     bytearray([
-        #         CONFIG.palette[2] >> 8,
-        #         CONFIG.palette[2] & 0xff,
-        #         CONFIG.palette[8] >> 8,
-        #         CONFIG.palette[8] & 0xff,
-        #     ]),
-        #     2, 1,
-        #     framebuf.RGB565,
-        # )
-        # mh_else:
         # 40 == bg color and ui color as one byte (2, 8)
         self.icon_palette = framebuf.FrameBuffer(bytearray([40]), 2, 1, framebuf.GS4_HMSB)
-        # mh_end_if
+
 
     def force_update(self):
         draw_scrollbar()

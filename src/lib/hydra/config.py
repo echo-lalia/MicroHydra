@@ -20,7 +20,8 @@ DEFAULT_CONFIG = const(
 "ui_color": 65430,
 "ui_sound": true,
 "timezone": 0,
-"sync_clock": true
+"sync_clock": true,
+"language": "en"
 }""")
 
 

@@ -458,7 +458,7 @@ def draw_small_line(line,x,y,fade=0):
 
         # reset style trackers for next cycle
         if string_char == "END": string_char = None
-        x += 8
+        x += 8 if ord(char) < 128 else 16
 
 
 def draw_rule(x,y,small=False, highlight=False):
@@ -587,7 +587,7 @@ def draw_fancy_line(line, x, y, highlight=False, trim=True):
         if string_char == "END": string_char = None
         segment_counter -= 1
 
-        x += 8
+        x += 8 if ord(char) < 128 else 16
 
 
 
