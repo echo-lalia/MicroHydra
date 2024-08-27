@@ -26,7 +26,7 @@ from lib import userinput, battlevel, sdcard
 from lib.hydra import beeper
 from lib.hydra.config import Config
 from lib import display
-
+from lib.hydra.i18n import I18n
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ _CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _MH_DISPLAY_WIDTH = const(320)
@@ -68,7 +68,17 @@ _APPNAME_Y = const(_ICON_Y + _ICON_HEIGHT + _Y_PADDING)
 _SCROLL_ANIMATION_TIME = const(400)
 
 
-
+I18N = I18n([
+    {"en": "Loading...", "zh": "加载中...", "ja": "読み込み中..."},
+    {"en": "Files", "zh": "文件", "ja": "ファイル"},
+    {"en": "Terminal", "zh": "终端", "ja": "端末"},
+    {"en": "Get Apps", "zh": "应用商店", "ja": "アプリストア"},
+    {"en": "Reload Apps", "zh": "重新加载应用", "ja": "アプリ再読"},
+    {"en": "UI Sound", "zh": "界面声音", "ja": "UIサウンド"},
+    {"en": "Settings", "zh": "设置", "ja": "設定"},
+    {"en": "On", "zh": "开", "ja": "オン"},
+    {"en": "Off", "zh": "关", "ja": "オフ"}
+]);
 
 
 # bump up our clock speed so the UI feels smoother (240mhz is the max officially supported, but the default is 160mhz)
@@ -182,33 +192,42 @@ def scan_apps():
     # sort alphabetically without uppercase/lowercase discrimination:
     app_names.sort(key=lambda element: element.lower())
 
-    # add built-in app names
-    app_names += [
-        "Files",
-        "Terminal",
-        "Reload Apps",
-        "UI Sound",
-        "Settings",
-        "Get Apps",
-        ]
-    
-    # add paths for built-in apps
+    # add an appname for builtin file browser
+    app_names.append(I18N.trans("Files"))
     # mh_if frozen:
-    # app_paths.update({
-    #     "Files": ".frozen/launcher/files",
-    #     "Terminal": ".frozen/launcher/terminal",
-    #     "Settings": ".frozen/launcher/settings",
-    #     "Get Apps": ".frozen/launcher/getapps",
-    #     })
+    # app_paths["Files"] = ".frozen/launcher/files"
     # mh_else:
-    app_paths.update({
-        "Files": "/launcher/files",
-        "Terminal": "/launcher/terminal",
-        "Settings": "/launcher/settings",
-        "Get Apps": "/launcher/getapps",
-        })
+    app_paths[I18N.trans("Files")] = "/launcher/files"
     # mh_end_if
-    
+
+    # add an appname for Micropython Terminal
+    app_names.append(I18N.trans("Terminal"))
+    # mh_if frozen:
+    # app_paths["Terminal"] = ".frozen/launcher/terminal"
+    # mh_else:
+    app_paths[I18N.trans("Terminal")] = "/launcher/terminal"
+    # mh_end_if
+
+    # add an appname for 'getapps' app
+    app_names.append(I18N.trans("Get Apps"))
+    # mh_if frozen:
+    # app_paths['Get Apps'] = ".frozen/launcher/getapps"
+    # mh_else:
+    app_paths[I18N.trans("Get Apps")] = "/launcher/getapps"
+    # mh_end_if
+
+    # add an appname to refresh the app list
+    app_names.append(I18N.trans("Reload Apps"))
+    # add an appname to control the beeps
+    app_names.append(I18N.trans("UI Sound"))
+
+    # add an appname to open settings app
+    app_names.append(I18N.trans("Settings"))
+    # mh_if frozen:
+    # app_paths["Settings"] = ".frozen/launcher/settings"
+    # mh_else:
+    app_paths[I18N.trans("Settings")] = "/launcher/settings"
+    # mh_end_if
 
     APP_NAMES = app_names
     APP_PATHS = app_paths
@@ -259,7 +278,15 @@ def center_text_x(text, char_width=16):
     """
         Calculate the x coordinate to draw a text string, to make it horizontally centered. (plus the text width)
     """
-    str_width = len(text) * char_width
+    def calculate_length(text):
+        length = 0
+        for char in text:
+            if ord(char) > 255:
+                length += 2 
+            else:
+                length += 1  
+        return length
+    str_width = calculate_length(text) * char_width
     start_coord = _DISPLAY_WIDTH_HALF - (str_width // 2)
 
     return start_coord
@@ -444,23 +471,9 @@ class IconWidget:
         # buffer for storing one custom icon
         self.buf = bytearray(32*32//8)
         self.fbuf = framebuf.FrameBuffer(self.buf, 32, 32, framebuf.MONO_HLSB)
-
-        # mh_if spi_ram:
-        # # Construct a framebuffer palette by manually setting the 4 color bytes
-        # self.icon_palette = framebuf.FrameBuffer(
-        #     bytearray([
-        #         CONFIG.palette[2] >> 8,
-        #         CONFIG.palette[2] & 0xff,
-        #         CONFIG.palette[8] >> 8,
-        #         CONFIG.palette[8] & 0xff,
-        #     ]),
-        #     2, 1,
-        #     framebuf.RGB565,
-        # )
-        # mh_else:
         # 40 == bg color and ui color as one byte (2, 8)
         self.icon_palette = framebuf.FrameBuffer(bytearray([40]), 2, 1, framebuf.GS4_HMSB)
-        # mh_end_if
+
 
     def force_update(self):
         draw_scrollbar()
@@ -565,28 +578,28 @@ class IconWidget:
         current_app_text = APP_NAMES[APP_SELECTOR_INDEX]
 
         # special menu options for settings
-        if current_app_text == "UI Sound":
+        if current_app_text == I18N.trans("UI Sound"):
             if CONFIG['ui_sound']:
-                return "On"
+                return I18N.trans("On")
             else:
-                return "Off"
+                return I18N.trans("Off")
         
-        if current_app_text == "Files":
+        if current_app_text == I18N.trans("Files"):
             return _FILE_ICON_IDX
 
-        if current_app_text == "Reload Apps":
+        if current_app_text == I18N.trans("Reload Apps"):
             return _REFRESH_ICON_IDX
 
-        if current_app_text == "Settings":
+        if current_app_text == I18N.trans("Settings"):
             return _GEAR_ICON_IDX
         
         current_app_path = APP_PATHS[current_app_text]
         
-        if current_app_text == 'Terminal' \
+        if current_app_text == I18N.trans("Terminal") \
         or current_app_path.endswith('.cli.py'):
             return _TERMINAL_ICON_IDX
         
-        if current_app_text == 'Get Apps':
+        if current_app_text == I18N.trans("Get Apps"):
             return _GETAPPS_ICON_IDX
         
         if not (current_app_path.endswith('.py') or current_app_path.endswith('.mpy')):

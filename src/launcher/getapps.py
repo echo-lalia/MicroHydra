@@ -1,9 +1,5 @@
 """
 This app lets you download new apps from the MicroHydra apps repo.
-
-This built-in app was partially inspired by RealClearwave's "AppStore.py", 
-which was contributed to the MH apps repo with commit 014f080.
-Thank you for your contributions!
 """
 
 
@@ -14,6 +10,7 @@ from lib.hydra.config import Config
 from lib.hydra.simpleterminal import SimpleTerminal
 from lib.device import Device
 from lib.zipextractor import ZipExtractor
+from lib.hydra.i18n import I18n
 import machine
 import sys
 import network
@@ -57,6 +54,22 @@ TERM = SimpleTerminal()
 
 MPY_MATCHES = True
 
+I18N = I18n([
+  {"en": "Enabling wifi...", "zh": "正在启用wifi...", "ja": "WiFiを有効にしています..."},
+  {"en": "Connected!", "zh": "已连接！", "ja": "接続されました！"},
+  {"en": "Getting app catalog...", "zh": "获取应用目录中...", "ja": "アプリカタログを取得中..."},
+  {"en": "Failed to get catalog.", "zh": "获取目录失败。", "ja": "カタログの取得に失敗しました。"},
+  {"en": "Connecting to GitHub...", "zh": "正在连接到GitHub...", "ja": "GitHubに接続中..."},
+  {"en": "Failed to get app.", "zh": "获取应用失败。", "ja": "アプリの取得に失敗しました。"},
+  {"en": "Downloading zip...", "zh": "正在下载zip文件...", "ja": "zipファイルをダウンロード中..."},
+  {"en": "Finished downloading 'tempapp.zip'", "zh": "已完成下载 'tempapp.zip'", "ja": "'tempapp.zip' のダウンロードが完了しました"},
+  {"en": "Finished extracting.", "zh": "解压完成。", "ja": "解凍が完了しました。"},
+  {"en": "Removing 'tempapp.zip'...", "zh": "正在删除 'tempapp.zip'...", "ja": "'tempapp.zip' を削除しています..."},
+  {"en": "Failed to extract from zip file.", "zh": "从zip文件解压失败。", "ja": "zipファイルからの解凍に失敗しました。"},
+  {"en": "Done!", "zh": "完成！", "ja": "完了！"},
+  {"en": "Author:", "zh": "作者：", "ja": "著者："},
+  {"en": "Description:", "zh": "描述：", "ja": "説明："}
+])
 
 #--------------------------------------------------------------------------------------------------
 #-------------------------------------- function_definitions: -------------------------------------
@@ -64,89 +77,97 @@ MPY_MATCHES = True
 
 
 def connect_wifi():
-    TERM.print("Enabling wifi...")
+    TERM.print(I18N.trans("Enabling wifi..."))
+    NIC.active(True)
     
-    if not NIC.active():
-        NIC.active(True)
-    
-    if not NIC.isconnected():    
-        # tell wifi to connect (with FORCE)
-        while True:
-            try: # keep trying until connect command works
-                NIC.connect(CONFIG['wifi_ssid'], CONFIG['wifi_pass'])
-                break
-            except OSError as e:
-                TERM.print(f"Error: {e}")
-                time.sleep_ms(500)
-
-        # now wait until connected
-        attempts = 0
-        while not NIC.isconnected():
-            TERM.print(f"connecting... {attempts}")
-            time.sleep_ms(500)
-            attempts += 1
-
-    TERM.print("Connected!")
+    attempts = 0
+    while not NIC.isconnected():
+        try:
+            NIC.connect(CONFIG['wifi_ssid'], CONFIG['wifi_pass'])
+        except OSError as e:
+            TERM.print(f"Connection error: {e}")
+        TERM.print(f"connecting... {attempts}")
+        time.sleep(1)
+        attempts += 1
+    TERM.print(I18N.trans("Connected!"))
 
 
 def request_file(file_path):
-    TERM.print('Making request...')
-    response = requests.get(
+    return requests.get(
     f'https://api.github.com/repos/echo-lalia/MicroHydra-Apps/contents/catalog-output/{file_path}',
     headers = {
         "accept": "application/vnd.github.v3.raw",
         "User-Agent": f"{Device.name} - MicroHydra",
         }
     )
-    TERM.print(f"Returned code: {response.status_code}")
-    return response
-
-
-def try_request_file(file_path):
-    """Capture errors and keep trying to get requested file."""
-    wait = 1 # time to wait between attempts (don't get rate limited)
-    while True:
-        try:
-            return request_file(file_path)
-        except OSError as e:
-            TERM.print(f"Request failed: {e}")
-            time.sleep(wait)
-            wait += 1
 
 
 def fetch_app_catalog():
     """Download compact app catalog from apps repo"""
     
-    TERM.print("Getting app catalog...")
+    TERM.print(I18N.trans("Getting app catalog..."))
     
-    response = try_request_file(f"{Device.name.lower()}.json")
+    try:
+        response = request_file(f"{Device.name.lower()}.json")
+    except Exception as e:
+        TERM.print(f"Got error: {e}")
+        try:
+            response = request_file(f"{Device.name.lower()}.json")
+        except:
+            TERM.print(I18N.trans("Failed to get catalog."))
+            return
+
+    TERM.print(f"Returned code: {response.status_code}")
     
     result = json.loads(response.content)
     response.close()
     return result
 
 
+# def _request_app(compiled_path, app_name):
+#     return requests.get(
+#     f'https://api.github.com/repos/echo-lalia/MicroHydra-Apps/contents/catalog-output/{compiled_path}/{app_name}.zip',
+#     headers = {
+#         "accept": "application/vnd.github.v3.raw",
+#         "User-Agent": f"{Device.name} - MicroHydra",
+#         }
+#     )
+
+
 def fetch_app(app_name):
     """Download and extract given app from repo"""
     TERM.print("")
     TERM.print(f"Fetching {app_name}.")
-    TERM.print("Connecting to GitHub...")
+    TERM.print(I18N.trans("Connecting to GitHub..."))
     
     compiled_path = "compiled" if MPY_MATCHES else "raw"
     
-    response = try_request_file(f"{compiled_path}/{app_name}.zip")
     
-    TERM.print("Downloading zip...")
     
-    # download file in chunks:
+    try:
+        response = request_file(f"{compiled_path}/{app_name}.zip")
+    except OSError as e:
+        TERM.print(f"ERROR: {e}")
+        try:
+            response = request_file(f"{compiled_path}/{app_name}.zip")
+        except:
+            TERM.print(I18N.trans("Failed to get app."))
+            return
+
+    TERM.print(f"Returned code: {response.status_code}")
+    
+    TERM.print(I18N.trans("Downloading zip..."))
+    
+    
     buffer = memoryview(bytearray(1024))
+    
     socket = response.raw
     with open(f"tempapp.zip", "wb") as fd:
         while (n := socket.readinto(buffer)) > 0:
             fd.write(buffer[:n])
     response.close()
 
-    TERM.print("Finished downloading 'tempapp.zip'")
+    TERM.print(I18N.trans("Finished downloading 'tempapp.zip'"))
     
     
     # try multiple wbits vals because it's hard to predict what'll error
@@ -157,15 +178,15 @@ def fetch_app(app_name):
         try:
             TERM.print(f"Extracting zip with wbits={wbits}...")
             ZipExtractor("tempapp.zip").extract('apps', wbits=wbits)
-            TERM.print("Finished extracting.")
-            TERM.print("Removing 'tempapp.zip'...")
+            TERM.print(I18N.trans("Finished extracting."))
+            TERM.print(I18N.trans("Removing 'tempapp.zip'..."))
             os.remove('tempapp.zip')
-            TERM.print("Done!")
+            TERM.print(I18N.trans("Done!"))
             return
             
-        except OSError:
+        except OSError as e:
             if wbits >= 15:
-                TERM.print("Failed to extract from zip file.")
+                TERM.print(I18N.trans("Failed to extract from zip file."))
                 return
         wbits += 1
 
@@ -233,7 +254,7 @@ class CatalogDisplay:
         DISPLAY.text(name, _DISPLAY_WIDTH_HALF - (len(name) * 4), _NAME_Y, CONFIG.palette[8])
         
         # draw author
-        DISPLAY.text("Author:", _DISPLAY_WIDTH_HALF - 28, _AUTHOR_Y - 10, CONFIG.palette[3])
+        DISPLAY.text(I18N.trans("Author:"), _DISPLAY_WIDTH_HALF - 28, _AUTHOR_Y - 10, CONFIG.palette[3])
         DISPLAY.text(
             author,
             _DISPLAY_WIDTH_HALF - (len(author) * 4),
@@ -242,7 +263,7 @@ class CatalogDisplay:
             )
         
         # draw description
-        DISPLAY.text("Description:", _DISPLAY_WIDTH_HALF - 48, _DESC_Y - 10, CONFIG.palette[3])
+        DISPLAY.text(I18N.trans("Description:"), _DISPLAY_WIDTH_HALF - 48, _DESC_Y - 10, CONFIG.palette[3])
         desc_y = _DESC_Y
         desc_lines = self.split_lines(desc)
         for line in desc_lines:
@@ -280,14 +301,12 @@ def main_loop():
     mpy_str = f"{sys.implementation._mpy & 0xff}.{sys.implementation._mpy >> 8 & 3}"
     if mpy_str != catalog['mpy_version']:
         MPY_MATCHES = False
-    
-    # sleep so user can see confirmation message
-    time.sleep_ms(400)
+
 
     catalog_display = CatalogDisplay(catalog)
     catalog_display.draw()
 
-    
+    time.sleep_ms(400)
 
     while True:
 

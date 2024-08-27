@@ -7,6 +7,7 @@ from lib import userinput
 from lib.hydra import config
 from lib.hydra import menu as hydramenu
 from lib.display import Display
+from lib.hydra.i18n import I18n
 import time
 import machine
 
@@ -18,12 +19,25 @@ display = Display()
 kb = userinput.UserInput()
 config = config.Config()
 
+I18N = I18n([
+  {"id": "language", "en": "Language", "zh": "语言/Lang", "ja": "言語/Lang"},
+  {"id": "volume", "en": "Volume", "zh": "音量", "ja": "音量"},
+  {"id": "ui_color", "en": "UI Color", "zh": "UI颜色", "ja": "UIの色"},
+  {"id": "bg_color", "en": "Background Color", "zh": "背景颜色", "ja": "背景色"},
+  {"id": "wifi_ssid", "en": "WiFi SSID", "zh": "WiFi名称", "ja": "WiFi名前"},
+  {"id": "wifi_pass", "en": "WiFi Password", "zh": "WiFi密码", "ja": "WiFiパスワード"},
+  {"id": "sync_clock", "en": "Sync Clock", "zh": "同步时钟", "ja": "時計同期"},
+  {"id": "24h_clock", "en": "24-Hour Clock", "zh": "24小时制", "ja": "24時間制"},
+  {"id": "timezone", "en": "Timezone", "zh": "时区", "ja": "タイムゾーン"},
+  {"id": "Confirm", "en": "Confirm", "zh": "确认", "ja": "確認"}
+]
 
+)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Functions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 def update_config(caller, value):
-    config[caller.text] = value
+    config[I18N.trans(caller.text,to_lang='id')] = value
     config.generate_palette()
     print(f"config['{caller.text}'] = {value}")
 
@@ -77,6 +91,7 @@ menu = hydramenu.Menu(
     )
 
 menu_def = [
+    (hydramenu.WriteItem, 'language', {}),
     (hydramenu.IntItem, 'volume', {
      'min_int': 0, 'max_int': 10, 'instant_callback': update_config}),
     (hydramenu.RGBItem, 'ui_color', {'instant_callback': update_config}),
@@ -93,12 +108,12 @@ for i_class, name, kwargs in menu_def:
     menu.append(
         i_class(
             menu,
-            name,
+            I18N.trans(name),
             config[name],
             callback=update_config,
             **kwargs
         ))
-menu.append(hydramenu.DoItem(menu, "Confirm", callback=save_conf))
+menu.append(hydramenu.DoItem(menu, I18N.trans("Confirm"), callback=save_conf))
 
 updating_display = True
 
