@@ -182,42 +182,33 @@ def scan_apps():
     # sort alphabetically without uppercase/lowercase discrimination:
     app_names.sort(key=lambda element: element.lower())
 
-    # add an appname for builtin file browser
-    app_names.append("Files")
+    # add built-in app names
+    app_names += [
+        "Files",
+        "Terminal",
+        "Reload Apps",
+        "UI Sound",
+        "Settings",
+        "Get Apps",
+        ]
+    
+    # add paths for built-in apps
     # mh_if frozen:
-    # app_paths["Files"] = ".frozen/launcher/files"
+    # app_paths.update({
+    #     "Files": ".frozen/launcher/files",
+    #     "Terminal": ".frozen/launcher/terminal",
+    #     "Settings": ".frozen/launcher/settings",
+    #     "Get Apps": ".frozen/launcher/getapps",
+    #     })
     # mh_else:
-    app_paths["Files"] = "/launcher/files"
+    app_paths.update({
+        "Files": "/launcher/files",
+        "Terminal": "/launcher/terminal",
+        "Settings": "/launcher/settings",
+        "Get Apps": "/launcher/getapps",
+        })
     # mh_end_if
-
-    # add an appname for Micropython Terminal
-    app_names.append("Terminal")
-    # mh_if frozen:
-    # app_paths["Terminal"] = ".frozen/launcher/terminal"
-    # mh_else:
-    app_paths["Terminal"] = "/launcher/terminal"
-    # mh_end_if
-
-    # add an appname for 'getapps' app
-    app_names.append('Get Apps')
-    # mh_if frozen:
-    # app_paths['Get Apps'] = ".frozen/launcher/getapps"
-    # mh_else:
-    app_paths['Get Apps'] = "/launcher/getapps"
-    # mh_end_if
-
-    # add an appname to refresh the app list
-    app_names.append("Reload Apps")
-    # add an appname to control the beeps
-    app_names.append("UI Sound")
-
-    # add an appname to open settings app
-    app_names.append("Settings")
-    # mh_if frozen:
-    # app_paths["Settings"] = ".frozen/launcher/settings"
-    # mh_else:
-    app_paths["Settings"] = "/launcher/settings"
-    # mh_end_if
+    
 
     APP_NAMES = app_names
     APP_PATHS = app_paths
