@@ -912,7 +912,7 @@ class ST7789:
             if len(self.utf8_cache) >= 200:
                 del self.utf8_cache[list(self.utf8_cache.keys())[0]]
 
-    def utf8_text(self, string, x, y, color, scale=2, instant_show=True, custom_dict = None):
+    def utf8_text(self, string, x, y, color, scale=1, instant_show=True, custom_dict = None):
         """Render a string of text on the screen."""
         cur_x = x
         for char in string:
@@ -925,7 +925,7 @@ class ST7789:
             else:
                 cur_x += 8 * scale
     
-    def text(self, text, x, y, color, font=None, custom_dict = None):
+    def text(self, text, x, y, color, font=None, custom_dict = None, scale = None):
         """
         Draw text to the framebuffer.
         
@@ -941,7 +941,13 @@ class ST7789:
         """
         if not all(ord(c) < 128 for c in text):
             #print("Non-ascii detected, use utf8_text instead.")
-            self.utf8_text(text, x, y, color, custom_dict = custom_dict)
+            if scale == None:
+                if font:
+                    scale = int(font.HEIGHT // 8)
+                else:
+                    scale = 1
+            
+            self.utf8_text(text, x, y, color, scale = scale, custom_dict = custom_dict)
             return
         
         color = self._format_color(color)
