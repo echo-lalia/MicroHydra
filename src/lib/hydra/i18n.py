@@ -31,7 +31,7 @@ class I18n:
         self.lang = config['language']
 
         # extract and prune target translations into one dict
-        self.translations = {item[key]:item[self.lang] for item in json.loads(translations)}
+        self.translations = {item[key]:item.get(self.lang, item[key]) for item in json.loads(translations)}
 
     def __getitem__(self, text):
         """

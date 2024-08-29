@@ -20,16 +20,16 @@ kb = userinput.UserInput()
 config = config.Config()
 
 _TRANS = const("""[
-  {"id": "language", "en": "Language", "zh": "语言/Lang", "ja": "言語/Lang"},
-  {"id": "volume", "en": "Volume", "zh": "音量", "ja": "音量"},
-  {"id": "ui_color", "en": "UI Color", "zh": "UI颜色", "ja": "UIの色"},
-  {"id": "bg_color", "en": "Background Color", "zh": "背景颜色", "ja": "背景色"},
-  {"id": "wifi_ssid", "en": "WiFi SSID", "zh": "WiFi名称", "ja": "WiFi名前"},
-  {"id": "wifi_pass", "en": "WiFi Password", "zh": "WiFi密码", "ja": "WiFiパスワード"},
-  {"id": "sync_clock", "en": "Sync Clock", "zh": "同步时钟", "ja": "時計同期"},
-  {"id": "24h_clock", "en": "24-Hour Clock", "zh": "24小时制", "ja": "24時間制"},
-  {"id": "timezone", "en": "Timezone", "zh": "时区", "ja": "タイムゾーン"},
-  {"id": "Confirm", "en": "Confirm", "zh": "确认", "ja": "確認"}
+  {"en": "language", "zh": "语言/Lang", "ja": "言語/Lang"},
+  {"en": "volume", "zh": "音量", "ja": "音量"},
+  {"en": "ui_color", "zh": "UI颜色", "ja": "UIの色"},
+  {"en": "bg_color", "zh": "背景颜色", "ja": "背景色"},
+  {"en": "wifi_ssid", "zh": "WiFi名称", "ja": "WiFi名前"},
+  {"en": "wifi_pass", "zh": "WiFi密码", "ja": "WiFiパスワード"},
+  {"en": "sync_clock", "zh": "同步时钟", "ja": "時計同期"},
+  {"en": "24h_clock", "zh": "24小时制", "ja": "24時間制"},
+  {"en": "timezone", "zh": "时区", "ja": "タイムゾーン"},
+  {"en": "Confirm", "zh": "确认", "ja": "確認"}
 ]""")
 
 
@@ -44,7 +44,7 @@ def update_config(caller, value):
 
     # regen palette and translations based on new vals
     config.generate_palette()
-    I18N = I18n(_TRANS)
+    I18N.__init__(_TRANS)
 
     print(f"config['{caller.text}'] = {value}")
 
@@ -100,8 +100,7 @@ menu = hydramenu.Menu(
 
 menu_def = [
     (hydramenu.WriteItem, 'language', {}),
-    (hydramenu.IntItem, 'volume', {
-     'min_int': 0, 'max_int': 10, 'instant_callback': update_config}),
+    (hydramenu.IntItem, 'volume', {'min_int': 0, 'max_int': 10, 'instant_callback': update_config}),
     (hydramenu.RGBItem, 'ui_color', {'instant_callback': update_config}),
     (hydramenu.RGBItem, 'bg_color', {'instant_callback': update_config}),
     (hydramenu.WriteItem, 'wifi_ssid', {}),
