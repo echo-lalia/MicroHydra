@@ -323,6 +323,8 @@ class ST7789:
 
         if backlight is not None:
             backlight.value(1)
+        
+        self.utf8_font = open("/font/utf8_8x8.bin", "rb", buffering = 0)
 
 
     @staticmethod
@@ -392,7 +394,7 @@ class ST7789:
         if self.cs:
             self.cs.off()
         self.dc.on()
-        
+
         landscape_rotation = int(self._rotation) % 2 == 1
         
         height = int(self.height)
@@ -643,25 +645,25 @@ class ST7789:
             self._show_y_min = 0
         if self._show_y_max > self.height:
             self._show_y_max = self.height
-        
+
         self._set_window(
             0,
             self._show_y_min,
             self.width - 1,
             self._show_y_max - 1,
             )
-
+        
         if self.use_tiny_buf:
             self._write_tiny_buf()
         else:
             self._write_normal_buf()
-        
+
         self._reset_show_min()
+
         # mh_if TDECK:
         # TDeck shares SPI with SDCard
         self.spi.deinit()
         # mh_end_if
-        
         
     def blit_buffer(self, buffer, x, y, width, height, key=-1, palette=None):
         """
@@ -799,6 +801,8 @@ class ST7789:
         height = int(font.HEIGHT)
         self_width = int(self.width)
         self_height = int(self.height)
+
+        utf8_scale = height // 8
         
         # early return for text off screen
         if y >= self_height or (y + height) < 0:
@@ -852,12 +856,99 @@ class ST7789:
                             fbuf16[target_idx] = color
                     
                     px_idx += 1
-                    
-            x += width
+                x += width
+            else:
+                # try drawing with utf8 instead
+                x += int(self.utf8_putc(ch_idx, x, y, color, utf8_scale))
+            
             # early return for text off screen
             if x >= self_width:
                 return
 
+
+    @micropython.viper
+    def utf8_putc(self, char:int, x:int, y:int, color:int, scale:int) -> int:
+        """Render a single character on the screen."""
+        width = 4 if char < 128 else 8
+        height = 8
+
+        if not 0x0000 <= char <= 0xFFFF:
+            return width * scale
+        
+        # set up viper variables
+        use_tiny_fbuf = bool(self.use_tiny_buf)
+        fbuf16 = ptr16(self.fbuf)
+        fbuf8 = ptr8(self.fbuf)
+        self_width = int(self.width)
+        self_height = int(self.height)
+        total_px = self_width * self_height
+
+
+        # Calculate the offset in the binary file
+        self.utf8_font.seek(char * 8)
+
+        # Read the 8 bytes
+        cur = ptr8(self.utf8_font.read(8))
+
+        # y axis is inverted - we start from bottom not top
+        y += (height - 1) * scale - 1
+
+        # iterate over every character pixel
+        px_idx = 0
+        max_px_idx = width * height
+        while px_idx < max_px_idx:
+            # which byte to fetch from the ptr8
+            ptr_idx = px_idx // 8
+            # how far to shift the byte
+            shft_idx = px_idx % 8
+            
+            # calculate x/y position from pixel index
+            target_x = x + ((px_idx % width) * scale)
+            target_y = y - ((px_idx // width) * scale)
+            
+            if (cur[ptr_idx] >> shft_idx) & 1 == 1:
+                # iterate over x/y scale
+                scale_idx = 0
+                num_scale_pixels = scale * scale
+                while scale_idx < num_scale_pixels:
+                    xsize = scale_idx % scale
+                    ysize = scale_idx // scale
+
+                    target_px = ((target_y + ysize) * self_width) + target_x + xsize
+                    if 0 <= target_px < total_px:
+                        if use_tiny_fbuf:
+                            # pack 4 bits into 8 bit ptr
+                            target_idx = target_px // 2
+                            dest_shift = ((target_px + 1) % 2) * 4
+                            dest_mask = 0xf0 >> dest_shift
+                            fbuf8[target_idx] = (fbuf8[target_idx] & dest_mask) | (color << dest_shift)
+                        else:
+                            # draw to 16 bits
+                            target_idx = target_px
+                            fbuf16[target_idx] = color
+                    scale_idx += 1
+            px_idx += 1
+        
+        # return x offset for drawing next char
+        return width * scale
+
+
+    @micropython.viper
+    def _utf8_text(self, text, x:int, y:int, color:int):
+        """Draw text, including utf8 characters"""
+        str_len = int(len(text))
+        
+        idx = 0
+        while idx < str_len:
+            char = text[idx]
+            ch_ord = int(ord(char))
+            if ch_ord >= 128:
+                x += int(self.utf8_putc(ch_ord, x, y, color, 1))
+            else:
+                self.fbuf.text(char, x, y, color)
+                x += 8
+            idx += 1
+        
 
     def text(self, text, x, y, color, font=None):
         """
@@ -875,12 +966,13 @@ class ST7789:
         """
         color = self._format_color(color)
 
+
         if font:
             self._set_show_min(y, y + font.HEIGHT)
             self._bitmap_text(font, text, x, y, color)
         else:
             self._set_show_min(y, y + 8)
-            self.fbuf.text(text, x, y, color)
+            self._utf8_text(text, x, y, color)
 
 
     def bitmap(self, bitmap, x, y, index=0, key=-1, palette=None):

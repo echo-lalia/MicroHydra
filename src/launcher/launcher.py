@@ -26,7 +26,7 @@ from lib import userinput, battlevel, sdcard
 from lib.hydra import beeper
 from lib.hydra.config import Config
 from lib import display
-
+from lib.hydra.i18n import I18n
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ _CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _MH_DISPLAY_WIDTH = const(320)
@@ -68,6 +68,18 @@ _APPNAME_Y = const(_ICON_Y + _ICON_HEIGHT + _Y_PADDING)
 _SCROLL_ANIMATION_TIME = const(400)
 
 
+_TRANS = const("""[
+    {"en": "Loading...", "zh": "加载中...", "ja": "読み込み中..."},
+    {"en": "Files", "zh": "文件", "ja": "ファイル"},
+    {"en": "Terminal", "zh": "终端", "ja": "端末"},
+    {"en": "Get Apps", "zh": "应用商店", "ja": "アプリストア"},
+    {"en": "Reload Apps", "zh": "重新加载应用", "ja": "アプリ再読"},
+    {"en": "UI Sound", "zh": "界面声音", "ja": "UIサウンド"},
+    {"en": "Settings", "zh": "设置", "ja": "設定"},
+    {"en": "On", "zh": "开", "ja": "オン"},
+    {"en": "Off", "zh": "关", "ja": "オフ"}
+]""")
+
 
 
 
@@ -87,13 +99,6 @@ except RuntimeError as e:
         NIC = None
         print("Wifi WLAN object couldnt be created. Gave this error:", e)
 
-# reserve fbuf immediately to reduce fragmentation
-# reserved_bytearray = bytearray(
-#     (_DISPLAY_HEIGHT * _DISPLAY_WIDTH) // 2 \
-#     if (_DISPLAY_WIDTH % 8 == 0) \
-#     else (_DISPLAY_HEIGHT * (_DISPLAY_WIDTH + 1)) // 2
-#     )
-
 DISPLAY = display.Display(
     # mh_if spi_ram:
     # use_tiny_buf=False,
@@ -109,6 +114,8 @@ KB = userinput.UserInput()
 SD = sdcard.SDCard()
 RTC = machine.RTC()
 BATT = battlevel.Battery()
+
+I18N = I18n(_TRANS)
 
 SYNC_NTP_ATTEMPTS = 0
 CONNECT_WIFI_ATTEMPTS = 0
@@ -259,7 +266,15 @@ def center_text_x(text, char_width=16):
     """
         Calculate the x coordinate to draw a text string, to make it horizontally centered. (plus the text width)
     """
-    str_width = len(text) * char_width
+    def calculate_length(text):
+        length = 0
+        for char in text:
+            if ord(char) > 255:
+                length += 2 
+            else:
+                length += 1  
+        return length
+    str_width = calculate_length(text) * char_width
     start_coord = _DISPLAY_WIDTH_HALF - (str_width // 2)
 
     return start_coord
@@ -513,9 +528,10 @@ class IconWidget:
 
     def _draw_str_icon(self):
         clr_idx = 4 if self.drawn_icon == 'Off' else 8
+        icon_str = I18N[self.drawn_icon]
         DISPLAY.text(
-            self.drawn_icon,
-            self.x - (len(self.drawn_icon) * _FONT_WIDTH_HALF),
+            icon_str,
+            self.x - (len(icon_str) * _FONT_WIDTH_HALF),
             _ICON_Y,
             CONFIG.palette[clr_idx],
             font=font,
@@ -582,11 +598,11 @@ class IconWidget:
         
         current_app_path = APP_PATHS[current_app_text]
         
-        if current_app_text == 'Terminal' \
+        if current_app_text == "Terminal" \
         or current_app_path.endswith('.cli.py'):
             return _TERMINAL_ICON_IDX
         
-        if current_app_text == 'Get Apps':
+        if current_app_text == "Get Apps":
             return _GETAPPS_ICON_IDX
         
         if not (current_app_path.endswith('.py') or current_app_path.endswith('.mpy')):
@@ -632,7 +648,9 @@ def draw_app_name():
 
     # blackout the old text
     DISPLAY.rect(0, _APPNAME_Y, _MH_DISPLAY_WIDTH, _FONT_HEIGHT, CONFIG.palette[2], fill=True)
-    
+
+    # translate text (if applicable)
+    current_app_text = I18N[current_app_text]
     # and draw app name
     DISPLAY.text(
             current_app_text,

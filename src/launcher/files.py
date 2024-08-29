@@ -8,6 +8,7 @@ from lib.display import Display
 from lib.hydra import beeper, popup
 from lib.hydra.config import Config
 from font import vga2_16x32 as font
+from lib.hydra.i18n import I18n
 import os, machine, time, math
 
 
@@ -15,11 +16,21 @@ _MH_DISPLAY_HEIGHT = const(240)
 _MH_DISPLAY_WIDTH = const(320)
 
 
-_MH_SDCARD_SLOT = const(2)
-_MH_SDCARD_SCK = const(40)
-_MH_SDCARD_MISO = const(38)
-_MH_SDCARD_MOSI = const(41)
-_MH_SDCARD_CS = const(39)
+_TRANS = const("""[
+  {"en": "Paste", "zh": "粘贴", "ja": "貼り付け"},
+  {"en": "New Directory", "zh": "新建目录", "ja": "新しいディレクトリ"},
+  {"en": "New File", "zh": "新建文件", "ja": "新しいファイル"},
+  {"en": "Refresh", "zh": "刷新", "ja": "更新"},
+  {"en": "Exit to launcher", "zh": "退出到启动器", "ja": "ランチャーに戻る"},
+  {"en": "Directory name:", "zh": "目录名称：", "ja": "ディレクトリ名："},
+  {"en": "File name:", "zh": "文件名称：", "ja": "ファイル名："},
+  {"en": "Exiting...", "zh": "正在退出...", "ja": "終了中..."},
+  {"en": "open", "zh": "打开", "ja": "開く"},
+  {"en": "copy", "zh": "复制", "ja": "コピー"},
+  {"en": "rename", "zh": "重命名", "ja": "名前を変更"},
+  {"en": "delete", "zh": "删除", "ja": "削除"},
+  {"en": "Opening...", "zh": "正在打开...", "ja": "開いています..."}
+]""")
 
 
 _DISPLAY_WIDTH_HALF = const(_MH_DISPLAY_WIDTH // 2)
@@ -61,13 +72,15 @@ FILE_HANDLERS = {
 # mh_end_if
 
 
+I18N = I18n(_TRANS)
+
 
 kb = userinput.UserInput()
 tft = Display()
 
 config = Config()
 beep = beeper.Beeper()
-overlay = popup.UIOverlay()
+overlay = popup.UIOverlay(i18n=I18N)
 
 
 sd = sdcard.SDCard()
@@ -266,7 +279,7 @@ def ext_options(overlay):
                     new_file.write(l)
     
     elif option == "Exit to launcher":
-        overlay.draw_textbox("Exiting...", _MH_DISPLAY_WIDTH//2, _MH_DISPLAY_HEIGHT//2)
+        overlay.draw_textbox("Exiting...")
         tft.show()
         rtc = machine.RTC()
         rtc.memory('')
@@ -308,8 +321,7 @@ def open_file(file):
     filepath = cwd + file
     
     # visual feedback
-    overlay.draw_textbox("Opening...", _MH_DISPLAY_WIDTH//2, _MH_DISPLAY_HEIGHT//4)
-    overlay.draw_textbox(filepath, _MH_DISPLAY_WIDTH//2, _MH_DISPLAY_HEIGHT//2)
+    overlay.draw_textbox(f"Opening {filepath}...")
     tft.show()
     
     filetype = file.split(".")[-1]

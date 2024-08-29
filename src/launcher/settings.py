@@ -7,6 +7,7 @@ from lib import userinput
 from lib.hydra import config
 from lib.hydra import menu as hydramenu
 from lib.display import Display
+from lib.hydra.i18n import I18n
 import time
 import machine
 
@@ -18,13 +19,33 @@ display = Display()
 kb = userinput.UserInput()
 config = config.Config()
 
+_TRANS = const("""[
+  {"en": "language", "zh": "语言/Lang", "ja": "言語/Lang"},
+  {"en": "volume", "zh": "音量", "ja": "音量"},
+  {"en": "ui_color", "zh": "UI颜色", "ja": "UIの色"},
+  {"en": "bg_color", "zh": "背景颜色", "ja": "背景色"},
+  {"en": "wifi_ssid", "zh": "WiFi名称", "ja": "WiFi名前"},
+  {"en": "wifi_pass", "zh": "WiFi密码", "ja": "WiFiパスワード"},
+  {"en": "sync_clock", "zh": "同步时钟", "ja": "時計同期"},
+  {"en": "24h_clock", "zh": "24小时制", "ja": "24時間制"},
+  {"en": "timezone", "zh": "时区", "ja": "タイムゾーン"},
+  {"en": "Confirm", "zh": "确认", "ja": "確認"}
+]""")
 
+
+I18N = I18n(_TRANS)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Functions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 def update_config(caller, value):
+    global I18N
+
     config[caller.text] = value
+
+    # regen palette and translations based on new vals
     config.generate_palette()
+    I18N.__init__(_TRANS)
+
     print(f"config['{caller.text}'] = {value}")
 
 
@@ -73,12 +94,13 @@ def process_touch(keys):
 
 
 menu = hydramenu.Menu(
-    esc_callback=discard_conf
+    esc_callback=discard_conf,
+    i18n=I18N,
     )
 
 menu_def = [
-    (hydramenu.IntItem, 'volume', {
-     'min_int': 0, 'max_int': 10, 'instant_callback': update_config}),
+    (hydramenu.WriteItem, 'language', {}),
+    (hydramenu.IntItem, 'volume', {'min_int': 0, 'max_int': 10, 'instant_callback': update_config}),
     (hydramenu.RGBItem, 'ui_color', {'instant_callback': update_config}),
     (hydramenu.RGBItem, 'bg_color', {'instant_callback': update_config}),
     (hydramenu.WriteItem, 'wifi_ssid', {}),

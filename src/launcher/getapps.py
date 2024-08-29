@@ -14,6 +14,7 @@ from lib.hydra.config import Config
 from lib.hydra.simpleterminal import SimpleTerminal
 from lib.device import Device
 from lib.zipextractor import ZipExtractor
+from lib.hydra.i18n import I18n
 import machine
 import sys
 import network
@@ -32,6 +33,23 @@ _DISPLAY_WIDTH_HALF = const(_MH_DISPLAY_WIDTH // 2)
 _CHAR_WIDTH = const(8)
 _CHAR_WIDTH_HALF = const(_CHAR_WIDTH // 2)
 
+
+_TRANS = const("""[
+{"en": "Enabling wifi...", "zh": "正在启用wifi...", "ja": "WiFiを有効にしています..."},
+{"en": "Connected!", "zh": "已连接！", "ja": "接続されました！"},
+{"en": "Getting app catalog...", "zh": "获取应用目录中...", "ja": "アプリカタログを取得中..."},
+{"en": "Failed to get catalog.", "zh": "获取目录失败。", "ja": "カタログの取得に失敗しました。"},
+{"en": "Connecting to GitHub...", "zh": "正在连接到GitHub...", "ja": "GitHubに接続中..."},
+{"en": "Failed to get app.", "zh": "获取应用失败。", "ja": "アプリの取得に失敗しました。"},
+{"en": "Downloading zip...", "zh": "正在下载zip文件...", "ja": "zipファイルをダウンロード中..."},
+{"en": "Finished downloading 'tempapp.zip'", "zh": "已完成下载 'tempapp.zip'", "ja": "'tempapp.zip' のダウンロードが完了しました"},
+{"en": "Finished extracting.", "zh": "解压完成。", "ja": "解凍が完了しました。"},
+{"en": "Removing 'tempapp.zip'...", "zh": "正在删除 'tempapp.zip'...", "ja": "'tempapp.zip' を削除しています..."},
+{"en": "Failed to extract from zip file.", "zh": "从zip文件解压失败。", "ja": "zipファイルからの解凍に失敗しました。"},
+{"en": "Done!", "zh": "完成！", "ja": "完了！"},
+{"en": "Author:", "zh": "作者：", "ja": "著者："},
+{"en": "Description:", "zh": "描述：", "ja": "説明："}
+]""")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GLOBAL_OBJECTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -57,6 +75,7 @@ TERM = SimpleTerminal()
 
 MPY_MATCHES = True
 
+I18N = I18n(_TRANS)
 
 #--------------------------------------------------------------------------------------------------
 #-------------------------------------- function_definitions: -------------------------------------
@@ -64,7 +83,7 @@ MPY_MATCHES = True
 
 
 def connect_wifi():
-    TERM.print("Enabling wifi...")
+    TERM.print(I18N["Enabling wifi..."])
     
     if not NIC.active():
         NIC.active(True)
@@ -86,7 +105,7 @@ def connect_wifi():
             time.sleep_ms(500)
             attempts += 1
 
-    TERM.print("Connected!")
+    TERM.print(I18N["Connected!"])
 
 
 def request_file(file_path):
@@ -117,7 +136,7 @@ def try_request_file(file_path):
 def fetch_app_catalog():
     """Download compact app catalog from apps repo"""
     
-    TERM.print("Getting app catalog...")
+    TERM.print(I18N["Getting app catalog..."])
     
     response = try_request_file(f"{Device.name.lower()}.json")
     
@@ -130,13 +149,13 @@ def fetch_app(app_name):
     """Download and extract given app from repo"""
     TERM.print("")
     TERM.print(f"Fetching {app_name}.")
-    TERM.print("Connecting to GitHub...")
+    TERM.print(I18N["Connecting to GitHub..."])
     
     compiled_path = "compiled" if MPY_MATCHES else "raw"
     
     response = try_request_file(f"{compiled_path}/{app_name}.zip")
     
-    TERM.print("Downloading zip...")
+    TERM.print(I18N["Downloading zip..."])
     
     # download file in chunks:
     buffer = memoryview(bytearray(1024))
@@ -146,7 +165,7 @@ def fetch_app(app_name):
             fd.write(buffer[:n])
     response.close()
 
-    TERM.print("Finished downloading 'tempapp.zip'")
+    TERM.print(I18N["Finished downloading 'tempapp.zip'"])
     
     
     # try multiple wbits vals because it's hard to predict what'll error
@@ -157,15 +176,15 @@ def fetch_app(app_name):
         try:
             TERM.print(f"Extracting zip with wbits={wbits}...")
             ZipExtractor("tempapp.zip").extract('apps', wbits=wbits)
-            TERM.print("Finished extracting.")
-            TERM.print("Removing 'tempapp.zip'...")
+            TERM.print(I18N["Finished extracting."])
+            TERM.print(I18N["Removing 'tempapp.zip'..."])
             os.remove('tempapp.zip')
-            TERM.print("Done!")
+            TERM.print(I18N["Done!"])
             return
             
         except OSError:
             if wbits >= 15:
-                TERM.print("Failed to extract from zip file.")
+                TERM.print(I18N["Failed to extract from zip file."])
                 return
         wbits += 1
 
@@ -233,7 +252,7 @@ class CatalogDisplay:
         DISPLAY.text(name, _DISPLAY_WIDTH_HALF - (len(name) * 4), _NAME_Y, CONFIG.palette[8])
         
         # draw author
-        DISPLAY.text("Author:", _DISPLAY_WIDTH_HALF - 28, _AUTHOR_Y - 10, CONFIG.palette[3])
+        DISPLAY.text(I18N["Author:"], _DISPLAY_WIDTH_HALF - 28, _AUTHOR_Y - 10, CONFIG.palette[3])
         DISPLAY.text(
             author,
             _DISPLAY_WIDTH_HALF - (len(author) * 4),
@@ -242,7 +261,7 @@ class CatalogDisplay:
             )
         
         # draw description
-        DISPLAY.text("Description:", _DISPLAY_WIDTH_HALF - 48, _DESC_Y - 10, CONFIG.palette[3])
+        DISPLAY.text(I18N["Description:"], _DISPLAY_WIDTH_HALF - 48, _DESC_Y - 10, CONFIG.palette[3])
         desc_y = _DESC_Y
         desc_lines = self.split_lines(desc)
         for line in desc_lines:

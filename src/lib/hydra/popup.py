@@ -26,12 +26,15 @@ _MAX_TEXT_WIDTH = const(_WINDOW_WIDTH // _FONT_WIDTH)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ UIOverlay Class ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class UIOverlay:
-    def __init__(self):
+    def __init__(self, i18n=None):
         """
         UIOverlay aims to provide easy to use methods for displaying themed UI popups, and other Overlays.
         """
         self.config = Config()
         self.kb = UserInput.instance if hasattr(UserInput, 'instance') else UserInput()
+        
+        # store translation
+        self.i18n = i18n
 
         # avoid reinitializing display!
         try:
@@ -52,19 +55,11 @@ class UIOverlay:
         return PopupOptions(options, title=title, depth=depth, ui_overlay=self).main()
 
 
-    def draw_textbox(self, text, x, y, padding=8, shadow=True, extended_border=False):
+    def draw_textbox(self, text, clr_idx=8, bg_clr=2, title=''):
         """Draw to the display a textbox, centered at x,y"""
-        x = x - (len(text) * 4)
-        y = y - 4
-        box_width = (len(text) * 8) + padding
-        box_height = padding + 8
-        if extended_border:
-            self.display.fill_rect(x - (padding // 2) - 20, y - (padding // 2) -10, box_width + 40, box_height + 20, self.config.palette[1])
-        if shadow:
-            self.display.rect(x - (padding // 2) + 4, y - (padding // 2) + 4, box_width, box_height, self.config.palette[0], fill=True)
-        self.display.rect(x - (padding // 2), y - (padding // 2), box_width, box_height, self.config.palette[2], fill=True)
-        self.display.rect(x - (padding // 2), y - (padding // 2), box_width, box_height, self.config.palette[0])
-        self.display.text(text, x,y,self.config.palette[4])
+        if self.i18n is not None:
+            text = self.i18n[text]
+        return PopupObject(self).draw_text_box(text, clr_idx=clr_idx, bg_clr=bg_clr, title=title)
 
 
     def popup(self,text):
@@ -156,7 +151,7 @@ class PopupObject:
 class PopupText(PopupObject):
     """Pop up message box."""
     def __init__(self, text, ui_overlay:UIOverlay):
-        self.text = text
+        self.text = str(text) if ui_overlay.i18n is None else str(ui_overlay.i18n[text])
         super().__init__(ui_overlay)
 
 
@@ -175,7 +170,7 @@ class PopupText(PopupObject):
 class PopupError(PopupObject):
     """Pop up message box."""
     def __init__(self, text, ui_overlay:UIOverlay):
-        self.text = str(text)
+        self.text = str(text) if ui_overlay.i18n is None else str(ui_overlay.i18n[text])
         super().__init__(ui_overlay)
 
 
@@ -196,7 +191,7 @@ class TextEntry(PopupObject):
     def __init__(self, start_text, title, ui_overlay:UIOverlay):
         self.start_text = start_text
         self.text = start_text
-        self.title = title
+        self.title = title if ui_overlay.i18n is None else ui_overlay.i18n[title]
         self.max_width = 0
         self.max_height = 0
         super().__init__(ui_overlay)
@@ -268,26 +263,32 @@ class PopupOptions(PopupObject):
             options = [options]
         self.options = options
         
+        self.i18n = ui_overlay.i18n
+
         # calculate bg width and height
         self.total_width, self.total_height, self.col_xs = self._find_width_height(options)
         
         self.depth = depth
         
-        self.title = title
+        self.title = title if self.i18n is None else self.i18n[title]
         self.cursor_x = 0
         self.cursor_y = 0
+
         
         super().__init__(ui_overlay)
 
 
-    @staticmethod
-    def _find_width_height(options):
+    def _find_width_height(self, options):
         """Scan given options to find total bg width and height"""
 
         max_num_options = len(max(options, key=len))
         col_xs = []
         total_width = 0
         for column in options:
+            # translate text for accurate sizing
+            if self.i18n is not None:
+                column = [self.i18n[item] for item in column]
+
             col_text_width = len(max(column, key=len)) * _FONT_WIDTH + (_OPTION_X_PADDING_TOTAL * 2)
             col_xs.append(total_width + (col_text_width // 2))
             total_width += col_text_width
@@ -339,7 +340,6 @@ class PopupOptions(PopupObject):
             title_box_y = bg_y - _OPTION_BOX_HEIGHT - _OPTION_Y_PADDING
             
             
-            
             self.display.rect(
                 title_box_x, title_box_y,
                 title_box_width, _OPTION_BOX_HEIGHT + _OPTION_Y_PADDING,
@@ -373,6 +373,10 @@ class PopupOptions(PopupObject):
         
         # draw each column:
         for col_idx, column in enumerate(self.options):
+            # translate text
+            if self.i18n is not None:
+                column = [self.i18n[item] for item in column]
+
             column_len = len(column)
             column_x = self.col_xs[col_idx]
             option_half_height = self.total_height // (column_len * 2)
