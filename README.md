@@ -23,18 +23,15 @@ MicroHydra is a simple MicroPython based app launcher with some OS-like features
   <img src="https://github.com/echo-lalia/Cardputer-MicroHydra/assets/108598670/15b78e4b-64fc-433a-86d3-979362abd9ab" alt="Microhydra Banner"/>
 </p>
 
-*MicroHydra is currently going through a major overhaul to enable multi-platform support. Many features and APIs will likely undergo significant change by version 2.0.*   
-please use the "releases" section for stable versions of MicroHydra.
-
 This code was built with MicroPython v1.23, for the ESP32-S3.
 
 The main function of MicroHydra is to provide an interface to easily switch between MicroPython apps.   
-And to help lower the barriers to entry for anyone wanting to develop apps for their Cardputer. 
-Python scripts can be placed in the /apps folder on the flash, or in a /apps folder on a micro sd card. The launcher scans these two locations on startup.   
+And to help lower the barriers to entry for anyone wanting to develop apps for their Cardputer (or other supported device!). 
+Python scripts can be placed in your device's /apps folder (on the flash), or in a /apps folder on a micro sd card. The launcher scans these two locations on startup.   
 
 <br />
 
-Take a look at the [wiki](https://github.com/echo-lalia/Cardputer-MicroHydra/wiki) for some basic guides to get you started with a MicroPython app.
+Take a look at the [wiki](https://github.com/echo-lalia/MicroHydra/wiki) for some basic guides to get you started with a MicroPython app.
 
 And for a repository of community-made MicroHydra apps, see [here](https://github.com/echo-lalia/MicroHydra-Apps).
 
@@ -82,16 +79,26 @@ You can install MicroHydra a few different ways.
 
 
 
- - *Flash MH as a compiled firmware:*   
+ - [*Flash MH as a compiled firmware:*](#As-a-complete-firmware)   
    You can flash MicroHydra (along with MicroPython) directly to your device using the `DEVICENAME.bin` file from the "Releases" section. (You can also usually find the most recent builds on M5Burner). This is the fastest and easiest to use form of MH!   
    > In this installation, the MicroHydra files have been 'frozen' into the MicroPython firmware. This makes the built-in files load *much* faster, and makes them all use less memory.  
    *Make sure you erase the flash before installing, and put your device in download mode by holding G0 when plugging it in.*
 
+> **Note for developers:** *The contents of `src/` must be processed in order to output device-specific MicroHydra builds. To learn more, take a look at [this](https://github.com/echo-lalia/MicroHydra/wiki/multi-platform) page in the wiki.*
 
-<br />
-<br />
-<br />
-<br />
+-----
+
+<br /><br />
+<br /><br />
+<br /><br />
+<br /><br />
+<br /><br />
+<br /><br />
+
+
+
+
+
 
 
 # In MicroPython
@@ -151,7 +158,7 @@ Now you need to put your device into bootloader mode, and connect it to your com
 <br />
 <br />
 
-In "target port" you should now see a device with a name like "USB JTAG". Set the options as shown, and click "Install":
+In "target port" you should now see a device with a name like "USB JTAG". Set the options as shown, and click "Install":  
 <img src="misc\images\thonnyflashsettings.png" width="400"/>
 > *For a device with Octal-SPIRAM (like the TDeck), you will have to download a specific Octal-SPIRAM variant from the [MicroPython website.](https://micropython.org/download/ESP32_GENERIC_S3/)*
 
@@ -195,12 +202,112 @@ Then, select all of the contents, and hit `Upload to /`
 
 <br />
 
-Once the files are transferred over to the Cardputer, you can test it out by disconnecting it, and powering it on. If everything is working, you should see the main launcher open up!
+Once the files are transferred over, you can test it out by disconnecting it, and powering it on. If everything is working, you should see the main launcher open up!
 
 If you have any issues, feel free to reach out. MH is still growing, and I'm interested to hear of any trouble it might be giving you. 
 
+----
+
+<br /><br />
+<br /><br />
+<br /><br />
+<br /><br />
+<br /><br />
+<br /><br />
+
+
+
+
+
+
+
+# As a complete firmware
+
+*This is a detailed guide for flashing the MicroHydra firmware on your device, using Thonny.*
+
+<br /> 
+<br />
+
+## Install Thonny
+
+Thonny is a tool that provides a very easy way to flash MicroPython, edit code, and view/edit the files on the device.
+
+You can follow the instructions here to install it: https://thonny.org/   
+> *Make sure to use a new version; older versions might fail to flash the ESP32-S3*
+>
+> *Some sources of Thonny (such as with certain built-in package managers) can result in strange issues with permissions or missing dependencies. If you encounter an issue with thonny when setting it up, and there is no other clear solution to your problem, it might be a good idea to try installing from another source.*
+
+<br /> 
+<br />
+<br />
+
+
+## Flash MicroHydra
+
+Now you can download and install MicroHydra.  
+To get the apropriate firmware for your device, you should head to the "Releases" section of the GitHub page, look for a `DEVICENAME.bin` file, and download it.
+
+<p>
+  <img src="misc\images\releases.png" height="300" hspace="10"/><img src="misc\images\releasebin.png" height="300" hspace="20"/>
+</p>
+
+Open Thonny, click this button in the bottom right, and click "Configure interpreter":   
+<p>
+  <img src="misc\images\thonnyhamburgermenu.png" height="300" hspace="10"/><img src="misc\images\thonnyconfigureinterpreter.png" height="300" hspace="10"/>
+</p>
+
+<br />
+
+It should open this menu:   
+<img src="misc\images\thonnyinterpreteroptions.png" width="500"/>
+
+
+<br />
+
+click "install or update micropython", and you should see another window:   
+<p>
+  <img src="misc\images\thonnyinstallmicropython.png" height="300" hspace="10"/><img src="misc\images\thonnyinstallmicropythonwindow.png" height="300" hspace="10"/>
+</p>
+
+<br />
+<br />
+
+
+
+
+Now you need to put your device into bootloader mode, and connect it to your computer. To do this, simply hold the `G0` button as you connect it to your PC.
+
+<img src="misc\images\cardputerg0.jpg" width="200"/>
+
+> *You can also hold `G0` and tap the reset button to get to bootloader mode.*  
+> *If you are using a device like the TDeck, which doesn't power on when plugged in, you must hold `g0` and then flip the power switch on.*
+
+
+<br />
+<br />
+
+Next we will select the firmware .bin file we downloaded.  
+Click the little menu button and click `Select local MicroPython image ...`  
+<img src="misc\images\thonnylocalmicropython.png" width="400"/>  
+Navigate to the .bin file you downloaded, and select it.  
+Make sure you also select your device in the "Target port" dropdown (it should have a name like "USB JTAG").
+
+Your window should look something like this:  
+<img src="misc\images\thonnyflashbin.png" width="400"/>  
+
+Click "Install", and let it do its thing!
+
+> *If installing didn't start, check that the correct device is selected, and it's in bootloader mode.*   
+
+Once it's flashed, you can test it out by disconnecting it, and powering it on. If everything is working, you should see the main launcher open up!
+
+If you have any issues, feel free to reach out. MH is still growing, and I'm interested to hear of any trouble it might be giving you. 
+
+----
+
 <br />
 <br />
 <br />
+
 
 <img src="https://github.com/echo-lalia/Cardputer-MicroHydra/assets/108598670/a0782c5d-5633-489a-a5eb-f6b4e83803ef" alt="Demo GIF"/>
