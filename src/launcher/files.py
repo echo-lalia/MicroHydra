@@ -16,11 +16,21 @@ _MH_DISPLAY_HEIGHT = const(240)
 _MH_DISPLAY_WIDTH = const(320)
 
 
-_MH_SDCARD_SLOT = const(2)
-_MH_SDCARD_SCK = const(40)
-_MH_SDCARD_MISO = const(38)
-_MH_SDCARD_MOSI = const(41)
-_MH_SDCARD_CS = const(39)
+_TRANS = const("""[
+  {"en": "Paste", "zh": "粘贴", "ja": "貼り付け"},
+  {"en": "New Directory", "zh": "新建目录", "ja": "新しいディレクトリ"},
+  {"en": "New File", "zh": "新建文件", "ja": "新しいファイル"},
+  {"en": "Refresh", "zh": "刷新", "ja": "更新"},
+  {"en": "Exit to launcher", "zh": "退出到启动器", "ja": "ランチャーに戻る"},
+  {"en": "Directory name:", "zh": "目录名称：", "ja": "ディレクトリ名："},
+  {"en": "File name:", "zh": "文件名称：", "ja": "ファイル名："},
+  {"en": "Exiting...", "zh": "正在退出...", "ja": "終了中..."},
+  {"en": "open", "zh": "打开", "ja": "開く"},
+  {"en": "copy", "zh": "复制", "ja": "コピー"},
+  {"en": "rename", "zh": "重命名", "ja": "名前を変更"},
+  {"en": "delete", "zh": "删除", "ja": "削除"},
+  {"en": "Opening...", "zh": "正在打开...", "ja": "開いています..."}
+]""")
 
 
 _DISPLAY_WIDTH_HALF = const(_MH_DISPLAY_WIDTH // 2)
@@ -61,28 +71,16 @@ FILE_HANDLERS = {
     }
 # mh_end_if
 
-I18N = I18n({
-  "Paste": {"zh": "粘贴", "ja": "貼り付け"},
-  "New Directory": {"zh": "新建目录", "ja": "新しいディレクトリ"},
-  "New File": {"zh": "新建文件", "ja": "新しいファイル"},
-  "Refresh": {"zh": "刷新", "ja": "更新"},
-  "Exit to launcher": {"zh": "退出到启动器", "ja": "ランチャーに戻る"},
-  "Directory name:": {"zh": "目录名称：", "ja": "ディレクトリ名："},
-  "File name:": {"zh": "文件名称：", "ja": "ファイル名："},
-  "Exiting...": {"zh": "正在退出...", "ja": "終了中..."},
-  "open": {"zh": "打开", "ja": "開く"},
-  "copy": {"zh": "复制", "ja": "コピー"},
-  "rename": {"zh": "重命名", "ja": "名前を変更"},
-  "delete": {"zh": "删除", "ja": "削除"},
-  "Opening...": {"zh": "正在打开...", "ja": "開いています..."}
-})
+
+I18N = I18n(_TRANS)
+
 
 kb = userinput.UserInput()
 tft = Display()
 
 config = Config()
 beep = beeper.Beeper()
-overlay = popup.UIOverlay()
+overlay = popup.UIOverlay(i18n=I18N)
 
 
 sd = sdcard.SDCard()
@@ -231,25 +229,25 @@ def ext_options(overlay):
     """Create popup with options for new file or directory."""
     cwd = os.getcwd()
     
-    options = [I18N.trans("Paste"), I18N.trans("New Directory"), I18N.trans("New File"), I18N.trans("Refresh"), I18N.trans("Exit to launcher")]
+    options = ["Paste", "New Directory", "New File", "Refresh", "Exit to launcher"]
     
     if clipboard == None:
         # dont give the paste option if there's nothing to paste.
         options.pop(0)
     
     option = overlay.popup_options(options, title=f"{cwd}:")
-    if option == I18N.trans("New Directory"):
+    if option == "New Directory":
         play_sound(("D3"), 30)
-        name = overlay.text_entry(title=I18N.trans("Directory name:"))
+        name = overlay.text_entry(title="Directory name:")
         play_sound(("G3"), 30)
         try:
             os.mkdir(name)
         except Exception as e:
             overlay.error(e)
             
-    elif option == I18N.trans("New File"):
+    elif option == "New File":
         play_sound(("B3"), 30)
-        name = overlay.text_entry(title=I18N.trans("File name:"))
+        name = overlay.text_entry(title="File name:")
         play_sound(("G3"), 30)
         try:
             with open(name, "w") as newfile:
@@ -257,12 +255,12 @@ def ext_options(overlay):
         except Exception as e:
             overlay.error(e)
             
-    elif option == I18N.trans("Refresh"):
+    elif option == "Refresh":
         play_sound(("B3","G3","D3"), 30)
         sd.mount()
         os.sync()
         
-    elif option == I18N.trans("Paste"):
+    elif option == "Paste":
         play_sound(("D3","G3","D3"), 30)
         
         source_path, file_name = clipboard
@@ -280,8 +278,8 @@ def ext_options(overlay):
                     if not l: break
                     new_file.write(l)
     
-    elif option == I18N.trans("Exit to launcher"):
-        overlay.draw_textbox(I18N.trans("Exiting..."), _MH_DISPLAY_WIDTH//2, _MH_DISPLAY_HEIGHT//2)
+    elif option == "Exit to launcher":
+        overlay.draw_textbox("Exiting...")
         tft.show()
         rtc = machine.RTC()
         rtc.memory('')
@@ -291,25 +289,25 @@ def file_options(file, overlay):
     """Create popup with file options for given file."""
     global clipboard
     
-    options = (I18N.trans("open"), I18N.trans("copy"), I18N.trans("rename"), I18N.trans("delete"))
+    options = ("open", "copy", "rename", "delete")
     option = overlay.popup_options(options, title=f'"{file}":')
     
-    if option == I18N.trans("open"):
+    if option == "open":
         play_sound(("G3"), 30)
         open_file(file)
-    elif option == I18N.trans("copy"):
+    elif option == "copy":
         # store copied file to clipboard
         clipboard = (os.getcwd(), file)
 
         play_sound(("D3","G3","D3"), 30)
 
         
-    elif option == I18N.trans("rename"):
+    elif option == "rename":
         play_sound(("B3"), 30)
         new_name = overlay.text_entry(start_value=file, title=f"Rename '{file}':")
         os.rename(file,new_name)
         
-    elif option == I18N.trans("delete"):
+    elif option == "delete":
         play_sound(("D3"), 30)
         confirm = overlay.popup_options((("cancel",), ("confirm",)), title=f'Delete "{file}"?', depth=1)
         if confirm == "confirm":
@@ -323,8 +321,7 @@ def open_file(file):
     filepath = cwd + file
     
     # visual feedback
-    overlay.draw_textbox(I18N.trans("Opening..."), _MH_DISPLAY_WIDTH//2, _MH_DISPLAY_HEIGHT//4)
-    overlay.draw_textbox(filepath, _MH_DISPLAY_WIDTH//2, _MH_DISPLAY_HEIGHT//2)
+    overlay.draw_textbox(f"Opening {filepath}...")
     tft.show()
     
     filetype = file.split(".")[-1]
