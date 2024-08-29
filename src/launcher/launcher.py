@@ -68,17 +68,17 @@ _APPNAME_Y = const(_ICON_Y + _ICON_HEIGHT + _Y_PADDING)
 _SCROLL_ANIMATION_TIME = const(400)
 
 
-I18N = I18n([
-    {"en": "Loading...", "zh": "加载中...", "ja": "読み込み中..."},
-    {"en": "Files", "zh": "文件", "ja": "ファイル"},
-    {"en": "Terminal", "zh": "终端", "ja": "端末"},
-    {"en": "Get Apps", "zh": "应用商店", "ja": "アプリストア"},
-    {"en": "Reload Apps", "zh": "重新加载应用", "ja": "アプリ再読"},
-    {"en": "UI Sound", "zh": "界面声音", "ja": "UIサウンド"},
-    {"en": "Settings", "zh": "设置", "ja": "設定"},
-    {"en": "On", "zh": "开", "ja": "オン"},
-    {"en": "Off", "zh": "关", "ja": "オフ"}
-]);
+I18N = I18n({
+    "Loading...":{"zh": "加载中...", "ja": "読み込み中..."},
+    "Files":{"zh": "文件", "ja": "ファイル"},
+    "Terminal":{"zh": "终端", "ja": "端末"},
+    "Get Apps":{"zh": "应用商店", "ja": "アプリストア"},
+    "Reload Apps":{"zh": "重新加载应用", "ja": "アプリ再読"},
+    "UI Sound":{"zh": "界面声音", "ja": "UIサウンド"},
+    "Settings":{"zh": "设置", "ja": "設定"},
+    "On":{"zh": "开", "ja": "オン"},
+    "Off":{"zh": "关", "ja": "オフ"}
+})
 
 
 # bump up our clock speed so the UI feels smoother (240mhz is the max officially supported, but the default is 160mhz)

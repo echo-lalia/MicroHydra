@@ -1,5 +1,19 @@
 from .config import Config
 
+'''
+Sample:
+{
+    "Loading...":{"zh": "加载中...", "ja": "読み込み中..."},
+    "Files":{"zh": "文件", "ja": "ファイル"},
+    "Terminal":{"zh": "终端", "ja": "端末"},
+    "Get Apps":{"zh": "应用商店", "ja": "アプリストア"},
+    "Reload Apps":{"zh": "重新加载应用", "ja": "アプリ再読"},
+    "UI Sound":{"zh": "界面声音", "ja": "UIサウンド"},
+    "Settings":{"zh": "设置", "ja": "設定"},
+    "On":{"zh": "开", "ja": "オン"},
+    "Off":{"zh": "关", "ja": "オフ"}
+}
+'''
 
 class I18n:
     """
@@ -12,10 +26,6 @@ class I18n:
         self.config = Config()
         self.lang = self.config['language']
         self.translations = translations
-        '''Sample Translation:
-        [{"en":"Hello","zh":"你好","ja":"こんにちは"},
-        {"en":"OK","zh":"好","ja":"はい"}]
-        '''
         
     def set_translations(self, translations):
         '''
@@ -39,10 +49,10 @@ class I18n:
             return text
         
         cur_trans = custom_trans if custom_trans != None else self.translations
-        for i in cur_trans:
-            if text in i.values():
-                return i[self.lang if to_lang == None else to_lang]
-            
-        return text
+        cur_lang = self.lang if to_lang == None else to_lang
+        if not text in cur_trans or not cur_lang in cur_trans[text]:
+            return text
+        else:
+            return cur_trans[text][cur_lang]
             
     

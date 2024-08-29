@@ -61,21 +61,21 @@ FILE_HANDLERS = {
     }
 # mh_end_if
 
-I18N = I18n([
-  {"en": "Paste", "zh": "粘贴", "ja": "貼り付け"},
-  {"en": "New Directory", "zh": "新建目录", "ja": "新しいディレクトリ"},
-  {"en": "New File", "zh": "新建文件", "ja": "新しいファイル"},
-  {"en": "Refresh", "zh": "刷新", "ja": "更新"},
-  {"en": "Exit to launcher", "zh": "退出到启动器", "ja": "ランチャーに戻る"},
-  {"en": "Directory name:", "zh": "目录名称：", "ja": "ディレクトリ名："},
-  {"en": "File name:", "zh": "文件名称：", "ja": "ファイル名："},
-  {"en": "Exiting...", "zh": "正在退出...", "ja": "終了中..."},
-  {"en": "open", "zh": "打开", "ja": "開く"},
-  {"en": "copy", "zh": "复制", "ja": "コピー"},
-  {"en": "rename", "zh": "重命名", "ja": "名前を変更"},
-  {"en": "delete", "zh": "删除", "ja": "削除"},
-  {"en": "Opening...", "zh": "正在打开...", "ja": "開いています..."}
-])
+I18N = I18n({
+  "Paste": {"zh": "粘贴", "ja": "貼り付け"},
+  "New Directory": {"zh": "新建目录", "ja": "新しいディレクトリ"},
+  "New File": {"zh": "新建文件", "ja": "新しいファイル"},
+  "Refresh": {"zh": "刷新", "ja": "更新"},
+  "Exit to launcher": {"zh": "退出到启动器", "ja": "ランチャーに戻る"},
+  "Directory name:": {"zh": "目录名称：", "ja": "ディレクトリ名："},
+  "File name:": {"zh": "文件名称：", "ja": "ファイル名："},
+  "Exiting...": {"zh": "正在退出...", "ja": "終了中..."},
+  "open": {"zh": "打开", "ja": "開く"},
+  "copy": {"zh": "复制", "ja": "コピー"},
+  "rename": {"zh": "重命名", "ja": "名前を変更"},
+  "delete": {"zh": "删除", "ja": "削除"},
+  "Opening...": {"zh": "正在打开...", "ja": "開いています..."}
+})
 
 kb = userinput.UserInput()
 tft = Display()
