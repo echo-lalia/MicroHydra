@@ -528,9 +528,10 @@ class IconWidget:
 
     def _draw_str_icon(self):
         clr_idx = 4 if self.drawn_icon == 'Off' else 8
+        icon_str = I18N[self.drawn_icon]
         DISPLAY.text(
-            I18N[self.drawn_icon],
-            self.x - (len(self.drawn_icon) * _FONT_WIDTH_HALF),
+            icon_str,
+            self.x - (len(icon_str) * _FONT_WIDTH_HALF),
             _ICON_Y,
             CONFIG.palette[clr_idx],
             font=font,

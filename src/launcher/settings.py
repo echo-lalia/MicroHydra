@@ -19,34 +19,33 @@ display = Display()
 kb = userinput.UserInput()
 config = config.Config()
 
-trs = {
-  "language": {"en": "Language", "zh": "语言/Lang", "ja": "言語/Lang"},
-  "volume": {"en": "Volume", "zh": "音量", "ja": "音量"},
-  "ui_color": {"en": "UI Color", "zh": "UI颜色", "ja": "UIの色"},
-  "bg_color": {"en": "Background Color", "zh": "背景颜色", "ja": "背景色"},
-  "wifi_ssid": {"en": "WiFi SSID", "zh": "WiFi名称", "ja": "WiFi名前"},
-  "wifi_pass": {"en": "WiFi Password", "zh": "WiFi密码", "ja": "WiFiパスワード"},
-  "sync_clock": {"en": "Sync Clock", "zh": "同步时钟", "ja": "時計同期"},
-  "24h_clock": {"en": "24-Hour Clock", "zh": "24小时制", "ja": "24時間制"},
-  "timezone": {"en": "Timezone", "zh": "时区", "ja": "タイムゾーン"},
-  "Confirm": {"en": "Confirm", "zh": "确认", "ja": "確認"}
-}
+_TRANS = const("""[
+  {"id": "language", "en": "Language", "zh": "语言/Lang", "ja": "言語/Lang"},
+  {"id": "volume", "en": "Volume", "zh": "音量", "ja": "音量"},
+  {"id": "ui_color", "en": "UI Color", "zh": "UI颜色", "ja": "UIの色"},
+  {"id": "bg_color", "en": "Background Color", "zh": "背景颜色", "ja": "背景色"},
+  {"id": "wifi_ssid", "en": "WiFi SSID", "zh": "WiFi名称", "ja": "WiFi名前"},
+  {"id": "wifi_pass", "en": "WiFi Password", "zh": "WiFi密码", "ja": "WiFiパスワード"},
+  {"id": "sync_clock", "en": "Sync Clock", "zh": "同步时钟", "ja": "時計同期"},
+  {"id": "24h_clock", "en": "24-Hour Clock", "zh": "24小时制", "ja": "24時間制"},
+  {"id": "timezone", "en": "Timezone", "zh": "时区", "ja": "タイムゾーン"},
+  {"id": "Confirm", "en": "Confirm", "zh": "确认", "ja": "確認"}
+]""")
 
 
-I18N = I18n(trs)
+I18N = I18n(_TRANS)
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Functions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 def update_config(caller, value):
-    #Find the original ID
-    org_id = "language"
-    for k,v in trs.items():
-        if v[config['language']] == caller.text:
-            org_id = k
-            break
+    global I18N
 
-    config[org_id] = value
+    config[caller.text] = value
+
+    # regen palette and translations based on new vals
     config.generate_palette()
+    I18N = I18n(_TRANS)
+
     print(f"config['{caller.text}'] = {value}")
 
 
@@ -95,7 +94,8 @@ def process_touch(keys):
 
 
 menu = hydramenu.Menu(
-    esc_callback=discard_conf
+    esc_callback=discard_conf,
+    i18n=I18N,
     )
 
 menu_def = [
@@ -116,12 +116,12 @@ for i_class, name, kwargs in menu_def:
     menu.append(
         i_class(
             menu,
-            I18N.trans(name),
+            name,
             config[name],
             callback=update_config,
             **kwargs
         ))
-menu.append(hydramenu.DoItem(menu, I18N.trans("Confirm"), callback=save_conf))
+menu.append(hydramenu.DoItem(menu, "Confirm", callback=save_conf))
 
 updating_display = True
 

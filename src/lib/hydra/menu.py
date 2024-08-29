@@ -66,6 +66,7 @@ class Menu:
                  per_page:int = _PER_PAGE,
                  y_padding:int = _Y_PADDING,
                  esc_callback:callable|None=None,
+                 i18n=None,
                  ):
 
         # init globals
@@ -89,6 +90,8 @@ class Menu:
         self.in_submenu = False
 
         self.esc_callback = esc_callback
+
+        self.i18n = i18n
 
 
     def append(self, item):
@@ -251,6 +254,7 @@ class MenuItem:
         self.value = value
         self.callback = callback
         self.instant_callback = instant_callback
+        self.i18n = menu.i18n
 
 
     def __repr__(self):
@@ -259,13 +263,18 @@ class MenuItem:
 
     def draw(self):
         draw_right_text(repr(self), self.y_pos, self.selected)
-        draw_left_text(self.text, self.y_pos, self.selected)
+        text = self.text if self.i18n is None else self.i18n[self.text]
+        draw_left_text(text, self.y_pos, self.selected)
         DISPLAY.hline(0, self.y_pos, _MH_DISPLAY_WIDTH, CONFIG.palette[3])
         DISPLAY.hline(0, self.y_pos+_FONT_HEIGHT-1, _MH_DISPLAY_WIDTH, CONFIG.palette[1])
 
 
     def handle_input(self, key):
         return
+
+    def trans_popupwin(self):
+        """Translate window title for menu items"""
+        return PopUpWin(self.text if self.i18n is None else self.i18n[self.text])
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Bool Item ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -308,10 +317,11 @@ class DoItem(MenuItem):
 
 
     def draw(self):
+        text = self.text if self.i18n is None else self.i18n[self.text]
         if self.selected:
-            draw_centered_text(f"< {self.text} >", _DISPLAY_WIDTH_CENTER, self.y_pos, CONFIG.palette[9], font=font)
+            draw_centered_text(f"< {text} >", _DISPLAY_WIDTH_CENTER, self.y_pos, CONFIG.palette[9], font=font)
         else:
-            draw_centered_text(self.text, _DISPLAY_WIDTH_CENTER, self.y_pos, CONFIG.palette[6], font=font)
+            draw_centered_text(text, _DISPLAY_WIDTH_CENTER, self.y_pos, CONFIG.palette[6], font=font)
         DISPLAY.hline(0, self.y_pos, _MH_DISPLAY_WIDTH, CONFIG.palette[2])
         DISPLAY.hline(0, self.y_pos+_FONT_HEIGHT-1, _MH_DISPLAY_WIDTH, CONFIG.palette[1])
 
@@ -411,10 +421,9 @@ class RGBItem(MenuItem):
 
 
     def draw_rgb_win(self):
-        _RGB = const((63488, 2016, 31))
         _CENTERED_X = const((_DISPLAY_CENTER_LEFT, _DISPLAY_WIDTH_CENTER, _DISPLAY_CENTER_RIGHT))
 
-        win = PopUpWin(self.text)
+        win = self.trans_popupwin()
         win.draw()
 
         rgb_text = (f"R{math.floor(self.value[0]*8.225806)}",
@@ -512,7 +521,7 @@ class IntItem(MenuItem):
 
 
     def draw_win(self):
-        win = PopUpWin(self.text)
+        win = self.trans_popupwin()
         win.draw()
         draw_small_arrow(_DISPLAY_WIDTH_CENTER, _INT_ARROW_UP_Y, CONFIG.palette[5])
         draw_small_arrow(_DISPLAY_WIDTH_CENTER, _INT_ARROW_DOWN_Y, CONFIG.palette[5], direction=-1)
@@ -551,7 +560,7 @@ class WriteItem(MenuItem):
 
 
     def draw_win(self):
-        win = PopUpWin(self.text)
+        win = self.trans_popupwin()
         win.draw()
         win.text(self.value)
 
@@ -719,10 +728,4 @@ def play_sound(notes, time_ms=80):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Math Functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def ease_out(x):
     return 1 - ((1 - x) ** 3)
-
-
-
-if __name__ == '__main__':
-    # just for testing!
-    from launcher import settings
 
