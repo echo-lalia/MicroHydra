@@ -27,13 +27,13 @@ except:
 
 ## App Icons:
 > Quick note:   
-> *The previous version of MicroHydra used a bizzare method of packing vectorized/polygonal icon definitions into a short string, which would be unpacked and executed by the launcher. This strategy was chosen for memory efficiency, but it felt awkward and is not used anymore. The script `polygon_to_raw_bmp.py` from the tools folder has been written to convert these old polygon defs if needed.* 
+> *The previous version of MicroHydra used a bizzare method of packing vectorized/polygonal icon definitions into a short string, which would be unpacked and executed by the launcher. This strategy was chosen for memory efficiency, but it felt awkward and is not used anymore. The script `polygon_to_raw_bmp.py` from the `tools/icons` folder has been written to convert these old polygon defs if needed.* 
 
 <br/>
 
 **To put it simply:**   
 MicroHydra app icons are 32x32, 1bit, raw bitmaps (not bmp files) named `icon.raw`. Your app icon should be placed in the main directory of your app, alongside the `__init__.py` file.   
-You can simply create these files using the `image_to_icon.py` file in the "tools" folder.
+You can simply create these files using the `image_to_icon.py` file in the `tools/icons` folder.
 
 <br/><br/>
 
