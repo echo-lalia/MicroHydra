@@ -323,7 +323,14 @@ class ST7789:
 
         if backlight is not None:
             backlight.value(1)
-
+        
+        self.utf8_cache = {}
+        try:
+            self.utf8_font = open("/font/utf8_8x8.bin", "rb", buffering = 0)
+            self.utf8_font_loaded = True
+        except Exception as e:
+            print("Error loading utf8 font:", e)
+            self.utf8_font_loaded = False
 
     @staticmethod
     def _find_rotations(width, height):
@@ -392,7 +399,7 @@ class ST7789:
         if self.cs:
             self.cs.off()
         self.dc.on()
-        
+
         landscape_rotation = int(self._rotation) % 2 == 1
         
         height = int(self.height)
@@ -643,25 +650,25 @@ class ST7789:
             self._show_y_min = 0
         if self._show_y_max > self.height:
             self._show_y_max = self.height
-        
+
         self._set_window(
             0,
             self._show_y_min,
             self.width - 1,
             self._show_y_max - 1,
             )
-
+        
         if self.use_tiny_buf:
             self._write_tiny_buf()
         else:
             self._write_normal_buf()
-        
+
         self._reset_show_min()
+
         # mh_if TDECK:
         # TDeck shares SPI with SDCard
         self.spi.deinit()
         # mh_end_if
-        
         
     def blit_buffer(self, buffer, x, y, width, height, key=-1, palette=None):
         """
@@ -857,9 +864,68 @@ class ST7789:
             # early return for text off screen
             if x >= self_width:
                 return
+           
+    def utf8_show_decode(self, cur, x, y, color, scale=2, height=8, width=8):
+        """Display the decoded character on the screen."""
+        for i in range(height):
+            for j in range(width):
+                if cur & 1:
+                    self.rect(x + j * scale, y + i * scale, scale, scale, color, True)
+                cur >>= 1
 
+    def utf8_putc(self, char, x, y, color, scale=2, custom_dict = None):
+        if not self.utf8_font_loaded and custom_dict == None:
+            raise Exception("UTF8 font not loaded, please load the font file first.")
+            
+        """Render a single character on the screen."""
+        if custom_dict != None and char in custom_dict:
+            self.utf8_show_decode(custom_dict[char], x, y, color, scale,
+                                  width=4 if ord(char) < 128 else 8)
+            return
+        
+        elif char in self.utf8_cache:
+            self.utf8_show_decode(int(self.utf8_cache[char]), x, y, color,
+                                   scale,width=4 if ord(char) < 128 else 8)
+        else:
+            found = False
+            codepoint = ord(char)
+            
+            if 0x0000 <= codepoint <= 0xFFFF:
+                # Calculate the offset in the binary file
+                offset = codepoint * 8
+                self.utf8_font.seek(offset)
+                
+                # Read the 8 bytes and decode
+                cur = int.from_bytes(self.utf8_font.read(8), 'big')
+                self.utf8_cache[char] = cur
+                found = True
+            else:
+                self.utf8_cache[char] = 0x7e424242427e0000
+            
+            if found:
+                self.utf8_show_decode(self.utf8_cache[char], x, y, color, scale, 
+                                      width=4 if ord(char) < 128 else 8)
+            else:
+                self.utf8_show_decode(0x7e424242427e0000, x, y, color, scale
+                                      ,width=4 if ord(char) < 128 else 8)
 
-    def text(self, text, x, y, color, font=None):
+            if len(self.utf8_cache) >= 200:
+                del self.utf8_cache[list(self.utf8_cache.keys())[0]]
+
+    def utf8_text(self, string, x, y, color, scale=1, instant_show=True, custom_dict = None):
+        """Render a string of text on the screen."""
+        cur_x = x
+        for char in string:
+            self.utf8_putc(char, cur_x, y, color, scale,custom_dict)
+            if instant_show:
+                self.show()
+            
+            if all(ord(c) < 128 for c in char):
+                cur_x += 4 * scale
+            else:
+                cur_x += 8 * scale
+    
+    def text(self, text, x, y, color, font=None, custom_dict = None, scale = None):
         """
         Draw text to the framebuffer.
         
@@ -873,6 +939,17 @@ class ST7789:
             color (int): encoded color to use for text
             font (optional): bitmap font module to use
         """
+        if not all(ord(c) < 128 for c in text):
+            #print("Non-ascii detected, use utf8_text instead.")
+            if scale == None:
+                if font:
+                    scale = int(font.HEIGHT // 8)
+                else:
+                    scale = 1
+            
+            self.utf8_text(text, x, y, color, scale = scale, custom_dict = custom_dict)
+            return
+        
         color = self._format_color(color)
 
         if font:
