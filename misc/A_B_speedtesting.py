@@ -2,9 +2,9 @@ import time
 import math
 import random
 
-#this script can easily compare the speed of two functions, to help you write faster code.
-#please keep in mind that the order of the tests can affect the results (around 0~10% in my testing).
-#you should probably ignore small differences in speed found by this test, but large differences can be super informative. 
+# this script can easily compare the speed of two functions, to help you write faster code.
+# please keep in mind that the order of the tests can affect the results. (around 0~10% usually, in my testing. Sometimes much more.)
+# you should be skeptical of the results given by these tests, but large differences can be super informative. 
 
 
 oneval = 10
