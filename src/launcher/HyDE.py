@@ -458,7 +458,7 @@ def draw_small_line(line,x,y,fade=0):
 
         # reset style trackers for next cycle
         if string_char == "END": string_char = None
-        x += 8
+        x += 8 if ord(char) < 128 else 16
 
 
 def draw_rule(x,y,small=False, highlight=False):
@@ -587,7 +587,7 @@ def draw_fancy_line(line, x, y, highlight=False, trim=True):
         if string_char == "END": string_char = None
         segment_counter -= 1
 
-        x += 8
+        x += 8 if ord(char) < 128 else 16
 
 
 
@@ -904,9 +904,15 @@ class Editor:
                 output.append("")
         return output
 
-
+    def get_total_width(self,line):
+        """Get the total width of a line"""
+        width = 0
+        for char in line:
+            width += 8 if ord(char) < 128 else 16
+        return width
+    
     def draw_cursor(self):
-        cursor_x = _FONT_WIDTH * (self.cursor_index[0] - self.display_index[0]) + _LEFT_PADDING
+        cursor_x = self.get_total_width(self.lines[self.cursor_index[1]][self.display_index[0]:self.cursor_index[0]+1]) + _LEFT_PADDING
         cursor_y = (_SMALL_FONT_HEIGHT * 3) + (self.cursor_index[1] - self.display_index[1] - 3) * _TEXT_HEIGHT
         if time.ticks_ms() % _CURSOR_BLINK_MS < _CURSOR_BLINK_HALF:
             DISPLAY.vline(cursor_x, cursor_y, 16, CONFIG.palette[9])

@@ -671,7 +671,7 @@ def draw_small_text(text, x, y, clr, bg_color=None):
 
 def draw_big_text(text, x, y, clr, bg_color=None):
     # draw big text on either st7789py or st7789fbuf
-    DISPLAY.text(text, x, y, clr, font=font)
+    DISPLAY.text(text, x, y, clr, font=font, scale=3)
 
 
 def draw_centered_text(text, x, y, clr, font=None):
@@ -680,7 +680,7 @@ def draw_centered_text(text, x, y, clr, font=None):
         x = x - (len(text) * _FONT_WIDTH_HALF)
     else:
         x = x - (len(text) * _SMALL_FONT_WIDTH_HALF)
-    DISPLAY.text(text, x, y, clr, font=font)
+    DISPLAY.text(text, x, y, clr, font=font, scale=3)
 
 
 def get_text_center(text:str):
@@ -690,10 +690,10 @@ def get_text_center(text:str):
 
 def draw_left_text(text:str, y_pos:int, selected):
     if selected:
-        DISPLAY.text(text, _LEFT_TEXT_UNSELECTED_X, y_pos, CONFIG.palette[1], font=font)
-        DISPLAY.text('>'+text, _LEFT_TEXT_SELECTED_X, y_pos, CONFIG.palette[9], font=font)
+        DISPLAY.text(text, _LEFT_TEXT_UNSELECTED_X, y_pos, CONFIG.palette[1], font=font,scale=3)
+        DISPLAY.text('>'+text, _LEFT_TEXT_SELECTED_X, y_pos, CONFIG.palette[9], font=font,scale=3)
     else:
-        DISPLAY.text(text, _LEFT_TEXT_UNSELECTED_X, y_pos, CONFIG.palette[6], font=font)
+        DISPLAY.text(text, _LEFT_TEXT_UNSELECTED_X, y_pos, CONFIG.palette[6], font=font,scale=3)
 
 
 def draw_right_text(text:str, y_pos:int, selected=False):

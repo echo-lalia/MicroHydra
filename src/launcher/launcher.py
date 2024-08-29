@@ -26,7 +26,7 @@ from lib import userinput, battlevel, sdcard
 from lib.hydra import beeper
 from lib.hydra.config import Config
 from lib import display
-
+from lib.hydra.i18n import I18n
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ _CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _MH_DISPLAY_WIDTH = const(320)
@@ -68,7 +68,17 @@ _APPNAME_Y = const(_ICON_Y + _ICON_HEIGHT + _Y_PADDING)
 _SCROLL_ANIMATION_TIME = const(400)
 
 
-
+I18N = I18n({
+    "Loading...":{"zh": "加载中...", "ja": "読み込み中..."},
+    "Files":{"zh": "文件", "ja": "ファイル"},
+    "Terminal":{"zh": "终端", "ja": "端末"},
+    "Get Apps":{"zh": "应用商店", "ja": "アプリストア"},
+    "Reload Apps":{"zh": "重新加载应用", "ja": "アプリ再読"},
+    "UI Sound":{"zh": "界面声音", "ja": "UIサウンド"},
+    "Settings":{"zh": "设置", "ja": "設定"},
+    "On":{"zh": "开", "ja": "オン"},
+    "Off":{"zh": "关", "ja": "オフ"}
+})
 
 
 # bump up our clock speed so the UI feels smoother (240mhz is the max officially supported, but the default is 160mhz)
@@ -259,7 +269,15 @@ def center_text_x(text, char_width=16):
     """
         Calculate the x coordinate to draw a text string, to make it horizontally centered. (plus the text width)
     """
-    str_width = len(text) * char_width
+    def calculate_length(text):
+        length = 0
+        for char in text:
+            if ord(char) > 255:
+                length += 2 
+            else:
+                length += 1  
+        return length
+    str_width = calculate_length(text) * char_width
     start_coord = _DISPLAY_WIDTH_HALF - (str_width // 2)
 
     return start_coord
@@ -565,28 +583,28 @@ class IconWidget:
         current_app_text = APP_NAMES[APP_SELECTOR_INDEX]
 
         # special menu options for settings
-        if current_app_text == "UI Sound":
+        if current_app_text == I18N.trans("UI Sound"):
             if CONFIG['ui_sound']:
-                return "On"
+                return I18N.trans("On")
             else:
-                return "Off"
+                return I18N.trans("Off")
         
-        if current_app_text == "Files":
+        if current_app_text == I18N.trans("Files"):
             return _FILE_ICON_IDX
 
-        if current_app_text == "Reload Apps":
+        if current_app_text == I18N.trans("Reload Apps"):
             return _REFRESH_ICON_IDX
 
-        if current_app_text == "Settings":
+        if current_app_text == I18N.trans("Settings"):
             return _GEAR_ICON_IDX
         
         current_app_path = APP_PATHS[current_app_text]
         
-        if current_app_text == 'Terminal' \
+        if current_app_text == I18N.trans("Terminal") \
         or current_app_path.endswith('.cli.py'):
             return _TERMINAL_ICON_IDX
         
-        if current_app_text == 'Get Apps':
+        if current_app_text == I18N.trans("Get Apps"):
             return _GETAPPS_ICON_IDX
         
         if not (current_app_path.endswith('.py') or current_app_path.endswith('.mpy')):
