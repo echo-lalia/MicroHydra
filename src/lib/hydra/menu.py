@@ -54,13 +54,10 @@ BEEP = None
 class Menu:
     """
     args:
-    - display_fbuf (ST7789): st7789fbuf.ST7789 object
-    - display_py (ST7789): st7789py.ST7789 object
-    - font (module): bitmap font module
-    - beep (Beeper): beeper.Beeper object
     - per_page (int): menu items per page
     - y_padding (int): y padding on first menu item
-    - esc_callback (callable): callback for handling escape from menu screen
+    - esc_callback (callable|None): callback for handling escape from menu screen
+    - i18n (I18n|None): I18n object for translating menu items
     """
     def __init__(self,
                  per_page:int = _PER_PAGE,
@@ -139,21 +136,14 @@ class Menu:
         for i in visible_range:
             y = self.y_padding + anim_y + (i - self.setting_screen_index) * _FONT_HEIGHT
             if i <= len(self.items) - 1:
-                if i == self.cursor_index:
-                    self.items[i].selected = 1
-                    self.items[i].y_pos = y
-                    self.items[i].draw()
-                else:
-                    self.items[i].selected = 0
-                    self.items[i].y_pos = y
-                    self.items[i].draw()
+                self.items[i].selected = i == self.cursor_index
+                self.items[i].y_pos = y
+                self.items[i].draw()
+
         self.update_scroll_bar()
         
         # return true/false based on if animation is finished
-        if anim_y == 0:
-            return False
-        else:
-            return True
+        return False if anim_y == 0 else True
 
 
     def update_scroll_bar(self):
@@ -182,16 +172,16 @@ class Menu:
             play_sound(("G3","B3"), time_ms=30)
             return True
 
-        elif key == 'DOWN':
+        if key == 'DOWN':
             self.cursor_index = (self.cursor_index + 1) % len(self.items)
             play_sound(("B3","D3"), time_ms=30)
             return True
 
-        elif key == 'G0' or key == 'ENT':
+        if key == 'G0' or key == 'ENT':
             play_sound(("G3","B3","D3"), time_ms=30)
             return (self.items[self.cursor_index].handle_input("G0"))
 
-        elif key == "ESC":
+        if key == "ESC":
             # pass control back when menu is backed out of.
             if self.esc_callback:
                 play_sound((("C3","E3","D3"),"D4","C4"), time_ms=100)
@@ -269,6 +259,11 @@ class MenuItem:
         """Translate window title for menu items"""
         return PopUpWin(self.text if self.i18n is None else self.i18n[self.text])
 
+    def _callback(self, callback):
+        """Call given callback (if it exists)"""
+        if callback:
+            callback(self, self.value)
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Bool Item ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class BoolItem(MenuItem):
@@ -287,9 +282,8 @@ class BoolItem(MenuItem):
 
     def handle_input(self, key):
         self.value = not self.value
-        #self.draw()
-        if self.callback != None:
-            self.callback(self, self.value)
+
+        self._callback(self.callback)
 
         return True
 
@@ -352,6 +346,9 @@ class RGBItem(MenuItem):
     def __repr__(self):
         return f"{self.value[0]},{self.value[1]},{self.value[2]}"
 
+    def _callback(self, callback):
+        if callback:
+            callback(self, color.combine_color565(self.value[0],self.value[1],self.value[2]))
 
     def handle_input(self, key):
         _MAX_RANGE = const((32, 64, 32))
@@ -378,25 +375,22 @@ class RGBItem(MenuItem):
             play_sound("D3", time_ms=30)
             self.value[self.cursor_index] += 1
             self.value[self.cursor_index] %= _MAX_RANGE[self.cursor_index]
-            if self.instant_callback:
-                self.instant_callback(self, color.combine_color565(self.value[0],self.value[1],self.value[2]))
+            self._callback(self.instant_callback)
             input_accepted = True
                 
         elif (key == "DOWN"):
             play_sound("C3", time_ms=30)
             self.value[self.cursor_index] -= 1
             self.value[self.cursor_index] %= _MAX_RANGE[self.cursor_index]
-            if self.instant_callback:
-                self.instant_callback(self, color.combine_color565(self.value[0],self.value[1],self.value[2]))
+            self._callback(self.instant_callback)
             input_accepted = True
 
         elif (key == "G0" or key == "ENT") and self.in_item:
             play_sound(("F3","A3","C4"), time_ms=30)
             self.menu.in_submenu = False
             self.in_item = False
-            #self.menu.draw()
-            if self.callback != None:
-                self.callback(self, color.combine_color565(self.value[0],self.value[1],self.value[2]))
+
+            self._callback(self.callback)
             return True
 
         elif key == "ESC" and self.in_item:
@@ -404,8 +398,7 @@ class RGBItem(MenuItem):
             play_sound(("A3","F3","C3"), time_ms=30)
             self.menu.in_submenu = False
             self.in_item = False
-            if self.instant_callback:
-                self.instant_callback(self, color.combine_color565(self.value[0],self.value[1],self.value[2]))
+            self._callback(self.instant_callback)
             return True
 
         self.in_item = True
@@ -478,16 +471,14 @@ class IntItem(MenuItem):
             self.value += 1
             if self.value > self.max_int:
                 self.value = self.min_int
-            if self.instant_callback:
-                self.instant_callback(self, self.value)
+            self._callback(self.instant_callback)
             play_sound("G3", time_ms=30)
                 
         elif (key == "DOWN"):
             self.value -= 1
             if self.value < self.min_int:
                 self.value = self.max_int
-            if self.instant_callback:
-                self.instant_callback(self, self.value)
+            self._callback(self.instant_callback)
             play_sound("E3", time_ms=30)
                 
         elif (key == "G0" or key == "ENT") and self.in_item:
@@ -495,8 +486,7 @@ class IntItem(MenuItem):
             self.menu.in_submenu = False
             self.in_item = False
             self.menu.draw()
-            if self.callback != None:
-                self.callback(self, self.value)
+            self._callback(self.callback)
             return
         
         elif key == "ESC" and self.in_item:
@@ -505,8 +495,7 @@ class IntItem(MenuItem):
             self.menu.in_submenu = False
             self.in_item = False
             self.menu.draw()
-            if self.instant_callback:
-                self.instant_callback(self, self.value)
+            self._callback(self.instant_callback)
             return
             
         self.in_item = True
@@ -570,8 +559,7 @@ class WriteItem(MenuItem):
             self.menu.in_submenu = False
             self.in_item = False
             self.menu.draw()
-            if self.callback != None:
-                self.callback(self, self.value)
+            self._callback(self.callback)
             return
         
         elif key == "ESC" and self.in_item:
