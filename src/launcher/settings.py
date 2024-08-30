@@ -32,8 +32,11 @@ _TRANS = const("""[
   {"en": "Confirm", "zh": "确认", "ja": "確認"}
 ]""")
 
-
 I18N = I18n(_TRANS)
+
+LANGS = ['en', 'zh', 'ja']
+LANGS.sort()
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Functions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -99,7 +102,7 @@ menu = hydramenu.Menu(
     )
 
 menu_def = [
-    (hydramenu.WriteItem, 'language', {}),
+    (hydramenu.ChoiceItem, 'language', {'choices':LANGS, 'instant_callback': update_config}),
     (hydramenu.IntItem, 'volume', {'min_int': 0, 'max_int': 10, 'instant_callback': update_config}),
     (hydramenu.RGBItem, 'ui_color', {'instant_callback': update_config}),
     (hydramenu.RGBItem, 'bg_color', {'instant_callback': update_config}),

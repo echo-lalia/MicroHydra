@@ -54,13 +54,10 @@ BEEP = None
 class Menu:
     """
     args:
-    - display_fbuf (ST7789): st7789fbuf.ST7789 object
-    - display_py (ST7789): st7789py.ST7789 object
-    - font (module): bitmap font module
-    - beep (Beeper): beeper.Beeper object
     - per_page (int): menu items per page
     - y_padding (int): y padding on first menu item
-    - esc_callback (callable): callback for handling escape from menu screen
+    - esc_callback (callable|None): callback for handling escape from menu screen
+    - i18n (I18n|None): I18n object for translating menu items
     """
     def __init__(self,
                  per_page:int = _PER_PAGE,
@@ -139,21 +136,14 @@ class Menu:
         for i in visible_range:
             y = self.y_padding + anim_y + (i - self.setting_screen_index) * _FONT_HEIGHT
             if i <= len(self.items) - 1:
-                if i == self.cursor_index:
-                    self.items[i].selected = 1
-                    self.items[i].y_pos = y
-                    self.items[i].draw()
-                else:
-                    self.items[i].selected = 0
-                    self.items[i].y_pos = y
-                    self.items[i].draw()
+                self.items[i].selected = i == self.cursor_index
+                self.items[i].y_pos = y
+                self.items[i].draw()
+
         self.update_scroll_bar()
         
         # return true/false based on if animation is finished
-        if anim_y == 0:
-            return False
-        else:
-            return True
+        return False if anim_y == 0 else True
 
 
     def update_scroll_bar(self):
@@ -182,16 +172,16 @@ class Menu:
             play_sound(("G3","B3"), time_ms=30)
             return True
 
-        elif key == 'DOWN':
+        if key == 'DOWN':
             self.cursor_index = (self.cursor_index + 1) % len(self.items)
             play_sound(("B3","D3"), time_ms=30)
             return True
 
-        elif key == 'G0' or key == 'ENT':
+        if key == 'G0' or key == 'ENT':
             play_sound(("G3","B3","D3"), time_ms=30)
             return (self.items[self.cursor_index].handle_input("G0"))
 
-        elif key == "ESC":
+        if key == "ESC":
             # pass control back when menu is backed out of.
             if self.esc_callback:
                 play_sound((("C3","E3","D3"),"D4","C4"), time_ms=100)
@@ -206,13 +196,6 @@ class Menu:
 # -----------------------------------------------------------------------------------------------------------
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Menu Items: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # -----------------------------------------------------------------------------------------------------------
-# right text
-_RIGHT_TEXT_Y = const((_FONT_HEIGHT-_SMALL_FONT_HEIGHT) // 2)
-_RIGHT_TEXT_X_OFFSET = const(40)
-_RIGHT_TEXT_X = const(_MH_DISPLAY_WIDTH - _RIGHT_TEXT_X_OFFSET)
-# left text
-_LEFT_TEXT_SELECTED_X = const(-4)
-_LEFT_TEXT_UNSELECTED_X = const(10)
 
 class MenuItem:
     """
@@ -276,6 +259,11 @@ class MenuItem:
         """Translate window title for menu items"""
         return PopUpWin(self.text if self.i18n is None else self.i18n[self.text])
 
+    def _callback(self, callback):
+        """Call given callback (if it exists)"""
+        if callback:
+            callback(self, self.value)
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Bool Item ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 class BoolItem(MenuItem):
@@ -294,9 +282,8 @@ class BoolItem(MenuItem):
 
     def handle_input(self, key):
         self.value = not self.value
-        #self.draw()
-        if self.callback != None:
-            self.callback(self, self.value)
+
+        self._callback(self.callback)
 
         return True
 
@@ -359,6 +346,9 @@ class RGBItem(MenuItem):
     def __repr__(self):
         return f"{self.value[0]},{self.value[1]},{self.value[2]}"
 
+    def _callback(self, callback):
+        if callback:
+            callback(self, color.combine_color565(self.value[0],self.value[1],self.value[2]))
 
     def handle_input(self, key):
         _MAX_RANGE = const((32, 64, 32))
@@ -385,25 +375,22 @@ class RGBItem(MenuItem):
             play_sound("D3", time_ms=30)
             self.value[self.cursor_index] += 1
             self.value[self.cursor_index] %= _MAX_RANGE[self.cursor_index]
-            if self.instant_callback:
-                self.instant_callback(self, color.combine_color565(self.value[0],self.value[1],self.value[2]))
+            self._callback(self.instant_callback)
             input_accepted = True
                 
         elif (key == "DOWN"):
             play_sound("C3", time_ms=30)
             self.value[self.cursor_index] -= 1
             self.value[self.cursor_index] %= _MAX_RANGE[self.cursor_index]
-            if self.instant_callback:
-                self.instant_callback(self, color.combine_color565(self.value[0],self.value[1],self.value[2]))
+            self._callback(self.instant_callback)
             input_accepted = True
 
         elif (key == "G0" or key == "ENT") and self.in_item:
             play_sound(("F3","A3","C4"), time_ms=30)
             self.menu.in_submenu = False
             self.in_item = False
-            #self.menu.draw()
-            if self.callback != None:
-                self.callback(self, color.combine_color565(self.value[0],self.value[1],self.value[2]))
+
+            self._callback(self.callback)
             return True
 
         elif key == "ESC" and self.in_item:
@@ -411,8 +398,7 @@ class RGBItem(MenuItem):
             play_sound(("A3","F3","C3"), time_ms=30)
             self.menu.in_submenu = False
             self.in_item = False
-            if self.instant_callback:
-                self.instant_callback(self, color.combine_color565(self.value[0],self.value[1],self.value[2]))
+            self._callback(self.instant_callback)
             return True
 
         self.in_item = True
@@ -485,16 +471,14 @@ class IntItem(MenuItem):
             self.value += 1
             if self.value > self.max_int:
                 self.value = self.min_int
-            if self.instant_callback:
-                self.instant_callback(self, self.value)
+            self._callback(self.instant_callback)
             play_sound("G3", time_ms=30)
                 
         elif (key == "DOWN"):
             self.value -= 1
             if self.value < self.min_int:
                 self.value = self.max_int
-            if self.instant_callback:
-                self.instant_callback(self, self.value)
+            self._callback(self.instant_callback)
             play_sound("E3", time_ms=30)
                 
         elif (key == "G0" or key == "ENT") and self.in_item:
@@ -502,8 +486,7 @@ class IntItem(MenuItem):
             self.menu.in_submenu = False
             self.in_item = False
             self.menu.draw()
-            if self.callback != None:
-                self.callback(self, self.value)
+            self._callback(self.callback)
             return
         
         elif key == "ESC" and self.in_item:
@@ -512,8 +495,7 @@ class IntItem(MenuItem):
             self.menu.in_submenu = False
             self.in_item = False
             self.menu.draw()
-            if self.instant_callback:
-                self.instant_callback(self, self.value)
+            self._callback(self.instant_callback)
             return
             
         self.in_item = True
@@ -577,8 +559,7 @@ class WriteItem(MenuItem):
             self.menu.in_submenu = False
             self.in_item = False
             self.menu.draw()
-            if self.callback != None:
-                self.callback(self, self.value)
+            self._callback(self.callback)
             return
         
         elif key == "ESC" and self.in_item:
@@ -603,6 +584,105 @@ class WriteItem(MenuItem):
             
         self.in_item = True
         self.draw_win()
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Choice Item ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+_DISPLAY_HEIGHT_HALF = const(_MH_DISPLAY_HEIGHT // 2)
+_CHOICE_ARROW_UP = const(_DISPLAY_HEIGHT_HALF - 14)
+_CHOICE_ARROW_DOWN = const(_DISPLAY_HEIGHT_HALF + 48)
+
+class ChoiceItem(MenuItem):
+    """Item for creating multiple choice options"""
+    def __init__(
+        self,
+        menu:Menu,
+        text:str,
+        value:str,
+        choices:list|tuple,
+        selected:bool=False,
+        callback:callable|None=None,
+        instant_callback:callable|None=None,
+        **kwargs):
+        
+        self.in_item = False
+        self.choices = choices
+
+        self.idx = choices.index(value)
+        
+        super().__init__(menu=menu, text=text, value=value, selected=selected, callback=callback, instant_callback=instant_callback)
+
+
+    def _move_choice(self, add):
+        self.idx = (self.idx + add) % len(self.choices)
+        self.value = self.choices[self.idx]
+        if self.instant_callback:
+            self.instant_callback(self, self.value)
+
+
+    def handle_input(self, key):
+        self.menu.in_submenu = True
+
+        if not self.in_item:
+            # remember original value
+            self.init_value = self.value
+
+        # convert extra keys into navigation keys
+        # (e.g. (",", ".", "/", ";") -> arrow keys on Cardputer)
+        key = UserInput.ext_dir_dict.get(key, key)
+
+        if (key == "UP"):
+            self._move_choice(-1)
+            play_sound("B4", time_ms=30)
+
+        elif (key == "DOWN"):
+            self._move_choice(1)
+            play_sound("A4", time_ms=30)
+
+
+        elif (key == "G0" or key == "ENT") and self.in_item:
+            play_sound(("A3","B3","C4"), time_ms=30)
+            self.menu.in_submenu = False
+            self.in_item = False
+            self.menu.draw()
+            if self.callback:
+                self.callback(self, self.value)
+            return
+        
+        elif key == "ESC" and self.in_item:
+            self.value = self.init_value # reset value
+            self.idx = self.choices.index(self.value)
+            play_sound(("C4","B3","A3"), time_ms=20)
+            self.menu.in_submenu = False
+            self.in_item = False
+            self.menu.draw()
+            if self.instant_callback:
+                self.instant_callback(self, self.value)
+            return
+            
+        self.in_item = True
+        self.draw_win()
+
+
+    def draw_win(self):
+        win = self.trans_popupwin()
+        win.draw()
+        draw_small_arrow(_DISPLAY_WIDTH_CENTER, _CHOICE_ARROW_UP, CONFIG.palette[5])
+        draw_small_arrow(_DISPLAY_WIDTH_CENTER, _CHOICE_ARROW_DOWN, CONFIG.palette[5], direction=-1)
+        largest_width = len(max(self.choices, key=len))
+        box_w = largest_width * 8 + 8
+        box_x = _DISPLAY_WIDTH_CENTER - (box_w // 2)
+
+        for i in range(3):
+            idx = (self.idx - 1 + i) % len(self.choices)
+            DISPLAY.rect(box_x, _DISPLAY_HEIGHT_HALF - 2 + (i * 13), box_w, 12, CONFIG.palette[5], fill=True)
+            draw_centered_text(
+                str(self.choices[idx]),
+                _DISPLAY_WIDTH_CENTER,
+                _DISPLAY_HEIGHT_HALF + (i * 13),
+                CONFIG.palette[9 if i == 1 else 7],
+                )
+
 
 
 # ____________________________________________________________________________________________________________
@@ -697,15 +777,47 @@ def get_text_center(text:str):
     return (center)
 
 
-def draw_left_text(text:str, y_pos:int, selected):
-    if selected:
-        DISPLAY.text(text, _LEFT_TEXT_UNSELECTED_X, y_pos, CONFIG.palette[1], font=font)
-        DISPLAY.text('>'+text, _LEFT_TEXT_SELECTED_X, y_pos, CONFIG.palette[9], font=font)
-    else:
-        DISPLAY.text(text, _LEFT_TEXT_UNSELECTED_X, y_pos, CONFIG.palette[6], font=font)
+def get_text_width(text) -> int:
+    width = 0
+    for char in text:
+        width += 16 if ord(char) < 128 else 32
+    return width
 
+
+# left text
+_LEFT_TEXT_UNSELECTED_X = const(10)
+_LEFT_TEXT_TINY_X = const(14)
+_LEFT_TEXT_ARROW_X = const(-4)
+_MAX_LEFT_SIZE = const((_MH_DISPLAY_WIDTH * 2)  // 3)
+
+def draw_left_text(text:str, y_pos:int, selected):
+    if get_text_width(text) < _MAX_LEFT_SIZE:
+        fnt = font
+        x = _LEFT_TEXT_UNSELECTED_X
+        y = y_pos
+    else:
+        fnt = None
+        x = _LEFT_TEXT_TINY_X
+        y = y_pos + 12
+
+    if selected:
+        DISPLAY.text(">", _LEFT_TEXT_ARROW_X, y_pos, CONFIG.palette[8], font=font)
+        DISPLAY.text(text, x-2, y, CONFIG.palette[1], font=fnt)
+        DISPLAY.text(text, x, y, CONFIG.palette[9], font=fnt)
+    else:
+        DISPLAY.text(text, x, y, CONFIG.palette[6], font=fnt)
+
+
+# right text
+_RIGHT_TEXT_Y = const((_FONT_HEIGHT-_SMALL_FONT_HEIGHT) // 2)
+_RIGHT_TEXT_X_OFFSET = const(40)
+_RIGHT_TEXT_X = const(_MH_DISPLAY_WIDTH - _RIGHT_TEXT_X_OFFSET)
+_MAX_RIGHT_LEN = const(((_MH_DISPLAY_WIDTH * 1)  // 3) // 8)
 
 def draw_right_text(text:str, y_pos:int, selected=False):
+    if len(text) > _MAX_RIGHT_LEN:
+        text = f"{text[:_MAX_RIGHT_LEN-3]}..."
+
     x = _RIGHT_TEXT_X - (len(text) * _SMALL_FONT_WIDTH_HALF)
     
     if len(text) * _SMALL_FONT_WIDTH_HALF > 80:
