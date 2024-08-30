@@ -921,7 +921,8 @@ class ST7789:
                     ysize = scale_idx // scale
 
                     target_px = ((target_y + ysize) * self_width) + target_x + xsize
-                    if 0 <= target_px < total_px:
+                    if 0 <= (target_x + xsize) < self_width \
+                    and 0 <= (target_y + ysize) < self_height:
                         if use_tiny_fbuf:
                             # pack 4 bits into 8 bit ptr
                             target_idx = target_px // 2
