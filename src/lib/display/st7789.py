@@ -324,7 +324,10 @@ class ST7789:
         if backlight is not None:
             backlight.value(1)
         
-        self.utf8_font = open("/font/utf8_8x8.bin", "rb", buffering = 0)
+        try:
+            self.utf8_font = open("/font/utf8_8x8.bin", "rb", buffering = 0)
+        except:
+            self.utf8_font = None
 
 
     @staticmethod
@@ -803,6 +806,7 @@ class ST7789:
         self_height = int(self.height)
 
         utf8_scale = height // 8
+        utf8_exists = bool(self.utf8_font)
         
         # early return for text off screen
         if y >= self_height or (y + height) < 0:
@@ -857,9 +861,11 @@ class ST7789:
                     
                     px_idx += 1
                 x += width
-            else:
+            elif utf8_exists:
                 # try drawing with utf8 instead
                 x += int(self.utf8_putc(ch_idx, x, y, color, utf8_scale))
+            else:
+                x += width
             
             # early return for text off screen
             if x >= self_width:
@@ -915,7 +921,8 @@ class ST7789:
                     ysize = scale_idx // scale
 
                     target_px = ((target_y + ysize) * self_width) + target_x + xsize
-                    if 0 <= target_px < total_px:
+                    if 0 <= (target_x + xsize) < self_width \
+                    and 0 <= (target_y + ysize) < self_height:
                         if use_tiny_fbuf:
                             # pack 4 bits into 8 bit ptr
                             target_idx = target_px // 2
@@ -972,7 +979,10 @@ class ST7789:
             self._bitmap_text(font, text, x, y, color)
         else:
             self._set_show_min(y, y + 8)
-            self._utf8_text(text, x, y, color)
+            if self.utf8_font:
+                self._utf8_text(text, x, y, color)
+            else:
+                self.fbuf.text(text, x, y, color)
 
 
     def bitmap(self, bitmap, x, y, index=0, key=-1, palette=None):
