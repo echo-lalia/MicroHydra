@@ -5,10 +5,11 @@
 <br/>
 
 ## Multiplatform support
-MicroHydra uses a few different ideas in order to output code for multiple devices. You can learn about this [here](https://github.com/echo-lalia/MicroHydra/wiki/multi-platform), and you can learn about the supported devices [here](https://github.com/echo-lalia/MicroHydra/wiki/multi-platform)
+MicroHydra uses a few different ideas in order to output code for multiple devices. You can learn about this [here](https://github.com/echo-lalia/MicroHydra/wiki/multi-platform).  
+You can also learn more about the supported devices [here](https://github.com/echo-lalia/MicroHydra/wiki/Supported-Devices).
 
 ## Making Apps 
-For a basic overview of how MicroHydra apps work, see the [App Format](https://github.com/echo-lalia/MicroHydra/wiki/Supported-Devices) section.
+For a basic overview of how MicroHydra apps work, see the [App Format](https://github.com/echo-lalia/MicroHydra/wiki/App-Format) section.
 
 <br/>
 
