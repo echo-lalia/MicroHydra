@@ -46,7 +46,6 @@ MicroHydra includes a built-in library, intended to help you easily make apps. C
 │ &nbsp; &nbsp; &nbsp; ├── [userinput](https://github.com/echo-lalia/MicroHydra/wiki/userinput)  
 │ &nbsp; &nbsp; &nbsp; ├── battlevel  
 │ &nbsp; &nbsp; &nbsp; ├── [device](https://github.com/echo-lalia/MicroHydra/wiki/Device)  
-│ &nbsp; &nbsp; &nbsp; ├── kanji  
 │ &nbsp; &nbsp; &nbsp; └── sdcard  
 │  
 └── main
