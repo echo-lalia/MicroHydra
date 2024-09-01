@@ -41,12 +41,15 @@ MicroHydra includes a built-in library, intended to help you easily make apps. C
 │ &nbsp; &nbsp; &nbsp; │ &nbsp; &nbsp; &nbsp; ├── [beeper](https://github.com/echo-lalia/MicroHydra/wiki/Playing-Sound#beeper)  
 │ &nbsp; &nbsp; &nbsp; │ &nbsp; &nbsp; &nbsp; ├── [color](https://github.com/echo-lalia/MicroHydra/wiki/color)  
 │ &nbsp; &nbsp; &nbsp; │ &nbsp; &nbsp; &nbsp; ├── [config](https://github.com/echo-lalia/MicroHydra/wiki/Accessing-config-files)  
+│ &nbsp; &nbsp; &nbsp; │ &nbsp; &nbsp; &nbsp; ├── i18n  
 │ &nbsp; &nbsp; &nbsp; │ &nbsp; &nbsp; &nbsp; ├── [menu](https://github.com/echo-lalia/MicroHydra/wiki/HydraMenu)  
-│ &nbsp; &nbsp; &nbsp; │ &nbsp; &nbsp; &nbsp; └── [popup](https://github.com/echo-lalia/MicroHydra/wiki/popup)  
+│ &nbsp; &nbsp; &nbsp; │ &nbsp; &nbsp; &nbsp; ├── [popup](https://github.com/echo-lalia/MicroHydra/wiki/popup)  
+│ &nbsp; &nbsp; &nbsp; │ &nbsp; &nbsp; &nbsp; └── simpleterminal  
 │ &nbsp; &nbsp; &nbsp; │  
 │ &nbsp; &nbsp; &nbsp; ├── [userinput](https://github.com/echo-lalia/MicroHydra/wiki/userinput)  
 │ &nbsp; &nbsp; &nbsp; ├── battlevel  
 │ &nbsp; &nbsp; &nbsp; ├── [device](https://github.com/echo-lalia/MicroHydra/wiki/Device)  
-│ &nbsp; &nbsp; &nbsp; └── sdcard  
+│ &nbsp; &nbsp; &nbsp; ├── sdcard  
+│ &nbsp; &nbsp; &nbsp; └── zipextractor  
 │  
 └── main
