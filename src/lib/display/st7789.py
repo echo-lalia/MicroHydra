@@ -60,6 +60,11 @@ This driver supports:
 from .palette import Palette
 import framebuf, struct
 from time import sleep_ms
+# mh_if frozen:
+# # frozen firmware must access the font as a module, 
+# # rather than a binary file.
+# from font.utf8_8x8 import utf8
+# mh_end_if
 
 
 
@@ -324,10 +329,10 @@ class ST7789:
         if backlight is not None:
             backlight.value(1)
         
-        try:
-            self.utf8_font = open("/font/utf8_8x8.bin", "rb", buffering = 0)
-        except:
-            self.utf8_font = None
+        # mh_if not frozen:
+        # when not frozen, the utf8 font is read as needed from a binary.
+        self.utf8_font = open("/font/utf8_8x8.bin", "rb", buffering = 0)
+        # mh_end_if
 
 
     @staticmethod
@@ -861,12 +866,10 @@ class ST7789:
                     
                     px_idx += 1
                 x += width
-            elif utf8_exists:
+            else:
                 # try drawing with utf8 instead
                 x += int(self.utf8_putc(ch_idx, x, y, color, utf8_scale))
-            else:
-                x += width
-            
+
             # early return for text off screen
             if x >= self_width:
                 return
@@ -889,12 +892,19 @@ class ST7789:
         self_height = int(self.height)
         total_px = self_width * self_height
 
+        # mh_if frozen:
+        # # Read the font data directly from the memoryview
+        # cur = ptr8(
+        #     utf8[(char * 8) : (char * 8 + width * height)]
+        #     )
 
+        # mh_else:
         # Calculate the offset in the binary file
         self.utf8_font.seek(char * 8)
-
         # Read the 8 bytes
         cur = ptr8(self.utf8_font.read(8))
+        
+        # mh_end_if
 
         # y axis is inverted - we start from bottom not top
         y += (height - 1) * scale - 1
@@ -979,10 +989,7 @@ class ST7789:
             self._bitmap_text(font, text, x, y, color)
         else:
             self._set_show_min(y, y + 8)
-            if self.utf8_font:
-                self._utf8_text(text, x, y, color)
-            else:
-                self.fbuf.text(text, x, y, color)
+            self._utf8_text(text, x, y, color)
 
 
     def bitmap(self, bitmap, x, y, index=0, key=-1, palette=None):
