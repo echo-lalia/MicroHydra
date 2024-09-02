@@ -890,20 +890,17 @@ class ST7789:
         fbuf8 = ptr8(self.fbuf)
         self_width = int(self.width)
         self_height = int(self.height)
-        total_px = self_width * self_height
+
+        # calculate the offset in the binary data
+        offset = char * 8
 
         # mh_if frozen:
         # # Read the font data directly from the memoryview
-        # cur = ptr8(
-        #     utf8[(char * 8) : (char * 8 + width * height)]
-        #     )
-
+        # cur = ptr8(utf8)
         # mh_else:
-        # Calculate the offset in the binary file
-        self.utf8_font.seek(char * 8)
-        # Read the 8 bytes
+        # seek to offset and read 8 bytes
+        self.utf8_font.seek(offset)
         cur = ptr8(self.utf8_font.read(8))
-        
         # mh_end_if
 
         # y axis is inverted - we start from bottom not top
@@ -913,11 +910,15 @@ class ST7789:
         px_idx = 0
         max_px_idx = width * height
         while px_idx < max_px_idx:
-            # which byte to fetch from the ptr8
+            # which byte to fetch from the ptr8,
+            # and how far to shift (to get 1 bit)
             ptr_idx = px_idx // 8
-            # how far to shift the byte
             shft_idx = px_idx % 8
-            
+            # mh_if frozen:
+            # # if reading from memoryview, add offset now
+            # ptr_idx += offset
+            # mh_end_if
+
             # calculate x/y position from pixel index
             target_x = x + ((px_idx % width) * scale)
             target_y = y - ((px_idx // width) * scale)
