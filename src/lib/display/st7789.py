@@ -60,6 +60,11 @@ This driver supports:
 from .palette import Palette
 import framebuf, struct
 from time import sleep_ms
+# mh_if frozen:
+# # frozen firmware must access the font as a module, 
+# # rather than a binary file.
+# from font.utf8_8x8 import utf8
+# mh_end_if
 
 
 
@@ -324,10 +329,10 @@ class ST7789:
         if backlight is not None:
             backlight.value(1)
         
-        try:
-            self.utf8_font = open("/font/utf8_8x8.bin", "rb", buffering = 0)
-        except:
-            self.utf8_font = None
+        # mh_if not frozen:
+        # when not frozen, the utf8 font is read as needed from a binary.
+        self.utf8_font = open("/font/utf8_8x8.bin", "rb", buffering = 0)
+        # mh_end_if
 
 
     @staticmethod
@@ -806,7 +811,6 @@ class ST7789:
         self_height = int(self.height)
 
         utf8_scale = height // 8
-        utf8_exists = bool(self.utf8_font)
         
         # early return for text off screen
         if y >= self_height or (y + height) < 0:
@@ -861,12 +865,10 @@ class ST7789:
                     
                     px_idx += 1
                 x += width
-            elif utf8_exists:
+            else:
                 # try drawing with utf8 instead
                 x += int(self.utf8_putc(ch_idx, x, y, color, utf8_scale))
-            else:
-                x += width
-            
+
             # early return for text off screen
             if x >= self_width:
                 return
@@ -887,14 +889,18 @@ class ST7789:
         fbuf8 = ptr8(self.fbuf)
         self_width = int(self.width)
         self_height = int(self.height)
-        total_px = self_width * self_height
 
+        # calculate the offset in the binary data
+        offset = char * 8
 
-        # Calculate the offset in the binary file
-        self.utf8_font.seek(char * 8)
-
-        # Read the 8 bytes
+        # mh_if frozen:
+        # # Read the font data directly from the memoryview
+        # cur = ptr8(utf8)
+        # mh_else:
+        # seek to offset and read 8 bytes
+        self.utf8_font.seek(offset)
         cur = ptr8(self.utf8_font.read(8))
+        # mh_end_if
 
         # y axis is inverted - we start from bottom not top
         y += (height - 1) * scale - 1
@@ -903,11 +909,15 @@ class ST7789:
         px_idx = 0
         max_px_idx = width * height
         while px_idx < max_px_idx:
-            # which byte to fetch from the ptr8
+            # which byte to fetch from the ptr8,
+            # and how far to shift (to get 1 bit)
             ptr_idx = px_idx // 8
-            # how far to shift the byte
             shft_idx = px_idx % 8
-            
+            # mh_if frozen:
+            # # if reading from memoryview, add offset now
+            # ptr_idx += offset
+            # mh_end_if
+
             # calculate x/y position from pixel index
             target_x = x + ((px_idx % width) * scale)
             target_y = y - ((px_idx // width) * scale)
@@ -979,10 +989,7 @@ class ST7789:
             self._bitmap_text(font, text, x, y, color)
         else:
             self._set_show_min(y, y + 8)
-            if self.utf8_font:
-                self._utf8_text(text, x, y, color)
-            else:
-                self.fbuf.text(text, x, y, color)
+            self._utf8_text(text, x, y, color)
 
 
     def bitmap(self, bitmap, x, y, index=0, key=-1, palette=None):
