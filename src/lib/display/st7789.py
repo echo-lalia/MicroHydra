@@ -811,7 +811,6 @@ class ST7789:
         self_height = int(self.height)
 
         utf8_scale = height // 8
-        utf8_exists = bool(self.utf8_font)
         
         # early return for text off screen
         if y >= self_height or (y + height) < 0:
