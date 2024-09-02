@@ -22,10 +22,10 @@ Hydra Conditionals:
   based on a given feature.
 - Can also be used to match a device name, or whether or not a module is "frozen".
 - Follow this syntax: `# mh_if {feature}:` or `# mh_if not {feature}:`
-- elif supported using `# mh_else_if {feature}:`
-- Are closed with this syntax: `# mh_end_if`
-- If the entire conditional is commented out, 
-  automatically uncomments it (for easier development/testing)
+- "else"/"elif" supported using `# mh_else_if {feature}:` or `# mh_else:`
+- Are closed with this phrase: `# mh_end_if`
+- If the conditional passes and is commented out, uncomments it.
+- If the conditional fails and is not commented out, it comments it out.
 - Can be nested, but this is discouraged 
   (It's hard to read because Python indentation must be maintained)
 Example:
@@ -38,7 +38,11 @@ print("this device has a touchscreen!")
 ```
 On CARDPUTER this becomes:
 ```
+# mh_if touchscreen:
+# print("this device has a touchscreen!")
+# mh_else:
 print("this device has no touchscreen!")
+# mh_end_if
 ```
 """
 
@@ -606,6 +610,27 @@ class FileParser:
         Find and process a single Hydra conditional.
         Returns False if no conditional found,
         Returns True if conditional is processed. 
+
+        The logic used by this method (and its helper methods):
+        - Search for an "mh_if" statement, extract the named feature
+
+        - Compare the feature to the device features, 
+          invert the result if the "not" keyword is also present.
+
+        - Find the matching "mh_end_if" by scanning each line.
+
+        - If this conditional passes, uncomment the lines,
+          or comment them out if it doesn't
+
+        - Conditional lines we've seen are marked with noncharacters 
+          so we remember to ignore them on the next cycle.
+
+        - "mh_else" / "mh_else_if" statements are converted into normal "if" statements.
+          The original text is preserved by appending the original line to the modified line,
+          delimited with a noncharacter.
+        
+        - Once there are no conditionals remaining restore the converted else/elif lines,
+          and remove all added noncharacters.
         """
         # search for the start and end of one conditional
         cond_start_idx = None
@@ -662,13 +687,6 @@ class FileParser:
         self.lines[cond_start_idx] += CONDITIONAL_PARSED_FLAG
 
         if keep_section:
-            # remove only if and endif
-            # self.lines.pop(cond_start_idx)
-            # # now lines is 1 shorter:
-            # cond_end_idx -= 1
-            
-            
-
             # expand else/elif statement, or just remove a normal "end if"
             conditional_else = self._is_conditional_else(self.lines[cond_end_idx])
             if conditional_else:
@@ -683,16 +701,13 @@ class FileParser:
         else:
             # comment out entire section
             # but if the final line is an elif, just reformat it
-
             conditional_else = self._is_conditional_else(self.lines[cond_end_idx])
             if conditional_else:
                 self._handle_expand_else(cond_end_idx, feature, has_not, conditional_else)
-                # cond_end_idx -= 1
             else:
                 self.lines[cond_end_idx] += CONDITIONAL_PARSED_FLAG
 
             self._comment_out_conditional(cond_start_idx + 1, cond_end_idx - 1)
-            # self.lines = self.lines[:cond_start_idx] + self.lines[cond_end_idx + 1:]
 
         return True
 
