@@ -108,6 +108,14 @@ DONT_INCLUDE_IF_FROZEN = [
 ]
 
 
+
+# Designate unicode "noncharacter" as representation of completed mh conditional
+# 1-byte noncharacters = U+FDD0..U+FDEF, choosing from these arbitrarily.
+CONDITIONAL_PARSED_FLAG = chr(0xFDD1)
+CONDITIONAL_PARSED_ORIGINAL_DELIMITER = chr(0xFDD2)
+CONDITIONAL_PARSED_TEMP_FLAG = chr(0xFDD3)
+
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main():
     """
@@ -382,6 +390,10 @@ class FileParser:
     @staticmethod
     def _is_hydra_conditional(line:str) -> bool:
         """Check if line contains a hydra conditional statement."""
+        # early return for marked lines
+        if CONDITIONAL_PARSED_FLAG in line:
+            return False
+        
         if "#" in line \
         and "mh_if" in line \
         and ":" in line:
@@ -400,6 +412,10 @@ class FileParser:
     @staticmethod
     def _is_conditional_else(line:str) -> bool|str:
         """Check if line is an else OR elif statement."""
+        # early return for marked lines
+        if CONDITIONAL_PARSED_FLAG in line:
+            return False
+
         if "#" in line and "mh_else" in line:
             found_comment = False
             while line:
@@ -420,6 +436,10 @@ class FileParser:
         """Check if line contains a conditional end. 
         (Includes else/elif by default!)
         """
+        # early return for marked lines
+        if CONDITIONAL_PARSED_FLAG in line:
+            return False
+
         if "#" in line and ("mh_end_if" in line or ("mh_else" in line and includes_else)):
             found_comment = False
             while line:
@@ -442,9 +462,7 @@ class FileParser:
             # ignore blank lines!
             if not (line == "" or line.isspace()):
                 # remove leading spaces to look for '#'
-                while line and line[0].isspace():
-                    line = line[1:]
-                if not line.startswith('#'): 
+                if not line.strip().startswith('#'): 
                     return
         
         # check if comment has "# " or "#"
@@ -478,7 +496,75 @@ class FileParser:
                 # replace only a single comment in every line (to preserve actual comments)
                 self.lines[idx] = line.replace("# ", "", 1)
 
-    
+
+    def _comment_out_conditional(self, start_idx, end_idx):
+        """If a conditional is excluded and isn't already commented out, comment it out!"""
+        relevant_slice = self.lines[start_idx:end_idx + 1]
+
+        # check if any lines are not commented
+        any_uncommented = False
+        for line in relevant_slice:
+            # ignore blank lines!
+            if not (line == "" or line.isspace()):
+                # remove leading spaces to look for '#'
+                if not line.strip().startswith('#'): 
+                    any_uncommented = True
+                    break
+
+        # if all lines are commented, we shouldn't comment them again.
+        if not any_uncommented:
+            return
+
+        # find the length of the minimum indentation. This will be the place we insert "#"s
+        insert_idx = self._minimum_indentation(relevant_slice)
+        # track nested conditionals
+        condition_depth = 0
+        # assume we can actually remove all the comments, now
+        for i, line in enumerate(relevant_slice):
+
+            # track nested conditionals
+            if self._is_hydra_conditional(line):
+                condition_depth += 1
+            elif self._is_conditional_end(line, includes_else=False):
+                condition_depth -= 1
+
+            # if not inside a nested conditional, then remove the comments
+            if condition_depth <= 0:
+                # only add comments to non-empty (and non-space) lines
+                if line and not line.isspace():
+                    idx = i + start_idx
+                    # add comment after indentation (preserve formatting)
+                    # indentation, right_split = self._split_indentation(line)
+                    self.lines[idx] = line[:insert_idx] + "# " + line[insert_idx:]
+
+
+    @staticmethod
+    def _minimum_indentation(lines) -> int:
+        """Return the length of the shortest indentation from the given lines"""
+        indents = []
+        for line in lines:
+            # ignore blank or space lines
+            if line and not line.isspace():
+                indents.append(FileParser._split_indentation(line)[0])
+
+        min_line = min(indents, key=len)
+        return len(min_line)
+
+
+    @staticmethod
+    def _split_indentation(right_split) -> tuple:
+        """
+        Split all space before characters, and the rest of the string.
+        Returns (left_split:str, right_split:str)
+        """
+        left_split = ""
+        while right_split and right_split[0].isspace():
+            left_split += right_split[0]
+            right_split = right_split[1:]
+        
+        return left_split, right_split
+
+
     @staticmethod
     def slice_str_to_char(string:str, stop_char:str) -> str:
         """Slice a given string from 0 to the given character (not inclusive)."""
@@ -510,7 +596,8 @@ class FileParser:
         new_line = self.slice_str_to_char(target_line, "#")
         not_str = " not" if has_not else ""
         new_line = f"{new_line}# mh_if{not_str} {feature}:\n"
-        self.lines[index] = new_line
+        # store original line alongside modified line for formatting preservation
+        self.lines[index] = new_line + CONDITIONAL_PARSED_ORIGINAL_DELIMITER + self.lines[index]
 
 
     
@@ -548,18 +635,19 @@ class FileParser:
         if cond_start_idx is None or cond_end_idx is None:
             return False
         
-        # as in, has the "not" keyword
-        has_not = False
+        # Remove stored "original data" if present
+        cond_line, *og_line = cond_line.split(CONDITIONAL_PARSED_ORIGINAL_DELIMITER)
+        og_line = ''.join(og_line)
+
+        # get feature string
         *conditional, feature = cond_line.replace(":", "", 1).split()
+        # as in, has the "not" keyword
         if conditional[-1] == "not":
             has_not = True
+        else:
+            has_not = False
 
-        # keep_section = False
-        # if feature == "frozen" and frozen:
-        #     keep_section = True
-        # elif feature in device.features:
-        #     keep_section = True
-        
+
         if (feature == "frozen" and frozen) \
         or feature in device.features \
         or feature == device.name:
@@ -570,34 +658,41 @@ class FileParser:
         if has_not:
             keep_section = not keep_section
 
+        # mark this conditional completed
+        self.lines[cond_start_idx] += CONDITIONAL_PARSED_FLAG
+
         if keep_section:
             # remove only if and endif
-            self.lines.pop(cond_start_idx)
-            # now lines is 1 shorter:
-            cond_end_idx -= 1
+            # self.lines.pop(cond_start_idx)
+            # # now lines is 1 shorter:
+            # cond_end_idx -= 1
+            
+            
 
             # expand else/elif statement, or just remove a normal "end if"
             conditional_else = self._is_conditional_else(self.lines[cond_end_idx])
             if conditional_else:
                 self._handle_expand_else(cond_end_idx, feature, has_not, conditional_else)
             else:
-                self.lines.pop(cond_end_idx)
-            # and it's shorter again
-            cond_end_idx -= 1
+                # mark normal mh_end_if as completed
+                self.lines[cond_end_idx] += CONDITIONAL_PARSED_FLAG
 
             # check if all kept lines are commented out. We can uncomment them if they are.
-            self._uncomment_conditional(cond_start_idx, cond_end_idx)
+            self._uncomment_conditional(cond_start_idx + 1, cond_end_idx - 1)
 
         else:
-            # remove entire section
+            # comment out entire section
             # but if the final line is an elif, just reformat it
 
             conditional_else = self._is_conditional_else(self.lines[cond_end_idx])
             if conditional_else:
                 self._handle_expand_else(cond_end_idx, feature, has_not, conditional_else)
-                cond_end_idx -= 1
-            
-            self.lines = self.lines[:cond_start_idx] + self.lines[cond_end_idx + 1:]
+                # cond_end_idx -= 1
+            else:
+                self.lines[cond_end_idx] += CONDITIONAL_PARSED_FLAG
+
+            self._comment_out_conditional(cond_start_idx + 1, cond_end_idx - 1)
+            # self.lines = self.lines[:cond_start_idx] + self.lines[cond_end_idx + 1:]
 
         return True
 
@@ -612,6 +707,12 @@ class FileParser:
         # returns true until all conditionals are gone.
         while self._process_one_conditional(device, frozen):
             conditionals += 1
+        
+        # clean noncharacter flags
+        self.lines = [line.replace(CONDITIONAL_PARSED_FLAG, "") for line in self.lines]
+        # restore original lines
+        self.lines = [line.split(CONDITIONAL_PARSED_ORIGINAL_DELIMITER)[-1] for line in self.lines]
+
         vprint(f"        {bcolors.OKBLUE}Parsed {conditionals} conditionals.{bcolors.ENDC}")
 
 
