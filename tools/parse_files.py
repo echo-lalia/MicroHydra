@@ -98,6 +98,15 @@ with open(os.path.join(DEVICE_PATH, 'default.yml'), 'r', encoding="utf-8") as de
 DEFAULT_CONSTANTS = default['constants']
 DEFAULT_FEATURES = default['features']
 
+# Only include these files in the "frozen" MicroHydra firmware
+ONLY_INCLUDE_IF_FROZEN = [
+    os.path.join(SOURCE_PATH, 'font', 'utf8_8x8.py')
+]
+# Only include these files in the non-frozen MicroHydra firmware
+DONT_INCLUDE_IF_FROZEN = [
+    os.path.join(SOURCE_PATH, 'font', 'utf8_8x8.bin')
+]
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main():
@@ -112,11 +121,17 @@ def main():
     all_file_data = []
     for dir_entry in os.scandir(SOURCE_PATH):
         all_file_data += extract_file_data(dir_entry, '')
+    
+    # include/exclude files based on frozen/non-frozen
+    if not FROZEN:
+        exclude_given_files(all_file_data, ONLY_INCLUDE_IF_FROZEN)
+    else:
+        exclude_given_files(all_file_data, DONT_INCLUDE_IF_FROZEN)
 
     # parse devices into list of Device objects
     devices = []
     for filepath in os.listdir(DEVICE_PATH):
-        if filepath != 'default.yml':
+        if filepath != 'default.yml': # TODO: why not only include directories?
             devices.append(Device(filepath))
 
     # print status information
@@ -675,6 +690,22 @@ def get_device_files(device):
     device_file_data = [x for x in device_file_data if is_in_dir(x[0], lib_path)]
 
     return device_file_data
+
+
+def exclude_given_files(file_list:list, exclude_list:list):
+    """
+    Remove files in given list that are defined in exclude_list
+    """
+
+    for filetuple in file_list:
+        dir_entry, _ = filetuple
+        
+        if any(os.path.samefile(dir_entry, frozen_file)
+        for frozen_file in exclude_list):
+            file_list.remove(filetuple)
+            
+
+            
 
 
 # run script
