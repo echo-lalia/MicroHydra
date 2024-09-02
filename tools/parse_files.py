@@ -98,7 +98,6 @@ with open(os.path.join(DEVICE_PATH, 'default.yml'), 'r', encoding="utf-8") as de
 DEFAULT_CONSTANTS = default['constants']
 DEFAULT_FEATURES = default['features']
 
-DONT_COPY_DEVICE_FILES = ('definition.yml', 'manifest.py', 'mpconfigboard.cmake')
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main():
@@ -633,6 +632,22 @@ def extract_file_data(dir_entry, path_dir):
         return output
     else:
         return [(dir_entry, path_dir)]
+    
+
+def is_in_dir(file, in_dir):
+    """Check if `file` path is inside of `in_dir`"""
+    # convert all to absolute paths to prevent them from becoming empty strings
+    in_dir = os.path.abspath(in_dir)
+    file = os.path.abspath(file)
+
+    # if the file is inside the given directory, 
+    # the last path segment they have in common should be the directory name. 
+    dir_base, dir_name = os.path.split(in_dir)
+
+    return os.path.relpath(
+        os.path.commonpath((file, in_dir)),
+        dir_base,
+        ) == dir_name
 
 
 def vprint(text):
@@ -650,13 +665,14 @@ def print_completed():
 def get_device_files(device):
     """Fetch the device-specific files for given device."""
     source_path = os.path.join(DEVICE_PATH, device.name)
-    device_file_data = []
+    lib_path = os.path.join(source_path, 'lib')
 
+    device_file_data = []
     for dir_entry in os.scandir(source_path):
         device_file_data += extract_file_data(dir_entry, '')
 
-    # remove banned device file names
-    device_file_data = [x for x in device_file_data if x[0].name not in DONT_COPY_DEVICE_FILES]
+    # we only need the files in `lib/`
+    device_file_data = [x for x in device_file_data if is_in_dir(x[0], lib_path)]
 
     return device_file_data
 
