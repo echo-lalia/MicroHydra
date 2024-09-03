@@ -979,7 +979,7 @@ class Editor:
 def main_loop():
     """Main loop of the program."""
 
-    global STR_COLOR, DARK_STR_COLOR, KEYWORD_COLOR, COMMENT_COLOR, DARK_COMMENT_COLOR, USE_TABS
+    global STR_COLOR, DARK_STR_COLOR, KEYWORD_COLOR, NUM_COLOR, OP_COLOR, COMMENT_COLOR, DARK_COMMENT_COLOR, USE_TABS
 
     DISPLAY.fill(CONFIG.palette[2])
     overlay = popup.UIOverlay()
@@ -991,11 +991,17 @@ def main_loop():
     if target_file == "":
         target_file = "/log.txt"
 
-    # remove syntax hilighting for plain txt files.
-    if target_file.endswith('.txt'):
-        STR_COLOR = CONFIG.palette[8]; DARK_STR_COLOR = CONFIG.palette[8]
+    # subtle syntax hilighting for non-py files.
+    if not target_file.endswith('.py'):
+        print('text file')
+        STR_COLOR = CONFIG.palette[7]
+        DARK_STR_COLOR = CONFIG.palette[6]
+        NUM_COLOR = CONFIG.palette[7]
+        OP_COLOR = CONFIG.palette[7]
+
         KEYWORD_COLOR = CONFIG.palette[8]
-        COMMENT_COLOR = CONFIG.palette[8]; DARK_COMMENT_COLOR = CONFIG.palette[8]
+        COMMENT_COLOR = CONFIG.palette[8]
+        DARK_COMMENT_COLOR = CONFIG.palette[6]
 
 
     try:
