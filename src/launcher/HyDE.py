@@ -238,7 +238,7 @@ def exit_options(target_file, overlay, editor):
 
 def boot_into_file(target_file, overlay):
     """Restart and load into target file."""
-    overlay.draw_textbox("Restarting...", _MH_DISPLAY_WIDTH//2, _MH_DISPLAY_HEIGHT//2)
+    overlay.draw_textbox("Restarting...")
     DISPLAY.show()
 
     RTC.memory(target_file)
@@ -248,7 +248,7 @@ def boot_into_file(target_file, overlay):
 def run_file_here(filepath, overlay, editor):
     """Try running the target file here"""
     editor.save_file(filepath)
-    overlay.draw_textbox("Running...", _MH_DISPLAY_WIDTH//2, _MH_DISPLAY_HEIGHT//2)
+    overlay.draw_textbox("Running...")
     DISPLAY.show()
     try:
         # you have to slice off the ".py" to avoid importerror
@@ -929,7 +929,7 @@ class Editor:
 
     def save_file(self, filepath):
         """Reverse temporary formatting and Save the file."""
-        self.overlay.draw_textbox("Saving...",_MH_DISPLAY_WIDTH//2,_MH_DISPLAY_HEIGHT//2)
+        self.overlay.draw_textbox("Saving...")
         DISPLAY.show()
         with open(filepath,"w") as file:
             for line in self.lines:
