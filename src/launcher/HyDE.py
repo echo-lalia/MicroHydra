@@ -238,7 +238,7 @@ def exit_options(target_file, overlay, editor):
 
 def boot_into_file(target_file, overlay):
     """Restart and load into target file."""
-    overlay.draw_textbox("Restarting...", _MH_DISPLAY_WIDTH//2, _MH_DISPLAY_HEIGHT//2)
+    overlay.draw_textbox("Restarting...")
     DISPLAY.show()
 
     RTC.memory(target_file)
@@ -248,7 +248,7 @@ def boot_into_file(target_file, overlay):
 def run_file_here(filepath, overlay, editor):
     """Try running the target file here"""
     editor.save_file(filepath)
-    overlay.draw_textbox("Running...", _MH_DISPLAY_WIDTH//2, _MH_DISPLAY_HEIGHT//2)
+    overlay.draw_textbox("Running...")
     DISPLAY.show()
     try:
         # you have to slice off the ".py" to avoid importerror
@@ -912,7 +912,13 @@ class Editor:
         return width
     
     def draw_cursor(self):
-        cursor_x = self.get_total_width(self.lines[self.cursor_index[1]][self.display_index[0]:self.cursor_index[0]+1]) + _LEFT_PADDING
+        line = format_display_line(
+            self.lines[self.cursor_index[1]][:self.cursor_index[0]]
+        )
+        cursor_x = self.get_total_width(line) \
+                   - (self.display_index[0] * 8) \
+                   + _LEFT_PADDING
+
         cursor_y = (_SMALL_FONT_HEIGHT * 3) + (self.cursor_index[1] - self.display_index[1] - 3) * _TEXT_HEIGHT
         if time.ticks_ms() % _CURSOR_BLINK_MS < _CURSOR_BLINK_HALF:
             DISPLAY.vline(cursor_x, cursor_y, 16, CONFIG.palette[9])
@@ -929,7 +935,7 @@ class Editor:
 
     def save_file(self, filepath):
         """Reverse temporary formatting and Save the file."""
-        self.overlay.draw_textbox("Saving...",_MH_DISPLAY_WIDTH//2,_MH_DISPLAY_HEIGHT//2)
+        self.overlay.draw_textbox("Saving...")
         DISPLAY.show()
         with open(filepath,"w") as file:
             for line in self.lines:
@@ -973,7 +979,7 @@ class Editor:
 def main_loop():
     """Main loop of the program."""
 
-    global STR_COLOR, DARK_STR_COLOR, KEYWORD_COLOR, COMMENT_COLOR, DARK_COMMENT_COLOR, USE_TABS
+    global STR_COLOR, DARK_STR_COLOR, KEYWORD_COLOR, NUM_COLOR, OP_COLOR, COMMENT_COLOR, DARK_COMMENT_COLOR, USE_TABS
 
     DISPLAY.fill(CONFIG.palette[2])
     overlay = popup.UIOverlay()
@@ -985,11 +991,17 @@ def main_loop():
     if target_file == "":
         target_file = "/log.txt"
 
-    # remove syntax hilighting for plain txt files.
-    if target_file.endswith('.txt'):
-        STR_COLOR = CONFIG.palette[8]; DARK_STR_COLOR = CONFIG.palette[8]
+    # subtle syntax hilighting for non-py files.
+    if not target_file.endswith('.py'):
+        print('text file')
+        STR_COLOR = CONFIG.palette[7]
+        DARK_STR_COLOR = CONFIG.palette[6]
+        NUM_COLOR = CONFIG.palette[7]
+        OP_COLOR = CONFIG.palette[7]
+
         KEYWORD_COLOR = CONFIG.palette[8]
-        COMMENT_COLOR = CONFIG.palette[8]; DARK_COMMENT_COLOR = CONFIG.palette[8]
+        COMMENT_COLOR = CONFIG.palette[8]
+        DARK_COMMENT_COLOR = CONFIG.palette[6]
 
 
     try:
