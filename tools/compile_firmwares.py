@@ -1,5 +1,5 @@
 """
-Script tries to setup esp-idf for building MicroPython.
+This script mainly calls another build script, for building MicroPython firmware.
 """
 
 import os

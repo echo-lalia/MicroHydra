@@ -828,4 +828,5 @@ def exclude_given_files(file_list:list, exclude_list:list):
 
 
 # run script
-main()
+if __name__ == "__main__":
+    main()

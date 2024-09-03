@@ -7,6 +7,7 @@ import yaml
 import argparse
 import subprocess
 import shutil
+from parse_files import NON_DEVICE_FILES
 
 
 # argparser stuff:
@@ -19,20 +20,24 @@ Copy device files to MicroPython boards folder.
 
 PARSER.add_argument('-d', '--dest', help='Path to MicroPython boards folder.')
 PARSER.add_argument('-D', '--devices', help='Path to device definition folder.')
+PARSER.add_argument('-M', '--micropython', help='Path to MicroPython source.')
 PARSER.add_argument('-v', '--verbose', action='store_true')
 SCRIPT_ARGS = PARSER.parse_args()
 
 DEST_PATH = SCRIPT_ARGS.dest
 DEVICE_PATH = SCRIPT_ARGS.devices
 VERBOSE = SCRIPT_ARGS.verbose
+MP_PATH = SCRIPT_ARGS.micropython
 
 
 # set defaults for args not given:
 CWD = os.getcwd()
 OG_DIRECTORY = CWD
 
+if MP_PATH is None:
+    MP_PATH = os.path.join(CWD, 'MicroPython')
 if DEST_PATH is None:
-    DEST_PATH = os.path.join(CWD, 'MicroPython', 'ports', 'esp32', 'boards')
+    DEST_PATH = os.path.join(MP_PATH, 'ports', 'esp32', 'boards')
 if DEVICE_PATH is None:
     DEVICE_PATH = os.path.join(CWD, 'devices')
 
@@ -45,10 +50,15 @@ def main():
     and all of the functions/classes used here are defined below.
     """
 
+    # start by copying over custom MicroHydra build files
+    custom_build_path = os.path.join(DEVICE_PATH, 'esp32_mpy_build')
+    mpy_esp32_path = os.path.join(MP_PATH, 'ports', 'esp32')
+    shutil.copytree(custom_build_path, mpy_esp32_path, dirs_exist_ok=True)
+
     # parse devices into list of Device objects
     devices = []
     for filepath in os.listdir(DEVICE_PATH):
-        if filepath != 'default.yml':
+        if filepath not in NON_DEVICE_FILES:
             devices.append(Device(filepath))
 
 
