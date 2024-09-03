@@ -13,6 +13,10 @@
   &nbsp;&nbsp;
     <a href="https://github.com/echo-lalia/Cardputer-MicroHydra" alt="Likes">
         <img src="https://img.shields.io/github/stars/echo-lalia/Cardputer-MicroHydra?style=flat&color=darkslateblue" /></a>
+  &nbsp;&nbsp;
+    <a href="https://discord.gg/6e4KUDpgQC" alt="Discord">
+        <img src="https://img.shields.io/discord/1279691612099973151?logo=discord&label=Discord&color=darkslateblue" /></a>
+
 </p>
 
 
