@@ -912,7 +912,13 @@ class Editor:
         return width
     
     def draw_cursor(self):
-        cursor_x = self.get_total_width(self.lines[self.cursor_index[1]][self.display_index[0]:self.cursor_index[0]+1]) + _LEFT_PADDING
+        line = format_display_line(
+            self.lines[self.cursor_index[1]][:self.cursor_index[0]]
+        )
+        cursor_x = self.get_total_width(line) \
+                   - (self.display_index[0] * 8) \
+                   + _LEFT_PADDING
+
         cursor_y = (_SMALL_FONT_HEIGHT * 3) + (self.cursor_index[1] - self.display_index[1] - 3) * _TEXT_HEIGHT
         if time.ticks_ms() % _CURSOR_BLINK_MS < _CURSOR_BLINK_HALF:
             DISPLAY.vline(cursor_x, cursor_y, 16, CONFIG.palette[9])
