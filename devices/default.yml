@@ -47,4 +47,4 @@ features:
 - keyboard
 
 mpy_arch: xtensawin
-source_board: ESP32_GENERIC_S3
+source_board: MICROHYDRA_GENERIC_S3

@@ -7,7 +7,7 @@ set(SDKCONFIG_DEFAULTS
     boards/sdkconfig.usb
     boards/sdkconfig.ble
     boards/sdkconfig.spiram_sx
-    boards/ESP32_GENERIC_S3/sdkconfig.board
+    boards/MICROHYDRA_GENERIC_S3/sdkconfig.board
 )
 
 if(MICROPY_BOARD_VARIANT STREQUAL "SPIRAM_OCT")
@@ -18,7 +18,7 @@ if(MICROPY_BOARD_VARIANT STREQUAL "SPIRAM_OCT")
     )
 
     list(APPEND MICROPY_DEF_BOARD
-        MICROPY_HW_BOARD_NAME="Generic ESP32S3 module with Octal-SPIRAM"
+        MICROPY_HW_BOARD_NAME="MicroHydra on ESP32S3 with Octal-SPIRAM"
     )
 endif()
 
