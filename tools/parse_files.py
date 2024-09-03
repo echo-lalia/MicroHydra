@@ -113,6 +113,10 @@ DONT_INCLUDE_IF_FROZEN = [
 
 
 
+# These file/dir names in `devices/` should not define new devices
+NON_DEVICE_FILES = ['default.yml', 'esp32_mpy_build', 'README.md']
+
+
 # Designate unicode "noncharacter" as representation of completed mh conditional
 # 1-byte noncharacters = U+FDD0..U+FDEF, choosing from these arbitrarily.
 CONDITIONAL_PARSED_FLAG = chr(0xFDD1)
@@ -142,7 +146,7 @@ def main():
     # parse devices into list of Device objects
     devices = []
     for filepath in os.listdir(DEVICE_PATH):
-        if filepath != 'default.yml': # TODO: why not only include directories?
+        if filepath not in NON_DEVICE_FILES:
             devices.append(Device(filepath))
 
     # print status information
