@@ -1,11 +1,7 @@
 # Contributing to MicroHydra!
 
-MicroHydra started with very fast and chaotic developnment, designed by one person, and with new features and complete overhauls added almost daily.   
-Now that there are multiple people interested in implementing new features and improvements to MH, as well as people designing apps to be used with MH, I thought it would be best to create some contribution guidelines to help us work together more easily, and prevent things from getting broken haphazardly. 
+>**Note:** *These guidelines only apply to the main MicroHydra program. There are no restrictions to the design or functionality of apps for MH.*
 
-**Note:** *These guidelines only apply to the main MicroHydra program. There are no restrictions to the design or functionality of apps for MH.*
-
-<br/>
 <br/>
 <br/>
 
@@ -17,17 +13,29 @@ Now that there are multiple people interested in implementing new features and i
 This will aide in communication with other contributors, and give a convenient space to discuss the topic.   
 *Note: If you've already made your changes, feel free to just submit a pull request.*
 
+---
+
 ### - Create a personal fork, and implement your changes   
 Try keeping it to one topic at a time, and if your changes are somewhat complex, make sure to test as you go.   
 *Sometimes the behavior can differ when run directly from Thonny, vs running on the device on its own.*
 
-### - Test changes on a normal MicroPython install
-Because MicroHydra is indended to be capable of running uncompiled, on a plain install of MicroPython, it's important that it be tested like this, as well.
-The code will generally use less memory and be more stable when compiled, so it's important that the changes it be tested uncompiled, on it's own (not through thonny / REPL) on a regular MicroPython install.   
-If it works like that, it should usually work even better once compiled.   
-*If for any reason you are unable to test it yourself, or you would like a second opinion on it, let me know.*
-*Don't worry about this too hard if you're making relatively small changes. I'll merge it and just test it along with my own changes before releasing the next version.*
+---
 
+### - Test what you can, and let me know about it
+MicroHydra needs to be tested both on a plain MicroPython install, and as a complete firmware.  
+Changes also need to be tested on multiple devices before they are released in a stable build.
+
+You aren't expected to do all the testing yourself, but if you can do *some* testing, and let me know what testing you did, it is a huge help!
+
+> *Don't worry about this too hard if you're making relatively small changes; especially ones that only affect one app. I'll merge it and just test it along with my own changes before releasing the next version.*
+
+---
+
+### - Consider updating the contents of `wiki/` to reflect your changes
+This repo automatically publishes changes made in the `wiki/` directory to the 'wiki' tab on GitHub.  
+If your changes make some information on the wiki outdated, it would be very helpful for you to update the wiki to communicate your changes, as well.
+
+---
 
 ### - Create a pull request with a summary of your changes, and link the pull request to the issue (if it exists)
 Once it's been reviewed, if no further changes need to be made to it, it'll be pulled to the main repo, and the issue will be closed
@@ -36,6 +44,7 @@ Once it's been reviewed, if no further changes need to be made to it, it'll be p
 
 *If you have any concerns or questions about this workflow, feel free to reach out!*
 
+---
 
 
 <br/>
@@ -48,7 +57,7 @@ Once it's been reviewed, if no further changes need to be made to it, it'll be p
 
 
 
-*The rest of this guide can probably be ignored for most contributions, but provide further details on MicroHydra's design for those who are interested:*
+> *The rest of this guide can probably be ignored for most contributions, but provide further details on MicroHydra's design for those who are interested:*
 
 ## Guidelines and philosophy for core MicroHydra functionality
 
