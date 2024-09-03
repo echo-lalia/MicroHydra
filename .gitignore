@@ -1,4 +1,13 @@
+# Build directories
 /MicroHydra
+
+# Local config files
 /.vscode
-*.bak
 /src/config.json
+
+# Temporary files
+*.bak
+
+# Python cache files
+__pycache__/
+tools/__pycache__/
