@@ -117,7 +117,6 @@ DONT_INCLUDE_IF_FROZEN = [
 # 1-byte noncharacters = U+FDD0..U+FDEF, choosing from these arbitrarily.
 CONDITIONAL_PARSED_FLAG = chr(0xFDD1)
 CONDITIONAL_PARSED_ORIGINAL_DELIMITER = chr(0xFDD2)
-CONDITIONAL_PARSED_TEMP_FLAG = chr(0xFDD3)
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
