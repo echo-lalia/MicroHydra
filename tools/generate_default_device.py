@@ -5,7 +5,7 @@ This simple script populates the default.yml file with defaults based on the con
 import yaml
 import os
 from collections import Counter
-
+from parse_files import NON_DEVICE_FILES
 
 
 DEVICE_PATH = "devices"
@@ -27,7 +27,7 @@ def fill_device_data():
     all_file_data = []
 
     for dir_entry in os.scandir(DEVICE_PATH):
-        if dir_entry.is_dir():
+        if dir_entry.is_dir() and dir_entry.name not in NON_DEVICE_FILES:
 
             for subdir_entry in os.scandir(dir_entry):
                 if subdir_entry.name == "definition.yml":

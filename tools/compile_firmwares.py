@@ -7,6 +7,7 @@ import yaml
 import argparse
 import subprocess
 import shutil
+from parse_files import NON_DEVICE_FILES
 
 
 # argparser stuff:
@@ -54,7 +55,7 @@ def main():
     # parse devices into list of Device objects
     devices = []
     for filepath in os.listdir(DEVICE_PATH):
-        if filepath != 'default.yml':
+        if filepath not in NON_DEVICE_FILES:
             devices.append(Device(filepath))
 
     # Run build script, passing each target device name.

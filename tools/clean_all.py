@@ -4,7 +4,7 @@ Clean MicroHydra build folders for a clean run.
 
 import os
 import shutil
-
+from parse_files import NON_DEVICE_FILES
 
 
 
@@ -27,7 +27,7 @@ def main():
     # parse devices into list of Device objects
     devices = []
     for filepath in os.listdir(DEVICE_PATH):
-        if filepath != 'default.yml':
+        if filepath not in NON_DEVICE_FILES:
             devices.append(Device(filepath))
 
 

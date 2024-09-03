@@ -7,7 +7,7 @@ set(SDKCONFIG_DEFAULTS
     boards/sdkconfig.usb
     boards/sdkconfig.ble
     boards/sdkconfig.spiram_sx
-    boards/ESP32_GENERIC_S3/sdkconfig.board
+    boards/MICROHYDRA_GENERIC_S3/sdkconfig.board
 )
 
 
@@ -24,6 +24,6 @@ list(APPEND MICROPY_DEF_BOARD
 if(MICROPY_BOARD_VARIANT STREQUAL "FLASH_4M")
     set(SDKCONFIG_DEFAULTS
         ${SDKCONFIG_DEFAULTS}
-        boards/ESP32_GENERIC_S3/sdkconfig.flash_4m
+        boards/MICROHYDRA_GENERIC_S3/sdkconfig.flash_4m
     )
 endif()
