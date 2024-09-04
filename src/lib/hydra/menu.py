@@ -76,7 +76,7 @@ class Menu:
         # init globals
         global CONFIG, DISPLAY, BEEP
 
-        CONFIG = Config()
+        CONFIG = Config.instance if hasattr(Config, 'instance') else Config()
         BEEP = beeper.Beeper()
         DISPLAY = Display.instance if hasattr(Display, 'instance') else Display()
 
@@ -214,6 +214,11 @@ class Menu:
     #         and _CONFIRM_MIN_Y < event.y < _CONFIRM_MAX_Y:
     #             keys.append("ENT")
     # mh_end_if
+
+
+    def exit(self):
+        """Stop the main loop"""
+        self.running = False
 
 
     def main(self):
