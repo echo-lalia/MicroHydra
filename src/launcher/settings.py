@@ -6,19 +6,19 @@ This app provides a useful GUI for changing the values in /config.json
 from lib import userinput
 from lib.hydra import config
 from lib.hydra import menu as hydramenu
+from lib.hydra.popup import UIOverlay
 from lib.display import Display
 from lib.hydra.i18n import I18n
+from lib.sdcard import SDCard
+import json
+import os
 import time
 import machine
 
 # make the animations smooth :)
 machine.freq(240_000_000)
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Globals: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-display = Display()
-kb = userinput.UserInput()
-config = config.Config()
-
+# this defines the translations passed to hydra.menu and hydra.popup
 _TRANS = const("""[
   {"en": "language", "zh": "语言/Lang", "ja": "言語/Lang"},
   {"en": "volume", "zh": "音量", "ja": "音量"},
@@ -32,13 +32,28 @@ _TRANS = const("""[
   {"en": "Confirm", "zh": "确认", "ja": "確認"}
 ]""")
 
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Globals: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+display = Display()
+kb = userinput.UserInput()
+config = config.Config()
 I18N = I18n(_TRANS)
+overlay = UIOverlay(i18n=I18N)
 
 LANGS = ['en', 'zh', 'ja']
 LANGS.sort()
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Functions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# try mounting SDCard for settings import/export
+try:
+    sd = SDCard()
+    sd.mount()
+except:
+    sd = None
 
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Functions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def update_config(caller, value):
     global I18N
@@ -69,81 +84,96 @@ def save_conf(caller):
     machine.reset()
 
 
-# mh_if touchscreen:
-_MH_DISPLAY_WIDTH = const(320)
-_MH_DISPLAY_HEIGHT = const(240)
+def export_config(caller):
+    # try making hydra directory
+    try:
+        os.mkdir('sd/Hydra')
+    except OSError: pass
+    
+    # try exporting config file
+    try:
+        with open("sd/Hydra/config.json", "w") as file:
+            file.write(json.dumps(config.config))
+            print(json.dumps(config.config))
+        overlay.popup("Config exported to 'sd/Hydra/config.json'")
+    except OSError as e:
+        overlay.error(e)
 
-_CONFIRM_MIN_X = const(_MH_DISPLAY_WIDTH // 4)
-_CONFIRM_MAX_X = const(_MH_DISPLAY_WIDTH - _CONFIRM_MIN_X)
-_CONFIRM_MIN_Y = const(_MH_DISPLAY_HEIGHT // 4)
-_CONFIRM_MAX_Y = const(_MH_DISPLAY_HEIGHT - _CONFIRM_MIN_Y)
 
-def process_touch(keys):
-    events = kb.get_touch_events()
-    for event in events:
-        if hasattr(event, 'direction'):
-            # is a swipe
-            keys.append(event.direction)
+def import_config(caller):
+    global I18N, menu
+    try:
+        with open("sd/Hydra/config.json", "r") as file:
+            config.config.update(json.loads(file.read()))
         
-        elif _CONFIRM_MIN_X < event.x < _CONFIRM_MAX_X \
-        and _CONFIRM_MIN_Y < event.y < _CONFIRM_MAX_Y:
-            keys.append("ENT")
-# mh_end_if
+        # update config and lang
+        config.generate_palette()
+        I18N.__init__(_TRANS)
+
+        overlay.popup("Config loaded from 'sd/Hydra/config.json'")
+        # update menu
+        menu.exit()
+        build_menu()
+
+    except Exception as e:
+        overlay.error(e)
+
+
+def import_export(caller):
+    choice = overlay.popup_options(("Back...", "Export to SD", "Import from SD"), title="Import/Export config", depth=1)
+    if choice == "Export to SD":
+        export_config(caller)
+    elif choice == "Import from SD":
+        import_config(caller)
+
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Create the menu: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+def build_menu():
+    """Create and return a manu for the config."""
+    global menu, I18N
+    menu = hydramenu.Menu(
+        esc_callback=discard_conf,
+        i18n=I18N,
+        )
+
+    menu_def = [
+        (hydramenu.ChoiceItem, 'language', {'choices':LANGS, 'instant_callback': update_config}),
+        (hydramenu.IntItem, 'volume', {'min_int': 0, 'max_int': 10, 'instant_callback': update_config}),
+        (hydramenu.RGBItem, 'ui_color', {'instant_callback': update_config}),
+        (hydramenu.RGBItem, 'bg_color', {'instant_callback': update_config}),
+        (hydramenu.WriteItem, 'wifi_ssid', {}),
+        (hydramenu.WriteItem, 'wifi_pass', {'hide': True}),
+        (hydramenu.BoolItem, 'sync_clock', {}),
+        (hydramenu.BoolItem, '24h_clock', {}),
+        (hydramenu.IntItem, 'timezone', {'min_int': -13, 'max_int': 13}),
+    ]
+
+    # build menu from def
+    for i_class, name, kwargs in menu_def:
+        menu.append(
+            i_class(
+                menu,
+                name,
+                config[name],
+                callback=update_config,
+                **kwargs
+            ))
+
+    menu.append(hydramenu.DoItem(menu, "Import/Export", callback=import_export))
+    menu.append(hydramenu.DoItem(menu, "Confirm", callback=save_conf))
+
+    return menu
+
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main body: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Thanks to HydraMenu, the settings app is now pretty small.
 # So, not much point in overcomplicating things:
 
+menu = build_menu()
 
-menu = hydramenu.Menu(
-    esc_callback=discard_conf,
-    i18n=I18N,
-    )
-
-menu_def = [
-    (hydramenu.ChoiceItem, 'language', {'choices':LANGS, 'instant_callback': update_config}),
-    (hydramenu.IntItem, 'volume', {'min_int': 0, 'max_int': 10, 'instant_callback': update_config}),
-    (hydramenu.RGBItem, 'ui_color', {'instant_callback': update_config}),
-    (hydramenu.RGBItem, 'bg_color', {'instant_callback': update_config}),
-    (hydramenu.WriteItem, 'wifi_ssid', {}),
-    (hydramenu.WriteItem, 'wifi_pass', {'hide': True}),
-    (hydramenu.BoolItem, 'sync_clock', {}),
-    (hydramenu.BoolItem, '24h_clock', {}),
-    (hydramenu.IntItem, 'timezone', {'min_int': -13, 'max_int': 13}),
-]
-
-# build menu from def
-for i_class, name, kwargs in menu_def:
-    menu.append(
-        i_class(
-            menu,
-            name,
-            config[name],
-            callback=update_config,
-            **kwargs
-        ))
-menu.append(hydramenu.DoItem(menu, "Confirm", callback=save_conf))
-
-updating_display = True
-
-
+# this loop lets us restart the new menu if it is stopped/recreated by the callbacks above
 while True:
-    keys = kb.get_new_keys()
-    
-    # mh_if touchscreen:
-    process_touch(keys)
-    # mh_end_if
+    menu.main()
 
-    for key in keys:
-        menu.handle_input(key)
-
-    if keys:
-        updating_display = True
-
-    if updating_display:
-        updating_display = menu.draw()
-        display.show()
-
-    if not keys and not updating_display:
-        time.sleep_ms(1)

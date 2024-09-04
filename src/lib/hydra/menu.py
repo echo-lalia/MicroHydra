@@ -12,8 +12,8 @@ from font import vga2_16x32 as font
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ CONSTANT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-_MH_DISPLAY_WIDTH = const(320)
-_MH_DISPLAY_HEIGHT = const(240)
+_MH_DISPLAY_WIDTH = const(240)
+_MH_DISPLAY_HEIGHT = const(135)
 
 _DISPLAY_WIDTH_CENTER = const(_MH_DISPLAY_WIDTH//2)
 _DISPLAY_CENTER_LEFT = const(_DISPLAY_WIDTH_CENTER//2)
@@ -40,6 +40,13 @@ _PER_PAGE = const(_MH_DISPLAY_HEIGHT//_FONT_HEIGHT)
 _Y_PADDING = const( (_MH_DISPLAY_HEIGHT - (_PER_PAGE * _FONT_HEIGHT)) // 2)
 
 _SCROLL_MS = const(200)
+
+# for touch:
+_CONFIRM_MIN_X = const(_MH_DISPLAY_WIDTH // 4)
+_CONFIRM_MAX_X = const(_MH_DISPLAY_WIDTH - _CONFIRM_MIN_X)
+_CONFIRM_MIN_Y = const(_MH_DISPLAY_HEIGHT // 4)
+_CONFIRM_MAX_Y = const(_MH_DISPLAY_HEIGHT - _CONFIRM_MIN_Y)
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GLOBAL ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # global config will provide default stylings
@@ -69,7 +76,7 @@ class Menu:
         # init globals
         global CONFIG, DISPLAY, BEEP
 
-        CONFIG = Config()
+        CONFIG = Config.instance if hasattr(Config, 'instance') else Config()
         BEEP = beeper.Beeper()
         DISPLAY = Display.instance if hasattr(Display, 'instance') else Display()
 
@@ -84,7 +91,9 @@ class Menu:
 
         self.per_page = per_page
         self.y_padding = y_padding
+
         self.in_submenu = False
+        self.running = False
 
         self.esc_callback = esc_callback
 
@@ -186,9 +195,56 @@ class Menu:
             if self.esc_callback:
                 play_sound((("C3","E3","D3"),"D4","C4"), time_ms=100)
                 self.esc_callback(self)
+            self.running = False
             return True
-
         return False
+
+
+    # mh_if touchscreen:
+    # @staticmethod
+    # def _process_touch(keys, kb):
+    #     """Convert swipes and taps to arrows and enters"""
+    #     events = kb.get_touch_events()
+    #     for event in events:
+    #         if hasattr(event, 'direction'):
+    #             # is a swipe
+    #             keys.append(event.direction)
+            
+    #         elif _CONFIRM_MIN_X < event.x < _CONFIRM_MAX_X \
+    #         and _CONFIRM_MIN_Y < event.y < _CONFIRM_MAX_Y:
+    #             keys.append("ENT")
+    # mh_end_if
+
+
+    def exit(self):
+        """Stop the main loop"""
+        self.running = False
+
+
+    def main(self):
+        """Show the menu."""
+        kb = UserInput.instance if hasattr(UserInput, 'instance') else UserInput()
+        updating_display = True
+        self.running = True
+        while self.running:
+            keys = kb.get_new_keys()
+
+            # mh_if touchscreen:
+            # self._process_touch(keys, kb)
+            # mh_end_if
+
+            for key in keys:
+                self.handle_input(key)
+
+            if keys:
+                updating_display = True
+
+            if updating_display:
+                updating_display = self.draw()
+                DISPLAY.show()
+
+            if not keys and not updating_display:
+                time.sleep_ms(1)
 
 
 
@@ -289,6 +345,9 @@ class BoolItem(MenuItem):
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Do Item ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+_DOITEM_LEFT_SELECTOR_X = const(1)
+_DOITEM_RIGHT_SELECTOR_X = const(_MH_DISPLAY_WIDTH - 17 - _DOITEM_LEFT_SELECTOR_X)
+
 class DoItem(MenuItem):
     """Item for creating 'action' buttons"""
     def __init__(
@@ -299,14 +358,20 @@ class DoItem(MenuItem):
         selected:bool=False,
         callback:callable|None=None,
         **kwargs):
-        
+
         super().__init__(menu=menu, text=text, value=None, selected=selected, callback=callback)
 
 
     def draw(self):
         text = self.text if self.i18n is None else self.i18n[self.text]
+        
+        
         if self.selected:
-            draw_centered_text(f"< {text} >", _DISPLAY_WIDTH_CENTER, self.y_pos, CONFIG.palette[9], font=font)
+            # Draw "< >" around (or behind) text
+            DISPLAY.text("<", _DOITEM_LEFT_SELECTOR_X, self.y_pos, CONFIG.palette[5], font=font)
+            DISPLAY.text(">", _DOITEM_RIGHT_SELECTOR_X, self.y_pos, CONFIG.palette[5], font=font)
+            
+            draw_centered_text(text, _DISPLAY_WIDTH_CENTER, self.y_pos, CONFIG.palette[9], font=font)
         else:
             draw_centered_text(text, _DISPLAY_WIDTH_CENTER, self.y_pos, CONFIG.palette[6], font=font)
         DISPLAY.hline(0, self.y_pos, _MH_DISPLAY_WIDTH, CONFIG.palette[2])
@@ -762,9 +827,13 @@ def draw_big_text(text, x, y, clr, bg_color=None):
     # draw big text on either st7789py or st7789fbuf
     DISPLAY.text(text, x, y, clr, font=font)
 
-
+_MAX_CENTER_TEXT_LEN = const(_MH_DISPLAY_WIDTH // _FONT_WIDTH)
 def draw_centered_text(text, x, y, clr, font=None):
     # draw text centered on the x axis
+    if font and len(text) > _MAX_CENTER_TEXT_LEN:
+        font = None 
+        y += 10
+
     if font:
         x = x - (len(text) * _FONT_WIDTH_HALF)
     else:
