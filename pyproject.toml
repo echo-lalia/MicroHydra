@@ -20,14 +20,14 @@ skip = """
 # Exclude third-party code from linting and formatting
 extend-exclude = ["devices", "esp-idf", "MicroHydra", "MicroPython", "src/font"]
 line-length = 100
-target-version = "py37"
+target-version = "py39"
 # Add micropython-specific (and viper-specific) built-in names
 builtins = ["const", "micropython", "ptr", "ptr8", "ptr16", "ptr32"]
 
 [tool.ruff.lint]
 extend-select = ["C9", "PLC"]
 ignore = [
-  # Some of these exclusions are borrowed from MicroPython:
+  # These exclusions are borrowed from the MicroPython repo:
   "E401",
   "E402",
   "E722",
@@ -36,7 +36,10 @@ ignore = [
   "F401",
   "F403",
   "F405",
+  # These exclusions just arent really relevant in MicroPython:
   "PLC1901",
+  "FURB103",
+  "PLW1514",
   # MH uses commented out code in the build process:
   "ERA001",
   # for now, MH takes a soft approach to quote-style.
@@ -51,6 +54,12 @@ ignore = [
   # This can sometimes harm performance in MP:
   "FURB136",
   "PLR1730",
+  # PEP8 reccomends grouping by order-of operations
+  # like: `4*6 + 12*2`
+  "E226",
+  # This is highly opinionated, but IMO if you are doing this,
+  # you're probably trying to make the code more readable
+  "E702",
 ]
 
 [tool.ruff.mccabe]
