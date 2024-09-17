@@ -35,6 +35,7 @@ from lib.hydra import beeper, popup
 from lib.hydra.config import Config
 from lib.hydra.i18n import I18n
 
+
 _MH_DISPLAY_HEIGHT = const(240)
 _MH_DISPLAY_WIDTH = const(320)
 

@@ -41,6 +41,9 @@ ignore = [
   "FURB103",
   "PLW1514",
   "FBT003",
+  "PIE810",
+  # MicroPython doesn't add features in the same order as CPython:
+  "FA",
   # MH uses commented out code in the build process:
   "ERA001",
   # for now, MH takes a soft approach to quote-style.
@@ -74,3 +77,7 @@ max-complexity = 40
 [tool.ruff.lint.isort]
 # Use 2 lines after imports
 lines-after-imports = 2
+
+[tool.ruff.lint.pylint]
+# for speed reasons, assigning to a var isn't always worth it
+max-bool-expr = 20
