@@ -36,10 +36,11 @@ ignore = [
   "F401",
   "F403",
   "F405",
-  # These exclusions just arent really relevant in MicroPython:
+  # These exclusions just arent really relevant (or dont work) in MicroPython:
   "PLC1901",
   "FURB103",
   "PLW1514",
+  "FBT003",
   # MH uses commented out code in the build process:
   "ERA001",
   # for now, MH takes a soft approach to quote-style.
@@ -69,3 +70,7 @@ max-complexity = 40
 [tool.ruff.per-file-ignores]
 # manifest.py files are evaluated with some global names pre-defined
 "**/manifest.py" = ["F821"]
+
+[tool.ruff.lint.isort]
+# Use 2 lines after imports
+lines-after-imports = 2
