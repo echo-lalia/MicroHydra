@@ -1,28 +1,44 @@
-"""
-This app lets you download new apps from the MicroHydra apps repo.
+"""This app lets you download new apps from the MicroHydra apps repo.
 
-This built-in app was partially inspired by RealClearwave's "AppStore.py", 
+This built-in app was partially inspired by RealClearwave's "AppStore.py",
 which was contributed to the MH apps repo with commit 014f080.
 Thank you for your contributions!
+
+
+Copyright (C) 2024  Ethan Lacasse
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 
 
-from lib import userinput
-from lib.display import Display
-from lib.hydra.config import Config
-from lib.hydra.simpleterminal import SimpleTerminal
-from lib.device import Device
-from lib.zipextractor import ZipExtractor
-from lib.hydra.i18n import I18n
-import machine
-import sys
-import network
-import requests
-import time
 import json
 import os
+import sys
+import time
 
+import machine
+import network
+import requests
+
+from lib import userinput
+from lib.device import Device
+from lib.display import Display
+from lib.hydra.config import Config
+from lib.hydra.i18n import I18n
+from lib.hydra.simpleterminal import SimpleTerminal
+from lib.zipextractor import ZipExtractor
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ _CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -36,7 +52,7 @@ _CHAR_WIDTH_HALF = const(_CHAR_WIDTH // 2)
 
 _TRANS = const("""[
 {"en": "Enabling wifi...", "zh": "正在启用wifi...", "ja": "WiFiを有効にしています..."},
-{"en": "Connected!", "zh": "已连接！", "ja": "接続されました！"},
+{"en": "Connected!", "zh": "已连接!", "ja": "接続されました!"},
 {"en": "Getting app catalog...", "zh": "获取应用目录中...", "ja": "アプリカタログを取得中..."},
 {"en": "Failed to get catalog.", "zh": "获取目录失败。", "ja": "カタログの取得に失敗しました。"},
 {"en": "Connecting to GitHub...", "zh": "正在连接到GitHub...", "ja": "GitHubに接続中..."},
@@ -46,10 +62,10 @@ _TRANS = const("""[
 {"en": "Finished extracting.", "zh": "解压完成。", "ja": "解凍が完了しました。"},
 {"en": "Removing 'tempapp.zip'...", "zh": "正在删除 'tempapp.zip'...", "ja": "'tempapp.zip' を削除しています..."},
 {"en": "Failed to extract from zip file.", "zh": "从zip文件解压失败。", "ja": "zipファイルからの解凍に失敗しました。"},
-{"en": "Done!", "zh": "完成！", "ja": "完了！"},
-{"en": "Author:", "zh": "作者：", "ja": "著者："},
-{"en": "Description:", "zh": "描述：", "ja": "説明："}
-]""")
+{"en": "Done!", "zh": "完成!", "ja": "完了!"},
+{"en": "Author:", "zh": "作者:", "ja": "著者:"},
+{"en": "Description:", "zh": "描述:", "ja": "説明:"}
+]""")  # noqa: E501
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GLOBAL_OBJECTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -73,25 +89,24 @@ NIC = network.WLAN(network.STA_IF)
 
 TERM = SimpleTerminal()
 
-MPY_MATCHES = True
-
 I18N = I18n(_TRANS)
 
-#--------------------------------------------------------------------------------------------------
-#-------------------------------------- function_definitions: -------------------------------------
-#--------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
+# -------------------------------------- function_definitions: -------------------------------------
+# --------------------------------------------------------------------------------------------------
 
 
 def connect_wifi():
+    """Connect to the configured WiFi network."""
     TERM.print(I18N["Enabling wifi..."])
-    
+
     if not NIC.active():
         NIC.active(True)
-    
-    if not NIC.isconnected():    
+
+    if not NIC.isconnected():
         # tell wifi to connect (with FORCE)
         while True:
-            try: # keep trying until connect command works
+            try:  # keep trying until connect command works
                 NIC.connect(CONFIG['wifi_ssid'], CONFIG['wifi_pass'])
                 break
             except OSError as e:
@@ -108,66 +123,68 @@ def connect_wifi():
     TERM.print(I18N["Connected!"])
 
 
-def request_file(file_path):
+def request_file(file_path: str) -> requests.Response:
+    """Get the specific app file from GitHub"""
     TERM.print('Making request...')
-    response = requests.get(
-    f'https://api.github.com/repos/echo-lalia/MicroHydra-Apps/contents/catalog-output/{file_path}',
-    headers = {
-        "accept": "application/vnd.github.v3.raw",
-        "User-Agent": f"{Device.name} - MicroHydra",
-        }
-    )
+    response = requests.get(  # noqa: S113 # no point using a timeout here
+        f'https://api.github.com/repos/echo-lalia/MicroHydra-Apps/contents/catalog-output/{file_path}',
+        headers={
+            "accept": "application/vnd.github.v3.raw",
+            "User-Agent": f"{Device.name} - MicroHydra",
+            },
+        )
     TERM.print(f"Returned code: {response.status_code}")
     return response
 
 
-def try_request_file(file_path):
+def try_request_file(file_path: str) -> requests.Response:
     """Capture errors and keep trying to get requested file."""
-    wait = 1 # time to wait between attempts (don't get rate limited)
+    wait = 1  # time to wait between attempts (don't get rate limited)
     while True:
         try:
             return request_file(file_path)
-        except OSError as e:
+        except OSError as e:  # noqa: PERF203
             TERM.print(f"Request failed: {e}")
             time.sleep(wait)
             wait += 1
 
 
-def fetch_app_catalog():
+def fetch_app_catalog() -> dict:
     """Download compact app catalog from apps repo"""
-    
+
     TERM.print(I18N["Getting app catalog..."])
-    
+
     response = try_request_file(f"{Device.name.lower()}.json")
-    
+
     result = json.loads(response.content)
     response.close()
     return result
 
 
-def fetch_app(app_name):
+_MAX_WBITS = const(15)
+def fetch_app(app_name, mpy_matches):  # noqa: E302
     """Download and extract given app from repo"""
     TERM.print("")
     TERM.print(f"Fetching {app_name}.")
     TERM.print(I18N["Connecting to GitHub..."])
-    
-    compiled_path = "compiled" if MPY_MATCHES else "raw"
-    
+
+    compiled_path = "compiled" if mpy_matches else "raw"
+
     response = try_request_file(f"{compiled_path}/{app_name}.zip")
-    
+
     TERM.print(I18N["Downloading zip..."])
-    
+
     # download file in chunks:
     buffer = memoryview(bytearray(1024))
     socket = response.raw
-    with open(f"tempapp.zip", "wb") as fd:
+    with open("tempapp.zip", "wb") as fd:
         while (n := socket.readinto(buffer)) > 0:
             fd.write(buffer[:n])
     response.close()
 
     TERM.print(I18N["Finished downloading 'tempapp.zip'"])
-    
-    
+
+
     # try multiple wbits vals because it's hard to predict what'll error
     # low vals often fail to decode the DEFLATE data
     # high vals run out of memory
@@ -180,40 +197,47 @@ def fetch_app(app_name):
             TERM.print(I18N["Removing 'tempapp.zip'..."])
             os.remove('tempapp.zip')
             TERM.print(I18N["Done!"])
-            return
-            
+
         except OSError:
-            if wbits >= 15:
+            if wbits >= _MAX_WBITS:
                 TERM.print(I18N["Failed to extract from zip file."])
                 return
+        else:  # return if extraction was a success
+            return
+
         wbits += 1
 
 
-#--------------------------------------------------------------------------------------------------
-#---------------------------------------- ClassDefinitions: ---------------------------------------
-#--------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
+# ---------------------------------------- ClassDefinitions: ---------------------------------------
+# --------------------------------------------------------------------------------------------------
 
 _AUTHOR_Y = const(_MH_DISPLAY_HEIGHT // 2)
 _NAME_Y = const(_MH_DISPLAY_HEIGHT // 4 - 8)
 _DESC_Y = const(_AUTHOR_Y + _NAME_Y)
 _MAX_H_CHARS = const(_MH_DISPLAY_WIDTH // 8)
 
+
 class CatalogDisplay:
-    def __init__(self, catalog):
+    """Construct for displaying and selecting catalog options"""
+
+    def __init__(self, catalog: dict):
+        """Create a Catalog using given dict"""
         self.mpy_version = catalog.pop("mpy_version")
-        
-        self.names = list(catalog.keys()) 
+
+        self.names = list(catalog.keys())
         self.catalog = catalog
-        
+
         self.idx = 0
 
-    def move(self, val):
+    def move(self, val: int):
+        """Move the selector index by `val`"""
         self.idx += val
         self.idx %= len(self.names)
 
 
     @staticmethod
-    def split_lines(text:str):
+    def split_lines(text: str) -> list:
         """Split a string into multiple lines, based on max line-length."""
         lines = []
         current_line = ''
@@ -227,30 +251,31 @@ class CatalogDisplay:
                 current_line += word
             else:
                 current_line += ' ' + word
-            
-        lines.append(current_line) # add final line
-            
+
+        lines.append(current_line)  # add final line
+
         return lines
 
 
     def draw(self):
+        """Draw the selected option to the display"""
         name = self.names[self.idx]
         # separate author
         *desc, author = self.catalog[name].split(' - ')
         desc = ' - '.join(desc)
-        
+
         # blackout bg
         DISPLAY.fill(CONFIG.palette[2])
-        
+
         # draw box around name
         DISPLAY.rect(0, _NAME_Y - 8, _MH_DISPLAY_WIDTH, 24, CONFIG.palette[3], fill=True)
-        
+
         # draw name
         DISPLAY.text('<', 8, _NAME_Y, CONFIG.palette[4])
         DISPLAY.text('>', _MH_DISPLAY_WIDTH - 16, _NAME_Y, CONFIG.palette[4])
         DISPLAY.text(name, _DISPLAY_WIDTH_HALF - (len(name) * 4), _NAME_Y+1, CONFIG.palette[5])
         DISPLAY.text(name, _DISPLAY_WIDTH_HALF - (len(name) * 4), _NAME_Y, CONFIG.palette[8])
-        
+
         # draw author
         DISPLAY.text(I18N["Author:"], _DISPLAY_WIDTH_HALF - 28, _AUTHOR_Y - 10, CONFIG.palette[3])
         DISPLAY.text(
@@ -259,9 +284,14 @@ class CatalogDisplay:
             _AUTHOR_Y,
             CONFIG.palette[5],
             )
-        
+
         # draw description
-        DISPLAY.text(I18N["Description:"], _DISPLAY_WIDTH_HALF - 48, _DESC_Y - 10, CONFIG.palette[3])
+        DISPLAY.text(
+            I18N["Description:"],
+            _DISPLAY_WIDTH_HALF - 48,
+            _DESC_Y - 10,
+            CONFIG.palette[3],
+            )
         desc_y = _DESC_Y
         desc_lines = self.split_lines(desc)
         for line in desc_lines:
@@ -269,54 +299,44 @@ class CatalogDisplay:
                 line,
                 _DISPLAY_WIDTH_HALF - (len(line) * 4),
                 desc_y,
-                CONFIG.palette[6]
+                CONFIG.palette[6],
                 )
             desc_y += 9
-        
-        
+
         DISPLAY.show()
 
 
-#--------------------------------------------------------------------------------------------------
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main Loop: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# --------------------------------------------------------------------------------------------------
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main Loop: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main_loop():
-    """
-    The main loop of the program. Runs forever (until program is closed).
-    """
-    global MPY_MATCHES
+    """Run the main loop of the program."""
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ INITIALIZATION: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    
-    
+
     connect_wifi()
     catalog = fetch_app_catalog()
 
-    
     # Compare MPY version for downloading compiled files
-    mpy_str = f"{sys.implementation._mpy & 0xff}.{sys.implementation._mpy >> 8 & 3}"
-    if mpy_str != catalog['mpy_version']:
-        MPY_MATCHES = False
-    
+    mpy_str = f"{sys.implementation._mpy & 0xff}.{sys.implementation._mpy >> 8 & 3}"  # noqa: SLF001
+    mpy_matches = (mpy_str == catalog["mpy_version"])
+
     # sleep so user can see confirmation message
     time.sleep_ms(400)
 
     catalog_display = CatalogDisplay(catalog)
     catalog_display.draw()
 
-    
 
     while True:
-
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ INPUT: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
         # get list of newly pressed keys
         keys = INPUT.get_new_keys()
         INPUT.ext_dir_keys(keys)
-        
+
         # if there are keys, convert them to a string, and store for display
         if keys:
             for key in keys:
@@ -324,14 +344,14 @@ def main_loop():
                     catalog_display.move(1)
                 elif key == 'LEFT':
                     catalog_display.move(-1)
-                elif key in ('G0', 'ENT', 'SPC'):
-                    fetch_app(catalog_display.names[catalog_display.idx])
+                elif key in {'G0', 'ENT', 'SPC'}:
+                    fetch_app(catalog_display.names[catalog_display.idx], mpy_matches)
                     time.sleep(2)
-                
-                elif key in ('ESC', 'q', 'BSPC'):
+
+                elif key in {'ESC', 'q', 'BSPC'}:
                     NIC.active(False)
                     machine.reset()
-                
+
             catalog_display.draw()
 
 
@@ -344,4 +364,3 @@ def main_loop():
 
 # start the main loop
 main_loop()
-
