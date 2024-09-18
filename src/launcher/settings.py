@@ -1,19 +1,38 @@
-"""
-Builtin Settings app for MicroHydra.
+"""Settings app for MicroHydra.
+
 This app provides a useful GUI for changing the values in /config.json
+
+
+Copyright (C) 2024  Ethan Lacasse
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from lib import userinput
-from lib.hydra import config
-from lib.hydra import menu as hydramenu
-from lib.hydra.popup import UIOverlay
-from lib.display import Display
-from lib.hydra.i18n import I18n
-from lib.sdcard import SDCard
 import json
 import os
 import time
+
 import machine
+
+from lib import userinput
+from lib.display import Display
+from lib.hydra import config
+from lib.hydra import menu as hydramenu
+from lib.hydra.i18n import I18n
+from lib.hydra.popup import UIOverlay
+from lib.sdcard import SDCard
+
 
 # make the animations smooth :)
 machine.freq(240_000_000)
@@ -56,18 +75,23 @@ except:
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Functions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def update_config(caller, value):
-    global I18N
+    """Update the config using given value
+
+    (This is a callback for HydraMenu)
+    """
+    global I18N  # noqa: PLW0603
 
     config[caller.text] = value
 
     # regen palette and translations based on new vals
     config.generate_palette()
-    I18N.__init__(_TRANS)
+    I18N = I18N(_TRANS)
 
     print(f"config['{caller.text}'] = {value}")
 
 
-def discard_conf(caller):
+def discard_conf(caller):  # noqa: ARG001
+    """Close Settings and discard changes"""
     print("Discard config.")
     display.fill(0)
     display.show()
@@ -75,7 +99,8 @@ def discard_conf(caller):
     machine.reset()
 
 
-def save_conf(caller):
+def save_conf(caller):  # noqa: ARG001
+    """Close Settings and write new config"""
     config.save()
     print("Save config: ", config.config)
     display.fill(0)
@@ -84,12 +109,13 @@ def save_conf(caller):
     machine.reset()
 
 
-def export_config(caller):
+def export_config(caller):  # noqa: ARG001
+    """Try saving config to SDCard"""
     # try making hydra directory
     try:
         os.mkdir('sd/Hydra')
     except OSError: pass
-    
+
     # try exporting config file
     try:
         with open("sd/Hydra/config.json", "w") as file:
@@ -100,27 +126,33 @@ def export_config(caller):
         overlay.error(e)
 
 
-def import_config(caller):
-    global I18N, menu
+def import_config(caller):  # noqa: ARG001
+    """Try importing a config from the SDCard"""
+    global menu, I18N  # noqa: PLW0603
     try:
-        with open("sd/Hydra/config.json", "r") as file:
+        with open("sd/Hydra/config.json") as file:
             config.config.update(json.loads(file.read()))
-        
+
         # update config and lang
         config.generate_palette()
-        I18N.__init__(_TRANS)
+        I18N = I18N(_TRANS)
 
         overlay.popup("Config loaded from 'sd/Hydra/config.json'")
         # update menu
         menu.exit()
-        build_menu()
+        menu = build_menu()
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         overlay.error(e)
 
 
 def import_export(caller):
-    choice = overlay.popup_options(("Back...", "Export to SD", "Import from SD"), title="Import/Export config", depth=1)
+    """Bring up the menu for importing/exporting the config"""
+    choice = overlay.popup_options(
+        ("Back...", "Export to SD", "Import from SD"),
+        title="Import/Export config",
+        depth=1,
+        )
     if choice == "Export to SD":
         export_config(caller)
     elif choice == "Import from SD":
@@ -129,17 +161,16 @@ def import_export(caller):
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Create the menu: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-def build_menu():
+def build_menu() -> hydramenu.Menu:
     """Create and return a manu for the config."""
-    global menu, I18N
     menu = hydramenu.Menu(
         esc_callback=discard_conf,
         i18n=I18N,
         )
 
     menu_def = [
-        (hydramenu.ChoiceItem, 'language', {'choices':LANGS, 'instant_callback': update_config}),
-        (hydramenu.IntItem, 'volume', {'min_int': 0, 'max_int': 10, 'instant_callback': update_config}),
+        (hydramenu.ChoiceItem, 'language', {'choices': LANGS, 'instant_callback': update_config}),
+        (hydramenu.IntItem, 'volume', {'min_int': 0, 'max_int': 10, 'instant_callback': update_config}),  # noqa: E501
         (hydramenu.RGBItem, 'ui_color', {'instant_callback': update_config}),
         (hydramenu.RGBItem, 'bg_color', {'instant_callback': update_config}),
         (hydramenu.WriteItem, 'wifi_ssid', {}),
@@ -157,7 +188,7 @@ def build_menu():
                 name,
                 config[name],
                 callback=update_config,
-                **kwargs
+                **kwargs,
             ))
 
     menu.append(hydramenu.DoItem(menu, "Import/Export", callback=import_export))
@@ -176,4 +207,3 @@ menu = build_menu()
 # this loop lets us restart the new menu if it is stopped/recreated by the callbacks above
 while True:
     menu.main()
-
