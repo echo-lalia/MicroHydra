@@ -218,7 +218,7 @@ DARK_COMMENT_COLOR = color.mix_color565(
 
 def file_options(target_file, overlay, editor):
     """Give file options menu"""
-    _OPTIONS = const(("Back", "Save", "Tab...", "Run...", "Exit..."))  # noqa: N806
+    _OPTIONS = const(("Back", "Save", "Tab...", "Run...", "Exit..."))
 
     choice = overlay.popup_options(_OPTIONS, title="GO...")
 
@@ -239,7 +239,7 @@ def tab_options(overlay):
     global USE_TABS  # noqa: PLW0603
 
     title = "'tab' inserts tabs" if USE_TABS else "'tab' inserts spaces"
-    _TAB_OPTIONS = const(("Back", "Use tabs", "Use spaces"))  # noqa: N806
+    _TAB_OPTIONS = const(("Back", "Use tabs", "Use spaces"))
 
     choice = overlay.popup_options(_TAB_OPTIONS, title=title, depth=1)
 
@@ -259,7 +259,7 @@ def tab_options(overlay):
 
 def run_options(target_file, overlay, editor):
     """Give run options submenu"""
-    _RUN_OPTIONS = const(("Cancel", "Run here", "Restart and run"))  # noqa: N806
+    _RUN_OPTIONS = const(("Cancel", "Run here", "Restart and run"))
     choice = overlay.popup_options(_RUN_OPTIONS, title="Run...", depth=1)
     if choice == "Cancel":
         return
@@ -271,7 +271,7 @@ def run_options(target_file, overlay, editor):
 
 def exit_options(target_file, overlay, editor):
     """Give run options submenu"""
-    _EXIT_OPTIONS = const(("Cancel", "Exit to Files", "Exit to Launcher"))  # noqa: N806
+    _EXIT_OPTIONS = const(("Cancel", "Exit to Files", "Exit to Launcher"))
 
     choice = overlay.popup_options(_EXIT_OPTIONS, title="Exit...", depth=1)
 
@@ -557,11 +557,11 @@ def draw_fancy_line(
     highlight: bool = False,
     trim: bool = True):
     """Apply special styling to a line and display it."""
-    _KEYWORDS = const(('and', 'as', 'assert', 'break', 'class', 'continue', 'def', 'del', 'elif',  # noqa: N806
+    _KEYWORDS = const(('and', 'as', 'assert', 'break', 'class', 'continue', 'def', 'del', 'elif',
                        'else', 'except', 'False', 'Finally', 'for', 'from', 'global', 'if',
                        'import', 'in', 'is', 'lambda', 'None', 'nonlocal', 'not', 'or', 'pass',
                        'raise', 'return', 'True', 'try', 'while', 'with', 'yield'))
-    _OPERATORS = const("<>,|[]{}()*^%!=-+/:;&@")  # noqa: N806
+    _OPERATORS = const("<>,|[]{}()*^%!=-+/:;&@")
 
     # skip formatting on long lines
     if len(line) > _MAX_FORMATTED_LEN:

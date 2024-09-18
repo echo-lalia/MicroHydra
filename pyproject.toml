@@ -16,6 +16,7 @@ skip = """
 ./src/font,\
 """
 
+
 [tool.ruff]
 # Exclude third-party code from linting and formatting
 extend-exclude = ["devices", "esp-idf", "MicroHydra", "MicroPython", "src/font"]
@@ -23,6 +24,7 @@ line-length = 100
 target-version = "py39"
 # Add micropython-specific (and viper-specific) built-in names
 builtins = ["const", "micropython", "ptr", "ptr8", "ptr16", "ptr32"]
+
 
 [tool.ruff.lint]
 extend-select = ["C9", "PLC"]
@@ -82,17 +84,27 @@ ignore = [
   "PLR2004",  # Magic value used in comparison
 ]
 
+
+[tool.ruff.lint.pep8-naming]
+# Allow _CONSTANT naming in functions
+# ("_" followed by a capital letter, then any other characters, will be ignored)
+extend-ignore-names = ["_[ABCDEFGHIJKLMNOPQRSTUVWXYZ]*"]
+
+
 [tool.ruff.mccabe]
 # Some MicroPython code unfortunately must be somewhat complex for speed reasons.
 max-complexity = 40
+
 
 [tool.ruff.per-file-ignores]
 # manifest.py files are evaluated with some global names pre-defined
 "**/manifest.py" = ["F821"]
 
+
 [tool.ruff.lint.isort]
 # Use 2 lines after imports
 lines-after-imports = 2
+
 
 [tool.ruff.lint.pylint]
 # for speed reasons, assigning to a var isn't always worth it
