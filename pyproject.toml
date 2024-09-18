@@ -28,45 +28,56 @@ builtins = ["const", "micropython", "ptr", "ptr8", "ptr16", "ptr32"]
 extend-select = ["C9", "PLC"]
 ignore = [
   # These exclusions are borrowed from the MicroPython repo:
-  "E401",
-  "E402",
-  "E722",
-  "E731",
-  "E741",
-  "F401",
-  "F403",
-  "F405",
+  "E401",  # Multiple imports on one line
+  "E402",  # Module level import not at top of cell
+  "E722",  # Do not use bare except
+  "E731",  # Do not assign a lambda expression, use a def
+  "E741",  # Ambiguous variable name
+  "F401",  # imported but unused
+  "F403",  # `from {name} import *` used
+  "F405",  # {name} may be undefined, or defined from star imports
+
   # These exclusions just arent really relevant (or don't work) in MicroPython:
-  "PLC1901",
-  "FURB103",
-  "PLW1514",
-  "FBT003",
-  "PIE810",
-  # MicroPython doesn't add features in the same order as CPython:
-  "FA",
+  "PLC1901",  # compare-to-empty-string
+  "FURB101",  # open and read should be replaced by Path({filename})
+  "FURB103",  # open and write should be replaced by Path({filename})
+  "PLW1514",  # unspecified-encoding
+  "FBT003",   # boolean-positional-value-in-call
+  "PIE810",   # Call {attr} once with a tuple (str.startswith/endswith)
+  "SIM105",   # Use contextlib.suppress({exception}) instead of try-except-pass
+  "FA",       # flake8-future-annotations
+
   # MH uses commented out code in the build process:
-  "ERA001",
+  "ERA001",  # Found commented-out code
+
   # for now, MH takes a soft approach to quote-style.
   # You should just try to maintain consistency with surrounding code:
-  "Q000",
+  "Q000",   #	Single quotes found but double quotes preferred
+
   # Up for debate, but IMO a bit of extra space really helps with dense code blocks:
-  "E303",
+  "E303",  # Too many blank lines
+
   # MH specifically allows the use of tabs over spaces in its code for accessibility.
   # (And spaces are allowed because they are usually the editor default):
-  "D206",
-  "W191",
+  "D206",  # Docstring should be indented with spaces, not tabs
+  "W191",  # Indentation contains tabs
+
   # This can sometimes harm performance in MP:
-  "FURB136",
-  "PLR1730",
-  # PEP8 reccomends grouping by order-of operations
+  "FURB136",  # Replace if expression with {min_max} call
+  "PLR1730",  # ^
+
+  # PEP8 reccomends grouping by order-of-operations
   # like: `4*6 + 12*2`
-  "E226",
+  "E226",  # Missing whitespace around arithmetic operator
+
   # This is highly opinionated, but IMO if you are doing this,
   # you're probably trying to make the code more readable:
-  "E702",
+  "E702",  # Multiple statements on one line (semicolon)
+  "E701",  # Multiple statements on one line (colon)
+
   # This rule is great for the most part, but there are far too many 
   # valid exceptions to the rule to this rule in the MH source:
-  "PLR2004",
+  "PLR2004",  # Magic value used in comparison
 ]
 
 [tool.ruff.mccabe]
