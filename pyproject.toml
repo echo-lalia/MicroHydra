@@ -45,7 +45,9 @@ ignore = [
   "FBT003",   # boolean-positional-value-in-call
   "PIE810",   # Call {attr} once with a tuple (str.startswith/endswith)
   "SIM105",   # Use contextlib.suppress({exception}) instead of try-except-pass
+  "ANN002",   # missing-type-args
   "FA",       # flake8-future-annotations
+  "PLW2901",  # redefined-loop-name (Limited resources)
 
   # MH uses commented out code in the build process:
   "ERA001",  # Found commented-out code
