@@ -36,7 +36,7 @@ ignore = [
   "F401",
   "F403",
   "F405",
-  # These exclusions just arent really relevant (or dont work) in MicroPython:
+  # These exclusions just arent really relevant (or don't work) in MicroPython:
   "PLC1901",
   "FURB103",
   "PLW1514",
@@ -62,8 +62,11 @@ ignore = [
   # like: `4*6 + 12*2`
   "E226",
   # This is highly opinionated, but IMO if you are doing this,
-  # you're probably trying to make the code more readable
+  # you're probably trying to make the code more readable:
   "E702",
+  # This rule is great for the most part, but there are far too many 
+  # valid exceptions to the rule to this rule in the MH source:
+  "PLR2004",
 ]
 
 [tool.ruff.mccabe]

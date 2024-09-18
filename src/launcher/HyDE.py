@@ -330,21 +330,21 @@ def classify_char(ch) -> int:  # noqa: PLR0911
     char = int(ord(ch))
 
     # These integers are chosen based on codepoint groupings from `ord`
-    if char < 33:         # noqa: PLR2004
+    if char < 33:
         return _SPACE_CLASS
 
     if 97 <= char <= 122 \
     or 65 <= char <= 90 \
-    or char == 95:        # noqa: PLR2004
+    or char == 95:
         return _ALPHA_CLASS
 
-    if 48 <= char <= 57:  # noqa: PLR2004
+    if 48 <= char <= 57:
         return _DIGIT_CLASS
 
-    if char == 46:        # noqa: PLR2004
+    if char == 46:
         return _DOT_CLASS
 
-    if char == 8201:      # noqa: PLR2004
+    if char == 8201:
         return _INDENT_CLASS
 
     return _OTHER_CLASS
