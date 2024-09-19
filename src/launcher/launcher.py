@@ -1,4 +1,4 @@
-"""MicroHydra main launcher
+"""MicroHydra main launcher.
 
 This program is designed to be used in conjunction with "main.py" apploader,
 to select and launch MicroPython apps.

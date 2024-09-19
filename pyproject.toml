@@ -27,7 +27,9 @@ builtins = ["const", "micropython", "ptr", "ptr8", "ptr16", "ptr32"]
 
 
 [tool.ruff.lint]
-extend-select = ["C9", "PLC"]
+# Select all stable linting rules.
+select = ["ALL"]
+# Ignore every rule that doesn't work for us:
 ignore = [
   # These exclusions are borrowed from the MicroPython repo:
   "E401",  # Multiple imports on one line
@@ -47,16 +49,19 @@ ignore = [
   "FBT003",   # boolean-positional-value-in-call
   "PIE810",   # Call {attr} once with a tuple (str.startswith/endswith)
   "SIM105",   # Use contextlib.suppress({exception}) instead of try-except-pass
-  "ANN002",   # missing-type-args
   "FA",       # flake8-future-annotations
   "PLW2901",  # redefined-loop-name (Limited resources)
+  "ANN0",     # Missing type annotations (No Typing module)
+  "ANN204",   # Missing return type annotation for special method
+  "PTH",      # Use pathlib (No pathlib module)
+  "INP001",   # File is part of an implicit namespace package. (Just a bit unnecessary)
 
   # MH uses commented out code in the build process:
-  "ERA001",  # Found commented-out code
+  "ERA",   # Found commented-out code
 
   # for now, MH takes a soft approach to quote-style.
   # You should just try to maintain consistency with surrounding code:
-  "Q000",   #	Single quotes found but double quotes preferred
+  "Q000",  #	Single quotes found but double quotes preferred
 
   # Up for debate, but IMO a bit of extra space really helps with dense code blocks:
   "E303",  # Too many blank lines
@@ -109,3 +114,12 @@ lines-after-imports = 2
 [tool.ruff.lint.pylint]
 # for speed reasons, assigning to a var isn't always worth it
 max-bool-expr = 20
+
+
+[tool.ruff.lint.flake8-annotations]
+suppress-none-returning = true
+
+
+[tool.ruff.lint.pydocstyle]
+# Use pep257 docstrings.
+convention = "pep257"
