@@ -59,23 +59,21 @@ except:
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Functions: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def update_config(caller, value):
-    """Update the config using given value
+    """Update the config using given value.
 
     (This is a callback for HydraMenu)
     """
-    global I18N  # noqa: PLW0603
-
     config[caller.text] = value
 
     # regen palette and translations based on new vals
     config.generate_palette()
-    I18N = I18N(_TRANS)
+    I18N.__init__(_TRANS)
 
     print(f"config['{caller.text}'] = {value}")
 
 
 def discard_conf(caller):  # noqa: ARG001
-    """Close Settings and discard changes"""
+    """Close Settings and discard changes."""
     print("Discard config.")
     display.fill(0)
     display.show()
@@ -84,7 +82,7 @@ def discard_conf(caller):  # noqa: ARG001
 
 
 def save_conf(caller):  # noqa: ARG001
-    """Close Settings and write new config"""
+    """Close Settings and write new config."""
     config.save()
     print("Save config: ", config.config)
     display.fill(0)
@@ -94,7 +92,7 @@ def save_conf(caller):  # noqa: ARG001
 
 
 def export_config(caller):  # noqa: ARG001
-    """Try saving config to SDCard"""
+    """Try saving config to SDCard."""
     # try making hydra directory
     try:
         os.mkdir('sd/Hydra')
@@ -111,15 +109,15 @@ def export_config(caller):  # noqa: ARG001
 
 
 def import_config(caller):  # noqa: ARG001
-    """Try importing a config from the SDCard"""
-    global menu, I18N  # noqa: PLW0603
+    """Try importing a config from the SDCard."""
+    global menu  # noqa: PLW0603
     try:
         with open("sd/Hydra/config.json") as file:
             config.config.update(json.loads(file.read()))
 
         # update config and lang
         config.generate_palette()
-        I18N = I18N(_TRANS)
+        I18N.__init__(_TRANS)
 
         overlay.popup("Config loaded from 'sd/Hydra/config.json'")
         # update menu
@@ -131,7 +129,7 @@ def import_config(caller):  # noqa: ARG001
 
 
 def import_export(caller):
-    """Bring up the menu for importing/exporting the config"""
+    """Bring up the menu for importing/exporting the config."""
     choice = overlay.popup_options(
         ("Back...", "Export to SD", "Import from SD"),
         title="Import/Export config",
@@ -154,7 +152,7 @@ def build_menu() -> hydramenu.Menu:
 
     menu_def = [
         (hydramenu.ChoiceItem, 'language', {'choices': LANGS, 'instant_callback': update_config}),
-        (hydramenu.IntItem, 'volume', {'min_int': 0, 'max_int': 10, 'instant_callback': update_config}),  # noqa: E501
+        (hydramenu.IntItem, 'volume', {'min_int': 0, 'max_int': 10, 'instant_callback': update_config}),
         (hydramenu.RGBItem, 'ui_color', {'instant_callback': update_config}),
         (hydramenu.RGBItem, 'bg_color', {'instant_callback': update_config}),
         (hydramenu.WriteItem, 'wifi_ssid', {}),
