@@ -66,6 +66,7 @@ ignore = [
 
   # Up for debate, but IMO a bit of extra space really helps with dense code blocks:
   "E303",  # Too many blank lines
+  "D202",  # No blank lines allowed after function docstring
 
   # MH specifically allows the use of tabs over spaces in its code for accessibility.
   # (And spaces are allowed because they are usually the editor default):
