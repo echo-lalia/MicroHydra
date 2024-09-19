@@ -55,6 +55,7 @@ ignore = [
   "ANN204",   # Missing return type annotation for special method
   "PTH",      # Use pathlib (No pathlib module)
   "INP001",   # File is part of an implicit namespace package. (Just a bit unnecessary)
+  "RUF012",   # Mutable class attributes should be annotated with `typing.ClassVar`
 
   # MH uses commented out code in the build process:
   "ERA",   # Found commented-out code
@@ -88,8 +89,12 @@ ignore = [
   # valid exceptions to the rule to this rule in the MH source:
   "PLR2004",  # Magic value used in comparison
 
-  # This is just kinda overkill:
+  # These are just kinda overkill:
   "D105",     # Missing docstring in magic method
+  "T201",     # `print` found
+
+  # This is a good suggestion, but it pops up too often when a trailing comma will actually break something
+  "COM812",   # missing-trailing-comma
 ]
 
 

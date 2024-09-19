@@ -78,7 +78,7 @@ _Y_PADDING = const(
     - _FONT_HEIGHT
     - _SCROLLBAR_HEIGHT
     - 4)
-    // 5,
+    // 5
     )
 
 
@@ -846,7 +846,7 @@ def main_loop():
                     if CONFIG['ui_sound'] == 0:  # currently muted, then unmute
                         BEEP.play(
                             ("C3", "E3", "G3", ("C4", "E4", "G4"), ("C4", "E4", "G4")), 80)
-                        
+
 
                 elif APP_NAMES[APP_SELECTOR_INDEX] == "Reload Apps":
                     scan_apps()

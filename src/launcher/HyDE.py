@@ -42,10 +42,7 @@ _NUM_LINES = const((_MH_DISPLAY_HEIGHT - (_SMALL_FONT_HEIGHT * 6)) // _FONT_HEIG
 _NUM_LINES_ALL = const(_NUM_LINES + 8)
 
 # padding between lines calculated by dividing the unused screen space by number of lines
-_DISPLAY_PADDING = const(
-    (_MH_DISPLAY_HEIGHT - ((6 * _SMALL_FONT_HEIGHT) + (_NUM_LINES * _FONT_HEIGHT)))
-    // (_NUM_LINES),
-    )
+_DISPLAY_PADDING = const((_MH_DISPLAY_HEIGHT - (6*_SMALL_FONT_HEIGHT + _NUM_LINES*_FONT_HEIGHT)) // _NUM_LINES)
 
 
 # modified text sizes (based on padding)
