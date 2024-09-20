@@ -1,5 +1,6 @@
 import math
 
+
 def ease_in_sine(x: float) -> float:
     return 1 - math.cos((x * math.pi) / 2)
 
