@@ -61,6 +61,9 @@ ignore = [
   # MH uses commented out code in the build process:
   "ERA",   # Found commented-out code
 
+  # This is kinda unstable and also breaks hydra conditionals sometimes.
+  "I001",  # Import block is un-sorted or un-formatted
+
   # for now, MH takes a soft approach to quote-style.
   # You should just try to maintain consistency with surrounding code:
   "Q000",  #	Single quotes found but double quotes preferred
