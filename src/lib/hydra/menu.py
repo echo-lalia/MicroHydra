@@ -9,9 +9,11 @@ import time
 
 from font import vga2_16x32 as font
 from lib.display import Display
-from lib.hydra import beeper, color
-from lib.hydra.config import Config
 from lib.userinput import UserInput
+
+from . import beeper, color
+from .config import Config
+from .utils import get_instance
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ CONSTANT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -82,9 +84,9 @@ class Menu:
         # init globals
         global CONFIG, DISPLAY, BEEP  # noqa: PLW0603
 
-        CONFIG = Config.instance if hasattr(Config, 'instance') else Config()
-        BEEP = beeper.Beeper()
-        DISPLAY = Display.instance if hasattr(Display, 'instance') else Display()
+        CONFIG = get_instance(Config)
+        BEEP = get_instance(beeper.Beeper)
+        DISPLAY = get_instance(Display, allow_init=False)
 
 
         self.items = []

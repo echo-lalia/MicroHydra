@@ -5,6 +5,7 @@ for reference and convenience.
 """
 
 from .palette import Palette
+from lib.hydra.utils import get_instance
 
 
 # Palette class
@@ -27,7 +28,7 @@ class NamedPalette:
     }
     def __init__(self):
         """Initialize the Palette."""
-        self.palette = Palette.instance if hasattr(Palette, 'instance') else Palette()
+        self.palette = get_instance(Palette)
 
     @staticmethod
     def _str_to_idx(val:str|int) -> int:

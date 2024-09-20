@@ -7,6 +7,7 @@ which can be used to implement translations in MicroHydra.
 import json
 
 from .config import Config
+from .utils import get_instance
 
 
 class I18n:
@@ -32,7 +33,7 @@ class I18n:
         and the values of that dictionary are based on the language set in 'config.json'.
         """
         # extract lang from config
-        config = Config.instance if hasattr(Config, 'instance') else Config()
+        config = get_instance(Config)
         self.lang = config['language']
 
         # extract and prune target translations into one dict

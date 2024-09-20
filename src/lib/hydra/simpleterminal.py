@@ -8,7 +8,8 @@ When `False`, only draw when you call the draw method. You must call `Display.sh
 """
 
 from lib.display import Display
-from lib.hydra.config import Config
+from .config import Config
+from .utils import get_instance
 
 
 _MH_DISPLAY_HEIGHT = const(135)
@@ -27,11 +28,8 @@ class SimpleTerminal:
         If immediate == True, updates to the terminal are instantly drawn to the display.
         (Otherwise you must manually call `SimpleTerminal.draw` and `Display.show`)
         """
-        if not hasattr(Display, 'instance'):
-            msg = "Display has no instance. Please init 'Display' before 'SimpleTerminal'"
-            raise AttributeError(msg)
-        self.display = Display.instance
-        self.config = Config.instance if hasattr(Config, 'instance') else Config()
+        self.display = get_instance(Display)
+        self.config = get_instance(Config)
         self.immediate = immediate
 
 
