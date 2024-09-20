@@ -127,7 +127,7 @@ def try_request_file(file_path: str) -> requests.Response:
     while True:
         try:
             return request_file(file_path)
-        except OSError as e:  # noqa: PERF203
+        except (OSError, ValueError) as e:  # noqa: PERF203
             TERM.print(f"Request failed: {e}")
             time.sleep(wait)
             wait += 1

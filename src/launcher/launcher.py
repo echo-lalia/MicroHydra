@@ -790,7 +790,7 @@ def main_loop():
     DISPLAY.hline(0, _STATUSBAR_HEIGHT, _MH_DISPLAY_WIDTH, CONFIG.palette[1])
 
     icon = IconWidget()
-    icon.force_update()
+    icon.draw()
 
 
     while True:
