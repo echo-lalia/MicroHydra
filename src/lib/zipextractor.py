@@ -17,7 +17,10 @@ _LOCAL_HEADER_SIGN = const(b'PK\x03\x04')
 _CENTRAL_HEADER_SIGN = const(b'PK\x01\x02')
 
 class ZipExtractor:
+    """Class that extracts zip files."""
+
     def __init__(self, zip_path):
+        """Create an extractor for given path."""
         # small arrays of various sizes are used to easily read
         # attributes of various lengths
         self.array_4 = bytearray(4)
@@ -28,19 +31,17 @@ class ZipExtractor:
 
 
     @staticmethod
-    def _arr2int(array):
+    def _arr2int(array) -> int:
         return int.from_bytes(bytes(array), 'little')
 
 
     @staticmethod
-    def _arr2str(array):
+    def _arr2str(array) -> str:
         return bytes(array).decode("utf-8")
 
 
     def _extract_next_file(self, file, out_path, wbits):
-        """
-        Naively extract files from zip one-by-one, ignoring the "central directory".
-        """
+        """Naively extract files from zip one-by-one, ignoring the "central directory"."""
         # Start by scanning local header for needed info
 
         # First bytes should mark a local header
@@ -50,12 +51,12 @@ class ZipExtractor:
                 return # no more local file data
             print("WARNING: ZipExtractor didn't find expected file header!")
 
-        
+
         # seek to compression method
         file.seek(4, 1) # (byte 8)
         file.readinto(self.array_2)
         compression_method = self._arr2int(self.array_2) # (byte 10)
-        
+
         # skip to uncompressed size
         file.seek(12, 1) # (byte 22)
         file.readinto(self.array_4) # (byte 26)
@@ -64,7 +65,7 @@ class ZipExtractor:
         # read name and extra data length
         file.readinto(self.array_2) # (byte 28)
         name_len = self._arr2int(self.array_2)
-        
+
         file.readinto(self.array_2) # (byte 30)
         ext_len = self._arr2int(self.array_2)
 
@@ -72,20 +73,20 @@ class ZipExtractor:
         name_arr = bytearray(name_len)
         file.readinto(name_arr) # (byte 30 + n)
         name = self._arr2str(name_arr)
-        
+
         # seek past extra data
         file.seek(ext_len, 1) # (byte 30+n+m)
 
         # find full output file path
-        full_path = '/'.join([out_path, name])
-        
-        # Make directory if thats what this is
+        full_path = f'{out_path}/{name}'
+
+        # Make directory if that's what this is
         if uncompressed_size == 0 and name.endswith('/'):
             try:
                 # trailing slash must be removed
                 print(f"Making {full_path}")
                 os.mkdir(full_path[:-1])
-            except:
+            except:  # noqa: S110
                 pass # directory might exist already
 
         # if this has a name and a valid compression method,
@@ -93,21 +94,22 @@ class ZipExtractor:
         elif name and (compression_method in (0, 8)):
             print(f"Writing {full_path}")
             # deflate and write file
-            with deflate.DeflateIO(file, deflate.RAW, wbits) as d:
-                with open(full_path, 'wb') as output_file:
-                    remaining_bytes = uncompressed_size + 1
+            with deflate.DeflateIO(file, deflate.RAW, wbits) as d, \
+            open(full_path, 'wb') as output_file:
+                remaining_bytes = uncompressed_size + 1
 
-                    while remaining_bytes > 0:
-                        to_read = min(128, remaining_bytes)
-                        
-                        output_file.write(d.read(to_read))
-                        
-                        remaining_bytes -= to_read
+                while remaining_bytes > 0:
+                    to_read = min(128, remaining_bytes)
+
+                    output_file.write(d.read(to_read))
+
+                    remaining_bytes -= to_read
 
         # get next file:
         self._extract_next_file(file, out_path, wbits)
 
 
     def extract(self, out_path, wbits=14):
+        """Extract the zip to the given path using given wbits."""
         with open(self.zip_path, "rb") as f:
             self._extract_next_file(f, out_path, wbits)
