@@ -198,7 +198,7 @@ DARK_COMMENT_COLOR = color.mix_color565(
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def file_options(target_file, overlay, editor):
-    """Give file options menu"""
+    """Give file options menu."""
     _OPTIONS = const(("Back", "Save", "Tab...", "Run...", "Exit..."))
 
     choice = overlay.popup_options(_OPTIONS, title="GO...")
@@ -216,7 +216,7 @@ def file_options(target_file, overlay, editor):
 
 
 def tab_options(overlay):
-    """Give tab options menu"""
+    """Give tab options menu."""
     global USE_TABS  # noqa: PLW0603
 
     title = "'tab' inserts tabs" if USE_TABS else "'tab' inserts spaces"
@@ -239,7 +239,7 @@ def tab_options(overlay):
 
 
 def run_options(target_file, overlay, editor):
-    """Give run options submenu"""
+    """Give run options submenu."""
     _RUN_OPTIONS = const(("Cancel", "Run here", "Restart and run"))
     choice = overlay.popup_options(_RUN_OPTIONS, title="Run...", depth=1)
     if choice == "Cancel":
@@ -251,7 +251,7 @@ def run_options(target_file, overlay, editor):
 
 
 def exit_options(target_file, overlay, editor):
-    """Give run options submenu"""
+    """Give run options submenu."""
     _EXIT_OPTIONS = const(("Cancel", "Exit to Files", "Exit to Launcher"))
 
     choice = overlay.popup_options(_EXIT_OPTIONS, title="Exit...", depth=1)
@@ -280,7 +280,7 @@ def boot_into_file(target_file, overlay):
 
 
 def run_file_here(filepath, overlay, editor):
-    """Try running the target file here"""
+    """Try running the target file here."""
     editor.save_file(filepath)
     overlay.draw_textbox("Running...")
     DISPLAY.show()
@@ -303,7 +303,7 @@ def run_file_here(filepath, overlay, editor):
 
 
 @micropython.viper
-def classify_char(ch) -> int:  # noqa: PLR0911
+def classify_char(ch) -> int:
     """Classify char types for comparison. Returns an int representing the type."""
     if not ch:
         return _NONE_CLASS
@@ -345,7 +345,7 @@ def is_var(string) -> bool:
 
 
 def is_numeric(string) -> bool:
-    """Check if string is numeric. (With support for '_' and '.')"""
+    """Check if string is numeric. (With support for '_' and '.')."""
     any_numbers = False
     for char in string:
         if char.isdigit():
@@ -367,7 +367,7 @@ def remove_line_breaks(line: str) -> str:
 
 
 def replace_tabs(line: str) -> str:
-    """Replace tabs with fake tab"""
+    """Replace tabs with fake tab."""
     tab_syms = ''
     while line.startswith(_TAB_INDENT):
         line = line[1:]
@@ -376,7 +376,7 @@ def replace_tabs(line: str) -> str:
 
 
 def replace_space_indents(line: str) -> str:
-    """Replace space indents with fake tab"""
+    """Replace space indents with fake tab."""
     space_syms = ''
     while line.startswith(' '):
         # we must handle cases where less than 4 spaces are used, but we expect 4.
@@ -413,7 +413,7 @@ def format_display_line(line: str) -> str:
 
 @micropython.native
 def segment_from_str(string: str, index: int) -> str:
-    """Extract word segment from index, based on classify_char"""
+    """Extract word segment from index, based on classify_char."""
     start_class = classify_char(string[index])
     end_idx = index
     start_idx = index
@@ -505,7 +505,7 @@ def draw_rule(
         *,
         small: bool = False,
         highlight: bool = False):
-    """Draw one rule line"""
+    """Draw one rule line."""
     DISPLAY.vline(
         x + 6,
         y,
@@ -522,7 +522,7 @@ def draw_rules(
     *,
     small: bool = False,
     highlight: bool = False):
-    """Draw indentaiton rule lines for given line"""
+    """Draw indentaiton rule lines for given line."""
     while line.startswith(_INDENT_SYM):
         line = line[1:]
         draw_rule(x, y, small=small, highlight=highlight)
@@ -597,10 +597,7 @@ def draw_fancy_line(
 
         # decide on color
         if is_comment:  # comment string
-            if x >= _RIGHT_TEXT_FADE or x < _LEFT_PADDING:
-                color = DARK_COMMENT_COLOR
-            else:
-                color = COMMENT_COLOR
+            color = DARK_COMMENT_COLOR if x >= _RIGHT_TEXT_FADE or x < _LEFT_PADDING else COMMENT_COLOR
 
         elif string_char:  # this is in a string
             color = DARK_STR_COLOR if _RIGHT_TEXT_FADE <= x < _LEFT_PADDING else STR_COLOR
@@ -647,14 +644,14 @@ def draw_fancy_line(
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # --------------------------------------------------------------------------------------------------
 class Editor:
-    """HyDE Editor class
+    """HyDE Editor class.
 
     This class is used to manage the cursor and view positions,
     as well as to hold and modify the lines of the open file.
     """
 
     def __init__(self, overlay):
-        """Initialize the Editor with the given overlay"""
+        """Initialize the Editor with the given overlay."""
         self.overlay = overlay
         self.lines = []
         self.display_index = [0, -3]
@@ -711,7 +708,7 @@ class Editor:
 
 
     def jump_backspace(self):
-        """Repeat backspace until we hit a new char class"""
+        """Repeat backspace until we hit a new char class."""
         start_type = classify_char(self.get_left_char())
         for _ in range(100):  # let's not go forever here
             if classify_char(self.get_left_char()) != start_type:
@@ -720,7 +717,7 @@ class Editor:
 
 
     def jump_left(self):
-        """Repeat left until we hit a new char class"""
+        """Repeat left until we hit a new char class."""
         start_type = classify_char(self.get_left_char())
         for _ in range(100):  # let's not go forever here
             if classify_char(self.get_left_char()) != start_type:
@@ -729,7 +726,7 @@ class Editor:
 
 
     def jump_right(self):
-        """Repeat right until we hit a new char class"""
+        """Repeat right until we hit a new char class."""
         start_type = classify_char(self.get_right_char())
         for _ in range(100):  # let's not go forever here
             if classify_char(self.get_right_char()) != start_type:
@@ -738,7 +735,7 @@ class Editor:
 
 
     def get_right_char(self) -> str|None:
-        """Get the character to the right of the cursor"""
+        """Get the character to the right of the cursor."""
         line = self.lines[self.cursor_index[1]]
         if self.cursor_index[0] < len(line):
             return line[self.cursor_index[0]]
@@ -746,7 +743,7 @@ class Editor:
 
 
     def get_left_char(self) -> str|None:
-        """Get the character to the left of the cursor"""
+        """Get the character to the left of the cursor."""
         line = self.lines[self.cursor_index[1]]
         if 0 <= self.cursor_index[0] - 1 < len(line):
             return line[self.cursor_index[0] - 1]
@@ -760,14 +757,14 @@ class Editor:
 
 
     def insert_char(self, char):
-        """Insert a character at the cursor"""
+        """Insert a character at the cursor."""
         l_line, r_line = self.split_line_at_cursor()
         self.lines[self.cursor_index[1]] = l_line + char + r_line
         self.move_right()
 
 
     def insert_tab(self):
-        """Insert a tab at the cursor"""
+        """Insert a tab at the cursor."""
         l_line, r_line = self.split_line_at_cursor()
 
         self.lines[self.cursor_index[1]] = l_line + _INDENT_SYM + r_line
@@ -775,7 +772,7 @@ class Editor:
 
 
     def insert_line(self):
-        """Insert a new line at the cursor"""
+        """Insert a new line at the cursor."""
         l_line, r_line = self.split_line_at_cursor()
 
         # auto indent
@@ -798,7 +795,7 @@ class Editor:
 
 
     def backspace(self):
-        """Delete a character at the cursor"""
+        """Delete a character at the cursor."""
         l_line, r_line = self.split_line_at_cursor()
 
         # if cursor at start of line, delete line:
@@ -818,7 +815,7 @@ class Editor:
 
 
     def display_to_cursor_x(self):
-        """Move view to cursor on the X axis"""
+        """Move view to cursor on the X axis."""
         if self.display_index[0] + _HORIZONTAL_CHARACTERS < self.cursor_index[0] + 4:
             self.display_index[0] = (self.cursor_index[0] - _HORIZONTAL_CHARACTERS) + 4
         if self.display_index[0] > self.cursor_index[0] - 4:
@@ -828,7 +825,7 @@ class Editor:
 
 
     def display_to_cursor_y(self):
-        """Move view to cursor on the Y axis"""
+        """Move view to cursor on the Y axis."""
         if self.cursor_index[1] < self.display_index[1] + 3:
             self.display_index[1] = self.cursor_index[1] - 3
 
@@ -837,25 +834,25 @@ class Editor:
 
 
     def display_snap_right(self):
-        """Move view all the way right"""
+        """Move view all the way right."""
         self.display_index[0] += 100
         self.display_to_cursor_x()
 
 
     def display_snap_left(self):
-        """Move view all the way left"""
+        """Move view all the way left."""
         self.display_index[0] = 0
         self.display_to_cursor_x()
 
 
     def display_snap_up(self):
-        """Move view all the way up"""
+        """Move view all the way up."""
         self.display_index[1] = -3
         self.display_to_cursor_y()
 
 
     def display_snap_down(self):
-        """Move view all the way down"""
+        """Move view all the way down."""
         self.display_index[1] = len(self.lines)
         self.display_to_cursor_y()
 
@@ -884,7 +881,7 @@ class Editor:
 
 
     def move_end(self):
-        """Jump to bottom of document"""
+        """Jump to bottom of document."""
         self.cursor_index[1] = len(self.lines) - 1
         self.cursor_index[0] = len(self.lines[-1])
         self.display_index[1] = len(self.lines) -8
@@ -892,7 +889,7 @@ class Editor:
 
 
     def move_home(self):
-        """Jump to top of document"""
+        """Jump to top of document."""
         self.cursor_index[1] = 0
         self.cursor_index[0] = 0
         self.display_index[1] = -3
@@ -900,21 +897,21 @@ class Editor:
 
 
     def move_left(self):
-        """Move cursor to the left"""
+        """Move cursor to the left."""
         self.cursor_index[0] -= 1
         self.clamp_cursor()
         self.display_to_cursor_x()
 
 
     def move_right(self):
-        """Move cursor to the right"""
+        """Move cursor to the right."""
         self.cursor_index[0] += 1
         self.clamp_cursor()
         self.display_to_cursor_x()
 
 
     def move_up(self):
-        """Move cursor up"""
+        """Move cursor up."""
         self.cursor_index[1] -= 1
         if self.cursor_index[1] < 0:
             self.cursor_index[1] = 0
@@ -924,7 +921,7 @@ class Editor:
 
 
     def move_down(self):
-        """Move cursor down"""
+        """Move cursor down."""
         self.cursor_index[1] += 1
         if self.cursor_index[1] >= len(self.lines):
             self.cursor_index[1] = len(self.lines) - 1
@@ -994,7 +991,7 @@ class Editor:
 
 
     def get_current_lines(self) -> list:
-        """Get the lines currently within the "main" portion of the display"""
+        """Get the lines currently within the "main" portion of the display."""
         output = []
         for i in range(self.display_index[1] + 3, self.display_index[1]+8):
             if i >= 0 and i < len(self.lines):
@@ -1006,7 +1003,7 @@ class Editor:
 
     @staticmethod
     def get_total_width(line: str) -> int:
-        """Get the total width of a line"""
+        """Get the total width of a line."""
         width = 0
         for char in line:
             width += 8 if ord(char) < _ASCII_MAX else 16
@@ -1014,7 +1011,7 @@ class Editor:
 
 
     def draw_cursor(self):
-        """Draw the blinking cursor on the screen"""
+        """Draw the blinking cursor on the screen."""
         line = format_display_line(
             self.lines[self.cursor_index[1]][:self.cursor_index[0]]
         )
@@ -1034,7 +1031,7 @@ class Editor:
 
 
     def draw_bg(self):
-        """Fill the background"""
+        """Fill the background."""
         DISPLAY.fill(CONFIG.palette[2])
         if self.display_index[0] == 0:  # left rule
             DISPLAY.vline(_LEFT_RULE, 0, _MH_DISPLAY_HEIGHT, CONFIG.palette[1])
@@ -1046,7 +1043,7 @@ class Editor:
         DISPLAY.show()
         with open(filepath,"w") as file:
             for line in self.lines:
-                line = line.replace(  # noqa: PLW2901
+                line = line.replace(
                     _INDENT_SYM,
                     _TAB_INDENT if USE_TABS else _SPACE_INDENT,
                     )
@@ -1054,7 +1051,7 @@ class Editor:
 
 
     def copy_line(self):
-        """Copy the current line to the clipboard"""
+        """Copy the current line to the clipboard."""
         self.clipboard = self.lines[self.cursor_index[1]]
 
 
@@ -1073,7 +1070,7 @@ class Editor:
 
 
     def del_line(self):
-        """Delete current line"""
+        """Delete current line."""
         self.lines[self.cursor_index[1]] = ''
         self.cursor_index[0] = 0
         self.backspace()
@@ -1087,7 +1084,7 @@ class Editor:
 def main_loop():
     """Run the main loop of the program."""
 
-    global STR_COLOR, DARK_STR_COLOR, KEYWORD_COLOR, NUM_COLOR, OP_COLOR, COMMENT_COLOR, DARK_COMMENT_COLOR, USE_TABS
+    global STR_COLOR, DARK_STR_COLOR, KEYWORD_COLOR, NUM_COLOR, OP_COLOR, COMMENT_COLOR, DARK_COMMENT_COLOR, USE_TABS  # noqa: PLW0603
 
     DISPLAY.fill(CONFIG.palette[2])
     overlay = popup.UIOverlay()

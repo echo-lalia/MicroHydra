@@ -1,4 +1,4 @@
-"""MicroHydra App Template
+"""MicroHydra App Template.
 
 Version: 1.0
 

@@ -157,7 +157,7 @@ LASTDRAWN_MINUTE = -1
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Finding Apps ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def scan_apps():
-    """Scan for apps in /apps and /sd/apps"""
+    """Scan for apps in /apps and /sd/apps."""
     global APP_NAMES, APP_PATHS  # noqa: PLW0603
 
     # first we need a list of apps located on the flash or SDCard
@@ -250,13 +250,13 @@ def scan_apps():
 
 
 def get_app_paths(ientry: tuple, current_dir: str) -> tuple[str|None, str|None]:
-    """Get an apps name and full path
+    """Get an apps name and full path.
 
     Returns app_name, app_path
     """
     # process results of ilistdir to capture app paths.
-    _DIR_FLAG = const(16384)  # noqa: N806
-    _FILE_FLAG = const(32768)  # noqa: N806
+    _DIR_FLAG = const(16384)
+    _FILE_FLAG = const(32768)
 
     entry = ientry[0]
     is_dir = (ientry[1] == _DIR_FLAG)
@@ -282,7 +282,7 @@ def get_app_paths(ientry: tuple, current_dir: str) -> tuple[str|None, str|None]:
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def launch_app(app_path):
-    """Reboot into given app"""
+    """Reboot into given app."""
     RTC.memory(app_path)
     print(f"Launching '{app_path}'...")
     # reset clock speed to default.
@@ -307,12 +307,12 @@ def center_text_x(text: str) -> int:
 
 
 def ease_out_cubic(x: float) -> float:
-    """Apply cubic ease out function"""
+    """Apply cubic ease out function."""
     return 1 - ((1 - x) ** 3)
 
 
 def time_24_to_12(hour_24: int, minute: int) -> tuple[str, str]:
-    """Convert the given 24 hour time to 12 hour"""
+    """Convert the given 24 hour time to 12 hour."""
     ampm = 'am'
     if hour_24 >= 12:
         ampm = 'pm'
@@ -341,7 +341,7 @@ _BATTERY_Y = const((_STATUSBAR_HEIGHT - 10) // 2)
 
 
 def draw_statusbar():
-    """Draw the top status bar"""
+    """Draw the top status bar."""
     global LASTDRAWN_MINUTE  # noqa: PLW0603
     # erase status bar
     DISPLAY.fill_rect(
@@ -411,7 +411,7 @@ _SCROLLBAR_FULL_WIDTH = const(_MH_DISPLAY_WIDTH - (_SCROLLBAR_PADDING * 2))
 
 
 def draw_scrollbar():
-    """Draw the scrollbar on the display"""
+    """Draw the scrollbar on the display."""
     scrollbar_width = max(
         _SCROLLBAR_FULL_WIDTH // len(APP_NAMES),
         _MIN_SCROLLBAR_WIDTH,
@@ -456,7 +456,7 @@ def draw_scrollbar():
 
 
 def draw_app_selector(icon):
-    """Update and draw the app selector graphics"""
+    """Update and draw the app selector graphics."""
     icon.move()
     icon.draw()
 
@@ -482,10 +482,10 @@ _ICON_BUFFER_LEN = const(_ICON_BITMAP_SIZE // 2)
 
 
 class IconWidget:
-    """Responsible for handling icon graphics"""
+    """Responsible for handling icon graphics."""
 
     def __init__(self):
-        """Initialize the IconWidget"""
+        """Initialize the IconWidget."""
         self.drawn_icon = None
         self.next_icon = None
         self.direction = 0
@@ -516,7 +516,7 @@ class IconWidget:
         # mh_end_if
 
     def force_update(self):
-        """Force an update to the next icon"""
+        """Force an update to the next icon."""
         draw_scrollbar()
         draw_app_name()
         self.next_icon = self._choose_icon()
@@ -545,7 +545,7 @@ class IconWidget:
 
 
     def start_scroll(self, direction=0):
-        """Initialize the scrolling animation"""
+        """Initialize the scrolling animation."""
         if self.next_icon != self.drawn_icon:
             self.force_update()
 
@@ -591,7 +591,7 @@ class IconWidget:
 
 
     def draw(self):
-        """Draw the icon on the display"""
+        """Draw the icon on the display."""
         if self.x == _DISPLAY_WIDTH_HALF \
         and self.prev_x == _DISPLAY_WIDTH_HALF:
             return
@@ -667,7 +667,7 @@ class IconWidget:
 
 
     def move(self):
-        """Update the new icon x position"""
+        """Update the new icon x position."""
         if not self.direction:
             self.x = _DISPLAY_WIDTH_HALF
         x = self._animate_scroll()
@@ -682,7 +682,7 @@ _APP_NAME_LEN_MINUS_THREE = const(_APP_NAME_MAX_LEN - 3)
 
 
 def draw_app_name():
-    """Draw the current app name on the display"""
+    """Draw the current app name on the display."""
     current_app_text = APP_NAMES[APP_SELECTOR_INDEX]
 
     # crop text for display
@@ -708,7 +708,7 @@ _MAX_NTP_ATTEMPTS = const(10)
 
 
 def try_sync_clock():
-    """Try syncing the RTC using ntptime"""
+    """Try syncing the RTC using ntptime."""
     global SYNCING_CLOCK, SYNC_NTP_ATTEMPTS, CONNECT_WIFI_ATTEMPTS  # noqa: PLW0603
 
     if NIC.isconnected():
@@ -752,7 +752,7 @@ def try_sync_clock():
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # --------------------------------------------------------------------------------------------------
 def main_loop():
-    """Run the main loop"""
+    """Run the main loop."""
     global APP_SELECTOR_INDEX, PREV_SELECTOR_INDEX, SYNCING_CLOCK  # noqa: PLW0603
     # scan apps asap to populate app names/paths and SD
     scan_apps()
@@ -795,14 +795,14 @@ def main_loop():
 
     while True:
 
-        # ----------------------- check for key presses on the keyboard. Only if they weren't already pressed. --------------------------
+        # ----------------------- check for key presses on the keyboard. Only if they weren't already pressed. ---------
         new_keys = KB.get_new_keys()
 
         # mh_if CARDPUTER:
         # # Cardputer should use extended movement keys in the launcher
         # KB.ext_dir_keys(new_keys)
         # mh_end_if
-        
+
         # mh_if touchscreen:
         # add swipes to direcitonal input
         touch_events = KB.get_touch_events()
@@ -866,7 +866,7 @@ def main_loop():
                     machine.Pin(_MH_DISPLAY_BACKLIGHT, machine.Pin.OUT).value(0)  # backlight off
                     DISPLAY.spi.deinit()
 
-                    if SD != None:
+                    if SD is not None:
                         try:
                             SD.deinit()
                         except:
@@ -888,9 +888,9 @@ def main_loop():
                             name = APP_NAMES[idx]
                             if name.lower().startswith(key) and idx != APP_SELECTOR_INDEX:
                                 # animation:
-                                if APP_SELECTOR_INDEX > idx:
+                                if idx < APP_SELECTOR_INDEX:
                                     direction = -1
-                                elif APP_SELECTOR_INDEX < idx:
+                                elif idx > APP_SELECTOR_INDEX:
                                     direction = 1
                                 else:
                                     direction = 0
@@ -899,7 +899,7 @@ def main_loop():
                                 APP_SELECTOR_INDEX = idx
                                 icon.start_scroll(direction)
                                 BEEP.play(("G3"), 100)
-                                
+
                                 break
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

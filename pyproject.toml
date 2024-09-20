@@ -27,6 +27,12 @@ builtins = ["const", "micropython", "ptr", "ptr8", "ptr16", "ptr32"]
 
 
 [tool.ruff.lint]
+# These linting rules are new and likely to change. 
+# If you have any suggestions, please feel free to share!
+# Currently, linting rules are being selected by just enabling "ALL" and then disabling
+# any that don't work well for us. However this might not be the most elegant strategy, 
+# and might need to be changed in the future.
+
 # Select all stable linting rules.
 select = ["ALL"]
 # Ignore every rule that doesn't work for us:

@@ -106,7 +106,7 @@ clipboard = None
 
 
 class ListView:
-    """Container for filelist"""
+    """Container for filelist."""
 
     def __init__(
             self,
@@ -114,7 +114,7 @@ class ListView:
             config: Config,
             items: list,
             dir_dict: dict):
-        """Create a ListView
+        """Create a ListView.
 
         Args:
             tft: a Display object
@@ -132,7 +132,7 @@ class ListView:
 
     @staticmethod
     def draw_hamburger_menu(tft, y, color):
-        """Draw a simple hamburger menu"""
+        """Draw a simple hamburger menu."""
         for i in range(3):
             tft.rect(
                 _HAMBURGER_X,
@@ -144,7 +144,7 @@ class ListView:
 
 
     def draw(self):
-        """Draw list to display"""
+        """Draw list to display."""
         tft = self.tft
         tft.fill(self.config.palette[2])
 
@@ -213,7 +213,7 @@ class ListView:
 
 
     def clamp_cursor(self):
-        """Keep cursor in item range + keep view on cursor"""
+        """Keep cursor in item range + keep view on cursor."""
         self.cursor_index %= len(self.items)
         self._view_to_cursor()
 
@@ -226,24 +226,24 @@ class ListView:
 
 
     def up(self):
-        """Move cursor up"""
+        """Move cursor up."""
         self.cursor_index = (self.cursor_index - 1) % len(self.items)
         self._view_to_cursor()
 
 
     def down(self):
-        """Move cursor down"""
+        """Move cursor down."""
         self.cursor_index = (self.cursor_index + 1) % len(self.items)
         self._view_to_cursor()
 
 
 def ease_in_out_sine(x: float) -> float:
-    """Apply an easing function to given float"""
+    """Apply an easing function to given float."""
     return -(math.cos(math.pi * x) - 1) / 2
 
 
 def ping_pong_ease(value: int, modulo: int) -> float:
-    """Get 'ping-pong' easing for given value and max
+    """Get 'ping-pong' easing for given value and max.
 
     "ping pong"s a value in a given modulo range,
     and applies an easing function to the result,
@@ -259,7 +259,7 @@ def ping_pong_ease(value: int, modulo: int) -> float:
 
 
 def parse_files()  -> tuple[list, dict]:
-    """Get a list of directories/files, and a dictionary of which is which
+    """Get a list of directories/files, and a dictionary of which is which.
 
     Parse result of os.ilistdir() into a sorted list,
     Returns a tuple, where the first item is a list of the directory contents,
@@ -382,7 +382,7 @@ def file_options(file, overlay):
 
 
 def open_file(file):
-    """Reboot/open a file with relevant file handler"""
+    """Reboot/open a file with relevant file handler."""
     cwd = os.getcwd()
     if not cwd.endswith("/"):
         cwd += "/"
@@ -407,7 +407,7 @@ def open_file(file):
 
 
 def refresh_files(view: ListView) -> tuple[list, dict]:
-    """Reload and set the ListView"""
+    """Reload and set the ListView."""
     file_list, dir_dict = parse_files()
     view.items = file_list
     view.dir_dict = dir_dict
@@ -416,7 +416,7 @@ def refresh_files(view: ListView) -> tuple[list, dict]:
 
 
 def main_loop(tft, kb, config, overlay):
-    """Run the main loop"""
+    """Run the main loop."""
 
     new_keys = kb.get_new_keys()
     sd.mount()
