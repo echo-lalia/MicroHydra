@@ -1,4 +1,5 @@
-"""
+"""A ST7789 display driver.
+
 MIT License
 
 Copyright (c) 2024 Ethan Lacasse
@@ -57,11 +58,16 @@ This driver supports:
 
 """
 
-from .palette import Palette
-import framebuf, struct
+import struct
 from time import sleep_ms
+
+import framebuf
+
+from .palette import Palette
+
+
 # mh_if frozen:
-# # frozen firmware must access the font as a module, 
+# # frozen firmware must access the font as a module,
 # # rather than a binary file.
 # from font.utf8_8x8 import utf8
 # mh_end_if
@@ -196,8 +202,7 @@ _ST7789_INIT_CMDS = const((
 
 
 class ST7789:
-    """
-    ST7789 driver class
+    """ST7789 driver class.
 
     Args:
         spi (spi): spi object **Required**
@@ -209,7 +214,7 @@ class ST7789:
         backlight(pin): backlight pin
         reserved_bytearray (bytearray): pre-allocated bytearray to use for framebuffer
         use_tiny_buf (bool):
-            
+
             Whether to use:
              - A compact framebuffer (uses ~width * height / 2 bytes memory)
                "GS4_HMSB" mode
@@ -220,7 +225,7 @@ class ST7789:
                "RGB565" mode
                Can be written directly to display
                Allows any color the display can show
-        
+
         rotation (int):
 
           - 0-Portrait
@@ -247,6 +252,7 @@ class ST7789:
         spi,
         width,
         height,
+        *,
         reset=None,
         dc=None,
         cs=None,
@@ -257,23 +263,21 @@ class ST7789:
         custom_rotations=None,
         reserved_bytearray = None,
         use_tiny_buf = False,
-        **kwargs,
+        **kwargs,  # noqa: ARG002
     ):
-        """
-        Initialize display.
-        """
+        """Initialize display."""
         self.rotations = custom_rotations or self._find_rotations(width, height)
         if not self.rotations:
             supported_displays = ", ".join(
                 [f"{display[0]}x{display[1]}" for display in _SUPPORTED_DISPLAYS]
             )
-            raise ValueError(
-                f"Unsupported {width}x{height} display. Supported displays: {supported_displays}"
-            )
+            msg = f"Unsupported {width}x{height} display. Supported displays: {supported_displays}"
+            raise ValueError(msg)
 
         if dc is None:
-            raise ValueError("dc pin is required.")
-        
+            msg = "dc pin is required."
+            raise ValueError(msg)
+
         #init the fbuf
         if reserved_bytearray is None:
             # use_tiny_fbuf tells us to use a smaller framebuffer (4 bits per pixel rather than 16 bits)
@@ -293,18 +297,17 @@ class ST7789:
             # use_tiny_fbuf uses GS4 format for less memory usage
             framebuf.GS4_HMSB if use_tiny_buf else framebuf.RGB565,
             )
-        
-        
+
         self.palette = Palette()
         self.palette.use_tiny_buf = self.use_tiny_buf = use_tiny_buf
-        
+
         # keep track of min/max y vals for writing to display
         # this speeds up drawing significantly.
         # only y value is currently used, because framebuffer is stored in horizontal lines,
         # making y slices much simpler than x slices.
         self._show_y_min = width if (rotation % 2 == 1) else height
         self._show_y_max = 0
-        
+
         self.width = width
         self.height = height
         self.xstart = 0
@@ -328,10 +331,10 @@ class ST7789:
 
         if backlight is not None:
             backlight.value(1)
-        
+
         # mh_if not frozen:
         # when not frozen, the utf8 font is read as needed from a binary.
-        self.utf8_font = open("/font/utf8_8x8.bin", "rb", buffering = 0)
+        self.utf8_font = open("/font/utf8_8x8.bin", "rb", buffering = 0)  # noqa: SIM115
         # mh_end_if
 
 

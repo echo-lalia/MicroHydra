@@ -19,8 +19,11 @@ Library for I2S software sound mixing developed primarily for the M5 Cardputer.
 https://maple.pet/
 """
 
-from machine import Pin, I2S
-import time, array
+import array
+import time
+
+from machine import I2S, Pin
+
 
 _PERIODS = [ # c-0 thru b-0 - how much to advance a sample pointer per frame for each note
 	b'\x01\x00\x00\x00\x00\x00\x00\x00',
@@ -34,7 +37,7 @@ _PERIODS = [ # c-0 thru b-0 - how much to advance a sample pointer per frame for
 	b'\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00',
 	b'\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00',
 	b'\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00',
-	b'\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00'
+	b'\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00',
 ]
 
 _INT_MINVAL = const(-32768)
@@ -47,7 +50,11 @@ _MH_I2S_SD = const(6)
 
 @micropython.viper
 def _volume(volume:int) -> int:
-	"""Returns volume 0-30 reversed in order to be used in bitshifting. 15 is 100% (no bitshift)"""
+	"""Convert volume to bit shift.
+
+	Returns volume 0-30 reversed in order to be used in bitshifting.
+	15 is 100% (no bitshift)
+	"""
 	if volume <= 0:
 		return 15
 	if volume <= 30:
@@ -62,24 +69,26 @@ def _vipmod(a:int, b:int) -> int:
 	return a
 
 # streaming samples from sd card without using much ram oh yeah i'm feeling really clever!!
-class Sample():
+class Sample:
+	"""Store a sample from a memoryview or file."""
+
 	def __init__(self, source, buffer_size=1024):
-		"""Initialize a sample for playback
-		
+		"""Initialize a sample for playback.
+
 		- source: If string, filename. Otherwise, use MemoryView.
 		- buffer_size: If loading from filename, the size to buffer in RAM.
 		"""
-		if type(source) == str:
+		if type(source) is str:
 			from os import stat
 			self.length = stat(source)[6]
 			if self.length < buffer_size:
 				buffer_size = self.length
 			self.buffer = bytearray(buffer_size)
 			self.buf_mv = memoryview(self.buffer)
-			self.file = open(source, "rb")
+			self.file = open(source, "rb")  # noqa: SIM115
 			self.start = 0
 			self.end = self.file.readinto(self.buf_mv)
-		elif type(source) == memoryview:
+		elif type(source) is memoryview:
 			self.file = None
 			self.buf_mv = source
 			self.start = 0
@@ -90,8 +99,9 @@ class Sample():
 
 	def __len__(self):
 		return self.length
-	
+
 	def load(self, ptr):
+		"""Load data from file into buffer."""
 		if self.file:
 			self.start = ptr
 			self.file.seek(self.start)
@@ -109,15 +119,27 @@ class Sample():
 	#			read = self.file.readinto(self.buf_mv)
 	#			self.end = self.start + read
 	#	return self.buf_mv[key - self.start:]
-	
+
 	def __del__(self):
 		if self.file:
 			self.file.close()
 			del(self.buffer)
 
 class Register:
-	"""Stores settings for timed playback of samples in M5Sound."""
-	def __init__(self, buf_start=0, sample=None, sample_len=0, pointer=0, note=0, period=1, period_mult=4, loop=False, volume=0):
+	"""Stores settings for timed playback of samples in I2SSound."""
+
+	def __init__(
+			self,
+			*,
+			buf_start=0,
+			sample=None,
+			pointer=0,
+			note=0,
+			period=1,
+			period_mult=4,
+			loop=False,
+			volume=0):
+		"""Create a new Register."""
 		self.buf_start = buf_start
 		self.sample = sample
 		self.pointer = pointer
@@ -127,7 +149,8 @@ class Register:
 		self.loop = loop
 		self.volume = volume
 
-	def copy(self):
+	def copy(self) -> 'Register':
+		"""Clone this Register."""
 		registers = Register()
 		registers.buf_start = self.buf_start
 		registers.sample = self.sample
@@ -138,12 +161,22 @@ class Register:
 		registers.loop = self.loop
 		registers.volume = self.volume
 		return registers
-	
+
 	def __str__(self):
 		return f"{self.buf_start}: {self.sample} v:{self.volume} n:{self.note}"
 
 class I2SSound:
-	def __init__(self, buf_size=2048, rate=11025, channels=4, sck=_MH_I2S_SCK, ws=_MH_I2S_WS, sd=_MH_I2S_SD):
+	"""The main driver class for playing sound from an I2S speaker."""
+
+	def __init__(
+			self,
+			buf_size=2048,
+			rate=11025,
+			channels=4,
+			sck=_MH_I2S_SCK,
+			ws=_MH_I2S_WS,
+			sd=_MH_I2S_SD):
+		"""Initialize I2S using the given values."""
 		self._output = I2S(
 			1,
 			sck=Pin(sck),
@@ -153,9 +186,9 @@ class I2SSound:
 			bits=16,
 			format=I2S.MONO,
 			rate=rate,
-			ibuf=buf_size
+			ibuf=buf_size,
 		)
-		
+
 		self._rate = rate
 		self._buf_size:int = buf_size
 		self._buffer = array.array('h', range(buf_size))
@@ -166,30 +199,48 @@ class I2SSound:
 		self._last_tick = 0
 		self._output.irq(self._process_buffer)
 		self._process_buffer(None)
-		
+
 	def __del__(self):
 		self._output.deinit()
 
 	@micropython.native
-	def _gen_buf_start(self):
-		return int((time.ticks_diff(time.ticks_us(), self._last_tick) // (1000000 / self._rate)))
+	def _gen_buf_start(self) -> int:
+		return int(time.ticks_diff(time.ticks_us(), self._last_tick) // (1000000 / self._rate))
 
 	@micropython.native
-	def play(self, sample, note=0, octave=4, volume=15, channel=0, loop=False):
+	def play(
+		self,
+		sample,
+		*,
+		note=0,
+		octave=4,
+		volume=15,
+		channel=0,
+		loop=False):
 		"""Schedules a sample to be played immediately.
-		
-		- sample: Sample or MemoryView for a sample. Must be 16bits mono, sample rate matching M5Sound constructor.
-		- note: Numerical 0-12 mapping from C-0 to B-0. Numbers outside that range will affect octave as well.
-		- octave: Octave to play the sample at. By default C-4 which corresponds to unalterated sample.
-		- volume: Volume the sample should play at, range 0-15.
-		- channel: Channel the sample should play on, must be within range of channels defined in M5Sound constructor.
-		- loop: If True, sample will loop forever until channel is stopped.
+
+		- sample:
+			Sample or MemoryView for a sample.
+			Must be 16bits mono, sample rate matching M5Sound constructor.
+		- note:
+			Numerical 0-12 mapping from C-0 to B-0.
+			Numbers outside that range will affect octave as well.
+		- octave:
+			Octave to play the sample at.
+			By default C-4 which corresponds to unalterated sample.
+		- volume:
+			Volume the sample should play at, range 0-15.
+		- channel:
+			Channel the sample should play on,
+			must be within range of channels defined in M5Sound constructor.
+		- loop:
+			If True, sample will loop forever until channel is stopped.
 		"""
-		if type(sample) == bytearray or type(sample) == bytes:
+		if type(sample) is bytearray or type(sample) is bytes:
 			source = Sample(memoryview(sample))
-		elif type(sample) == memoryview:
+		elif type(sample) is memoryview:
 			source = Sample(sample)
-		elif type(sample) == Sample:
+		elif type(sample) is Sample:
 			source = sample
 		else:
 			raise TypeError
@@ -200,19 +251,19 @@ class I2SSound:
 			loop = loop,
 			note = note % 12,
 			period_mult = 2 ** ((octave-1 if octave > 0 else 0) + (note // 12)),
-			volume = volume
+			volume = volume,
 		)
 		self._queues[channel].append(registers)
 
 	@micropython.native
 	def stop(self, channel=0):
 		"""Schedules a channel to stop playing immediately."""
-		registers = Register(buf_start=self._gen_buf_start()) # default has empty sample
+		registers = Register(buf_start=self._gen_buf_start())  # default has empty sample
 		self._queues[channel].append(registers)
 
 	@micropython.native
 	def setvolume(self, volume, channel=0):
-		"""Sets the volume of a channel immediately, preserving sample already being played there."""
+		"""Set the volume of a channel immediately, preserving sample already being played there."""
 		if len(self._queues[channel]) > 0:
 			registers = self._queues[channel][-1].copy()
 		else:
@@ -225,12 +276,12 @@ class I2SSound:
 	def _clear_buffer(self):
 		"""Zero out internal buffer."""
 		buf = ptr16(self._buf_mv)
-		for i in range(0, int(self._buf_size)):
+		for i in range(int(self._buf_size)):
 			buf[i] = 0
 
 	@micropython.viper
 	def _fill_buffer(self, registers, end:int):
-		"""Takes a sample register and fills internal buffer with it."""
+		"""Take a sample register and fill internal buffer with it."""
 		buf = ptr16(self._buf_mv)
 		start = int(registers.buf_start)
 		ptr = int(registers.pointer)
@@ -264,20 +315,24 @@ class I2SSound:
 			else:
 				bsmp_int >>= vol
 			res = bsmp_int + buf_int
-			buf[i] = (_INT_MINVAL if res < _INT_MINVAL else _INT_MAXVAL if res > _INT_MAXVAL else res)
+			buf[i] = (
+				_INT_MINVAL if res < _INT_MINVAL
+				else _INT_MAXVAL if res > _INT_MAXVAL
+				else res
+			)
 			if res < 0:
 				buf[i] |= 0b1000000000000000
 			for _ in range(permult): # add together frame periods for different octaves
 				ptr += per[perptr]
-				perptr += int(1)
+				perptr += 1
 				if perptr >= perlen:
-					perptr = int(0)
+					perptr = 0
 		registers.buf_start = 0
 		registers.pointer = ptr
 		registers.period = perptr
 
 	@micropython.native
-	def _process_buffer(self, arg):
+	def _process_buffer(self, arg):  # noqa: ARG002 # `arg` required for IRQ callback
 		"""I2S IRQ function to process register queue."""
 		self._output.write(self._buf_mv)
 		self._clear_buffer()

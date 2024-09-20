@@ -1,5 +1,7 @@
-"""
-This program is designed to be used in conjunction with "main.py" apploader, to select and launch MicroPython apps.
+"""MicroHydra main launcher.
+
+This program is designed to be used in conjunction with "main.py" apploader,
+to select and launch MicroPython apps.
 
 The basic app loading logic works like this:
  - apploader reads reset cause and RTC.memory to determine which app to launch
@@ -7,28 +9,47 @@ The basic app loading logic works like this:
  - launcher scans app directories on flash and SDCard to find apps, allows user to select app
  - launcher stores path to app in RTC.memory, and soft-resets the device
  - apploader reads RTC.memory again, and imports given app
- - pressing the reset button will relaunch the launcher program, and so will calling machine.reset() from the app. 
+ - pressing the reset button will relaunch the launcher program,
+   and so will calling machine.reset() from the app.
 
 This approach was chosen to reduce the chance of conflicts or memory errors when switching apps.
-Because MicroPython completely resets between apps, the only "wasted" ram from the app switching process will be from main.py
+Because MicroPython completely resets between apps,
+the only "wasted" ram from the app switching process will be from main.py
 
+
+Copyright (C) 2024  Ethan Lacasse
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import time
-import os
 import math
-import ntptime
-import network
-import machine
+import os
+import time
+
 import framebuf
-from launcher.icons import battery, appicons
+import machine
+import network
+import ntptime
+
 from font import vga2_16x32 as font
-from lib import userinput, battlevel, sdcard
+from launcher.icons import appicons, battery
+from lib import battlevel, display, sdcard, userinput
 from lib.hydra import beeper
 from lib.hydra.config import Config
-from lib import display
 from lib.hydra.i18n import I18n
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ _CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ _CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _MH_DISPLAY_WIDTH = const(320)
 _MH_DISPLAY_HEIGHT = const(240)
 _MH_DISPLAY_BACKLIGHT = const(42)
@@ -68,6 +89,9 @@ _APPNAME_Y = const(_ICON_Y + _ICON_HEIGHT + _Y_PADDING)
 _SCROLL_ANIMATION_TIME = const(400)
 
 
+_ASCII_MAX = const(128)
+
+
 _TRANS = const("""[
     {"en": "Loading...", "zh": "加载中...", "ja": "読み込み中..."},
     {"en": "Files", "zh": "文件", "ja": "ファイル"},
@@ -83,7 +107,8 @@ _TRANS = const("""[
 
 
 
-# bump up our clock speed so the UI feels smoother (240mhz is the max officially supported, but the default is 160mhz)
+# bump up our clock speed so the UI feels smoother
+# (240mhz is the max officially supported, but the default is 160mhz)
 machine.freq(240_000_000)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GLOBALS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -127,13 +152,15 @@ APP_SELECTOR_INDEX = 0
 PREV_SELECTOR_INDEX = 0
 LASTDRAWN_MINUTE = -1
 
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Finding Apps ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def scan_apps():
-    global SD, APP_NAMES, APP_PATHS
-    # first we need a list of apps located on the flash or SDCard
+    """Scan for apps in /apps and /sd/apps."""
+    global APP_NAMES, APP_PATHS  # noqa: PLW0603
 
+    # first we need a list of apps located on the flash or SDCard
     SD.mount()
     main_directory = os.listdir("/")
 
@@ -151,7 +178,8 @@ def scan_apps():
         os.mkdir("/sd/apps")
         sd_directory = os.listdir("/sd")
 
-    # if everything above worked, sdcard should be mounted (if available), and both app directories should exist. now look inside to find our apps:
+    # if everything above worked, sdcard should be mounted (if available),
+    # and both app directories should exist. now look inside to find our apps:
     main_app_list = list(os.ilistdir("/apps"))
     sd_app_list = []
 
@@ -171,7 +199,7 @@ def scan_apps():
     for entry in main_app_list:
         this_name, this_path = get_app_paths(entry, "/apps/")
         if this_name:
-            this_name = this_name.replace('.cli','')
+            this_name = this_name.replace('.cli', '')
             if this_name not in app_names:
                 app_names.append(this_name)
 
@@ -180,7 +208,7 @@ def scan_apps():
     for entry in sd_app_list:
         this_name, this_path = get_app_paths(entry, "/sd/apps/")
         if this_name:
-            this_name = this_name.replace('.cli','')
+            this_name = this_name.replace('.cli', '')
             if this_name not in app_names:
                 app_names.append(this_name)
 
@@ -198,7 +226,7 @@ def scan_apps():
         "Settings",
         "Get Apps",
         ]
-    
+
     # add paths for built-in apps
     # mh_if frozen:
     # app_paths.update({
@@ -215,13 +243,17 @@ def scan_apps():
         "Get Apps": "/launcher/getapps",
         })
     # mh_end_if
-    
+
 
     APP_NAMES = app_names
     APP_PATHS = app_paths
 
 
-def get_app_paths(ientry, current_dir):
+def get_app_paths(ientry: tuple, current_dir: str) -> tuple[str|None, str|None]:
+    """Get an apps name and full path.
+
+    Returns app_name, app_path
+    """
     # process results of ilistdir to capture app paths.
     _DIR_FLAG = const(16384)
     _FILE_FLAG = const(32768)
@@ -229,24 +261,20 @@ def get_app_paths(ientry, current_dir):
     entry = ientry[0]
     is_dir = (ientry[1] == _DIR_FLAG)
 
-    app_name = None
-    app_path = None
-
     if entry.endswith(".py"):
-        app_name = entry[:-3]
-        app_path = current_dir + entry
-    elif entry.endswith(".mpy"):
-        app_name = entry[:-4]
-        app_path = current_dir + entry
+        return entry[:-3], current_dir + entry
 
-    elif is_dir:
+    if entry.endswith(".mpy"):
+        return entry[:-4], current_dir + entry
+
+    if is_dir:
         # check for apps as module folders
         dir_content = os.listdir(current_dir + entry)
         if "__init__.py" in dir_content or "__init__.mpy" in dir_content:
-            app_name = entry
-            app_path = current_dir + entry
+            return entry, current_dir + entry
 
-    return app_name, app_path
+    return None, None
+
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -254,6 +282,7 @@ def get_app_paths(ientry, current_dir):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def launch_app(app_path):
+    """Reboot into given app."""
     RTC.memory(app_path)
     print(f"Launching '{app_path}'...")
     # reset clock speed to default.
@@ -262,29 +291,28 @@ def launch_app(app_path):
     machine.reset()
 
 
-def center_text_x(text, char_width=16):
+def center_text_x(text: str) -> int:
+    """Calculate the x coordinate to draw a text string, to make it horizontally centered.
+
+    This function calculates the total width of the given text.
     """
-        Calculate the x coordinate to draw a text string, to make it horizontally centered. (plus the text width)
-    """
-    def calculate_length(text):
-        length = 0
-        for char in text:
-            if ord(char) > 255:
-                length += 2 
-            else:
-                length += 1  
-        return length
-    str_width = calculate_length(text) * char_width
-    start_coord = _DISPLAY_WIDTH_HALF - (str_width // 2)
-
-    return start_coord
+    # calculate length
+    x = _DISPLAY_WIDTH_HALF
+    for char in text:
+        if ord(char) > _ASCII_MAX:
+            x -= _FONT_WIDTH
+        else:
+            x -= _FONT_WIDTH_HALF
+    return x
 
 
-def ease_out_cubic(x):
+def ease_out_cubic(x: float) -> float:
+    """Apply cubic ease out function."""
     return 1 - ((1 - x) ** 3)
 
 
-def time_24_to_12(hour_24, minute):
+def time_24_to_12(hour_24: int, minute: int) -> tuple[str, str]:
+    """Convert the given 24 hour time to 12 hour."""
     ampm = 'am'
     if hour_24 >= 12:
         ampm = 'pm'
@@ -293,12 +321,8 @@ def time_24_to_12(hour_24, minute):
     if hour_12 == 0:
         hour_12 = 12
 
-    time_string = f"{hour_12}:{'{:02d}'.format(minute)}"
+    time_string = f"{hour_12}:{minute:02d}"
     return time_string, ampm
-
-
-def play_sound(notes, time_ms=40):
-    BEEP.play(notes, time_ms)
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -315,36 +339,38 @@ _BATTERY_HEIGHT = const(10)
 _BATTERY_X = const(_MH_DISPLAY_WIDTH - 28)
 _BATTERY_Y = const((_STATUSBAR_HEIGHT - 10) // 2)
 
-def draw_statusbar(t=None):
-    global LASTDRAWN_MINUTE
+
+def draw_statusbar():
+    """Draw the top status bar."""
+    global LASTDRAWN_MINUTE  # noqa: PLW0603
     # erase status bar
     DISPLAY.fill_rect(
         0,
         _BATTERY_Y,
         _MH_DISPLAY_WIDTH,
         _BATTERY_HEIGHT,
-        CONFIG.palette[4]
+        CONFIG.palette[4],
         )
 
     # clock
     _, _, _, hour_24, minute, _, _, _ = time.localtime()
 
-    if CONFIG['24h_clock'] == True:
-        formatted_time = f"{hour_24}:{'{:02d}'.format(minute)}"
+    if CONFIG['24h_clock']:
+        formatted_time = f"{hour_24}:{minute:02d}"
     else:
         formatted_time, ampm = time_24_to_12(hour_24, minute)
         DISPLAY.text(
             ampm,
-            _CLOCK_AMPM_X_OFFSET \
-                + (len(formatted_time) \
-                * _SMALL_FONT_WIDTH),
+            _CLOCK_AMPM_X_OFFSET
+            + (len(formatted_time)
+               * _SMALL_FONT_WIDTH),
             _CLOCK_AMPM_Y + 1,
             CONFIG.palette[5],
             )
         DISPLAY.text(
             ampm,
-            _CLOCK_AMPM_X_OFFSET \
-                + (len(formatted_time) \
+            _CLOCK_AMPM_X_OFFSET
+            + (len(formatted_time)
                 * _SMALL_FONT_WIDTH),
             _CLOCK_AMPM_Y,
             CONFIG.palette[2],
@@ -360,7 +386,6 @@ def draw_statusbar(t=None):
         _CLOCK_X, _CLOCK_Y,
         CONFIG.palette[7],
         )
-    
 
     LASTDRAWN_MINUTE = minute
 
@@ -379,15 +404,17 @@ _MIN_SCROLLBAR_WIDTH = const(20)
 _SCROLLBAR_PADDING = const(6)
 
 _SCROLLBAR_FILL_HEIGHT = const(_SCROLLBAR_HEIGHT - 2)
-_SCROLLBAR_Y = const(_MH_DISPLAY_HEIGHT - _SCROLLBAR_HEIGHT) # highlight y
+_SCROLLBAR_Y = const(_MH_DISPLAY_HEIGHT - _SCROLLBAR_HEIGHT)  # highlight y
 _SCROLLBAR_FILL_Y = const(_SCROLLBAR_Y + 1)
 _SCROLLBAR_SHADOW_Y = const(_MH_DISPLAY_HEIGHT - 1)
-_SCROLLBAR_FULL_WIDTH = const(_MH_DISPLAY_WIDTH - ( _SCROLLBAR_PADDING * 2))
+_SCROLLBAR_FULL_WIDTH = const(_MH_DISPLAY_WIDTH - (_SCROLLBAR_PADDING * 2))
+
 
 def draw_scrollbar():
+    """Draw the scrollbar on the display."""
     scrollbar_width = max(
         _SCROLLBAR_FULL_WIDTH // len(APP_NAMES),
-        _MIN_SCROLLBAR_WIDTH
+        _MIN_SCROLLBAR_WIDTH,
         )
 
     scrollbar_x = (
@@ -401,27 +428,35 @@ def draw_scrollbar():
     DISPLAY.fill_rect(
         0, _SCROLLBAR_Y,
         _MH_DISPLAY_WIDTH, _SCROLLBAR_HEIGHT,
-        CONFIG.palette[2]
+        CONFIG.palette[2],
         )
 
     # draw fill:
     DISPLAY.fill_rect(
-        scrollbar_x, _SCROLLBAR_FILL_Y,
-        scrollbar_width, _SCROLLBAR_FILL_HEIGHT,
-        CONFIG.palette[4])
+        scrollbar_x,
+        _SCROLLBAR_FILL_Y,
+        scrollbar_width,
+        _SCROLLBAR_FILL_HEIGHT,
+        CONFIG.palette[4],
+        )
 
     # draw highlight and shadow:
     DISPLAY.hline(
-        scrollbar_x, _SCROLLBAR_Y,
-        scrollbar_width, CONFIG.palette[6]
+        scrollbar_x,
+        _SCROLLBAR_Y,
+        scrollbar_width,
+        CONFIG.palette[6],
         )
     DISPLAY.hline(
-        scrollbar_x, _SCROLLBAR_SHADOW_Y,
-        scrollbar_width, CONFIG.palette[0]
+        scrollbar_x,
+        _SCROLLBAR_SHADOW_Y,
+        scrollbar_width,
+        CONFIG.palette[0],
         )
 
 
 def draw_app_selector(icon):
+    """Update and draw the app selector graphics."""
     icon.move()
     icon.draw()
 
@@ -447,7 +482,10 @@ _ICON_BUFFER_LEN = const(_ICON_BITMAP_SIZE // 2)
 
 
 class IconWidget:
+    """Responsible for handling icon graphics."""
+
     def __init__(self):
+        """Initialize the IconWidget."""
         self.drawn_icon = None
         self.next_icon = None
         self.direction = 0
@@ -455,7 +493,7 @@ class IconWidget:
         self.prev_x = 0
         self.scroll_start_ms = time.ticks_ms()
         self.force_update()
-        
+
         # buffer for storing one custom icon
         self.buf = bytearray(32*32//8)
         self.fbuf = framebuf.FrameBuffer(self.buf, 32, 32, framebuf.MONO_HLSB)
@@ -478,6 +516,7 @@ class IconWidget:
         # mh_end_if
 
     def force_update(self):
+        """Force an update to the next icon."""
         draw_scrollbar()
         draw_app_name()
         self.next_icon = self._choose_icon()
@@ -493,7 +532,7 @@ class IconWidget:
             time.ticks_ms(),
             self.scroll_start_ms,
             ) / _SCROLL_ANIMATION_TIME
-        
+
         if fac >= 1:
             self.direction = 0
             return 0
@@ -501,14 +540,15 @@ class IconWidget:
         fac = ease_out_cubic(fac)
 
         return math.floor(
-            fac * _MH_DISPLAY_WIDTH if self.direction < 0 else fac * -_MH_DISPLAY_WIDTH
+            fac * _MH_DISPLAY_WIDTH if self.direction < 0 else fac * -_MH_DISPLAY_WIDTH,
         )
 
 
     def start_scroll(self, direction=0):
+        """Initialize the scrolling animation."""
         if self.next_icon != self.drawn_icon:
             self.force_update()
-        
+
         draw_scrollbar()
         draw_app_name()
         self.direction = direction
@@ -545,29 +585,30 @@ class IconWidget:
             _ICON_Y,
             32,
             32,
-            palette=self.icon_palette
+            palette=self.icon_palette,
             )
 
 
 
     def draw(self):
+        """Draw the icon on the display."""
         if self.x == _DISPLAY_WIDTH_HALF \
         and self.prev_x == _DISPLAY_WIDTH_HALF:
             return
-        
+
         self._erase_icon()
-        
+
         # update drawn icon when icon wraps around screen:
         if self.drawn_icon != self.next_icon \
-        and ((self.direction == -1 and self.x < _DISPLAY_WIDTH_HALF) \
-        or   (self.direction == +1 and self.x > _DISPLAY_WIDTH_HALF)):
+        and ((self.direction == -1 and self.x < _DISPLAY_WIDTH_HALF)
+        or (self.direction == +1 and self.x > _DISPLAY_WIDTH_HALF)):
             self.drawn_icon = self.next_icon
-            
+
             # if this is a custom icon, it needs to be loaded
             if isinstance(self.drawn_icon, str) and self.drawn_icon.endswith(".raw"):
                 with open(self.drawn_icon, 'rb') as f:
                     f.readinto(self.buf)
-        
+
         if isinstance(self.drawn_icon, int):
             self._draw_bitmap_icon()
         elif isinstance(self.drawn_icon, str):
@@ -576,70 +617,72 @@ class IconWidget:
             else:
                 self._draw_custom_icon()
 
-
-    def _choose_icon(self):
+    @staticmethod
+    def _choose_icon() -> int|str:
         current_app_text = APP_NAMES[APP_SELECTOR_INDEX]
 
         # special menu options for settings
         if current_app_text == "UI Sound":
-            if CONFIG['ui_sound']:
-                return "On"
-            else:
-                return "Off"
-        
-        if current_app_text == "Files":
-            return _FILE_ICON_IDX
+            return "On" if CONFIG['ui_sound'] else "Off"
 
-        if current_app_text == "Reload Apps":
-            return _REFRESH_ICON_IDX
+        builtin_icon_idxs = {
+            "Settings": 2,
+            "Reload Apps": 3,
+            "Files": 4,
+            "Terminal": 5,
+            "Get Apps": 6,
+            }
+        if current_app_text in builtin_icon_idxs:
+            return builtin_icon_idxs[current_app_text]
 
-        if current_app_text == "Settings":
-            return _GEAR_ICON_IDX
-        
         current_app_path = APP_PATHS[current_app_text]
-        
-        if current_app_text == "Terminal" \
-        or current_app_path.endswith('.cli.py'):
+
+        if current_app_path.endswith('.cli.py'):
             return _TERMINAL_ICON_IDX
-        
-        if current_app_text == "Get Apps":
-            return _GETAPPS_ICON_IDX
-        
+
         if not (current_app_path.endswith('.py') or current_app_path.endswith('.mpy')):
             # too many ways for `os.listdir` to fail here, so just capture the error:
             try:
                 if 'icon.raw' in os.listdir(current_app_path):
                     return f"{current_app_path}/icon.raw"
-            except OSError: pass
-        
+            except OSError:
+                pass
+
         # default to sd or flash storage icon
         if current_app_path.startswith("/sd"):
             return _SD_ICON_IDX
         return _FLASH_ICON_IDX
 
 
-    def _erase_icon(self):
+    @staticmethod
+    def _erase_icon():
         DISPLAY.rect(
             0,
             _ICON_Y,
             _MH_DISPLAY_WIDTH,
             _ICON_HEIGHT,
             CONFIG.palette[2],
-            fill=True
+            fill=True,
             )
-    
-    
+
+
     def move(self):
+        """Update the new icon x position."""
         if not self.direction:
-            return _DISPLAY_WIDTH_HALF
+            self.x = _DISPLAY_WIDTH_HALF
         x = self._animate_scroll()
         self.prev_x = self.x
         self.x = (x + _DISPLAY_WIDTH_HALF) % _MH_DISPLAY_WIDTH
 
 
+
+
 _APP_NAME_MAX_LEN = const(_MH_DISPLAY_WIDTH // _FONT_WIDTH)
 _APP_NAME_LEN_MINUS_THREE = const(_APP_NAME_MAX_LEN - 3)
+
+
 def draw_app_name():
+    """Draw the current app name on the display."""
     current_app_text = APP_NAMES[APP_SELECTOR_INDEX]
 
     # crop text for display
@@ -653,17 +696,20 @@ def draw_app_name():
     current_app_text = I18N[current_app_text]
     # and draw app name
     DISPLAY.text(
-            current_app_text,
-            center_text_x(current_app_text), _APPNAME_Y,
-            CONFIG.palette[8],
-            font=font)
+        current_app_text,
+        center_text_x(current_app_text), _APPNAME_Y,
+        CONFIG.palette[8],
+        font=font,
+        )
+
+
+_MAX_WIFI_ATTEMPTS = const(1000)
+_MAX_NTP_ATTEMPTS = const(10)
 
 
 def try_sync_clock():
-    global SYNCING_CLOCK, RTC, SYNC_NTP_ATTEMPTS, CONNECT_WIFI_ATTEMPTS
-
-    _MAX_WIFI_ATTEMPTS = const(1000)
-    _MAX_NTP_ATTEMPTS = const(10)
+    """Try syncing the RTC using ntptime."""
+    global SYNCING_CLOCK, SYNC_NTP_ATTEMPTS, CONNECT_WIFI_ATTEMPTS  # noqa: PLW0603
 
     if NIC.isconnected():
         try:
@@ -677,7 +723,7 @@ def try_sync_clock():
             SYNCING_CLOCK = False
             # apply our timezone offset
             time_list = list(RTC.datetime())
-            time_list[4] = time_list[4] + CONFIG['timezone']
+            time_list[4] += CONFIG["timezone"]
             RTC.datetime(tuple(time_list))
             print(
                 f'RTC successfully synced to {RTC.datetime()} with {SYNC_NTP_ATTEMPTS} attempts.')
@@ -706,7 +752,8 @@ def try_sync_clock():
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # --------------------------------------------------------------------------------------------------
 def main_loop():
-    global APP_SELECTOR_INDEX, PREV_SELECTOR_INDEX, SYNCING_CLOCK
+    """Run the main loop."""
+    global APP_SELECTOR_INDEX, PREV_SELECTOR_INDEX, SYNCING_CLOCK  # noqa: PLW0603
     # scan apps asap to populate app names/paths and SD
     scan_apps()
 
@@ -714,8 +761,8 @@ def main_loop():
     SYNCING_CLOCK = CONFIG['sync_clock']
 
     if (CONFIG['wifi_ssid'] == ''
-        or RTC.datetime()[0] != 2000
-            or NIC == None):
+    or RTC.datetime()[0] != 2000
+    or NIC is None):
         SYNCING_CLOCK = False
 
     if SYNCING_CLOCK:  # enable wifi if we are syncing the clock
@@ -730,7 +777,7 @@ def main_loop():
     new_keys = []
 
     # starupp sound
-    play_sound(
+    BEEP.play(
         ('C3',
             ('C4', 'E4', 'G4'),
             ('C4', 'E4', 'G4'),
@@ -741,21 +788,21 @@ def main_loop():
     DISPLAY.fill_rect(0, 0, _MH_DISPLAY_WIDTH,
                       _STATUSBAR_HEIGHT, CONFIG.palette[4])
     DISPLAY.hline(0, _STATUSBAR_HEIGHT, _MH_DISPLAY_WIDTH, CONFIG.palette[1])
-    
+
     icon = IconWidget()
     icon.force_update()
 
 
     while True:
 
-        # ----------------------- check for key presses on the keyboard. Only if they weren't already pressed. --------------------------
+        # ----------------------- check for key presses on the keyboard. Only if they weren't already pressed. ---------
         new_keys = KB.get_new_keys()
 
         # mh_if CARDPUTER:
         # # Cardputer should use extended movement keys in the launcher
         # KB.ext_dir_keys(new_keys)
         # mh_end_if
-        
+
         # mh_if touchscreen:
         # add swipes to direcitonal input
         touch_events = KB.get_touch_events()
@@ -777,7 +824,7 @@ def main_loop():
                 # animation:
                 icon.start_scroll(1)
 
-                play_sound((("D3", 'F3'), "A3"), 20)
+                BEEP.play((("D3", 'F3'), "A3"), 20)
 
             elif "LEFT" in new_keys:  # left arrow
                 PREV_SELECTOR_INDEX = APP_SELECTOR_INDEX
@@ -786,7 +833,7 @@ def main_loop():
                 # animation:
                 icon.start_scroll(-1)
 
-                play_sound((("C3", "E3"), "G3"), 20)
+                BEEP.play((("C3", "E3"), "G3"), 20)
 
             # ~~~~~~~~~~ check if GO or ENTER are pressed ~~~~~~~~~~
             if "G0" in new_keys or "ENT" in new_keys:
@@ -797,16 +844,16 @@ def main_loop():
                     icon.force_update()
 
                     if CONFIG['ui_sound'] == 0:  # currently muted, then unmute
-                        play_sound(
+                        BEEP.play(
                             ("C3", "E3", "G3", ("C4", "E4", "G4"), ("C4", "E4", "G4")), 80)
-                        
+
 
                 elif APP_NAMES[APP_SELECTOR_INDEX] == "Reload Apps":
                     scan_apps()
                     APP_SELECTOR_INDEX = 0
                     icon.start_scroll(-1)
 
-                    play_sound(('C4', 'E4', 'G4'), 80)
+                    BEEP.play(('C4', 'E4', 'G4'), 80)
 
                 else:  # ~~~~~~~~~~~~~~~~~~~ LAUNCH THE APP! ~~~~~~~~~~~~~~~~~~~~
 
@@ -819,13 +866,13 @@ def main_loop():
                     machine.Pin(_MH_DISPLAY_BACKLIGHT, machine.Pin.OUT).value(0)  # backlight off
                     DISPLAY.spi.deinit()
 
-                    if SD != None:
+                    if SD is not None:
                         try:
                             SD.deinit()
                         except:
                             print("Tried to deinit SDCard, but failed.")
 
-                    play_sound(('C4', 'B4', 'C5', 'C5'), 100)
+                    BEEP.play(('C4', 'B4', 'C5', 'C5'), 100)
 
                     launch_app(APP_PATHS[APP_NAMES[APP_SELECTOR_INDEX]])
 
@@ -841,9 +888,9 @@ def main_loop():
                             name = APP_NAMES[idx]
                             if name.lower().startswith(key) and idx != APP_SELECTOR_INDEX:
                                 # animation:
-                                if APP_SELECTOR_INDEX > idx:
+                                if idx < APP_SELECTOR_INDEX:
                                     direction = -1
-                                elif APP_SELECTOR_INDEX < idx:
+                                elif idx > APP_SELECTOR_INDEX:
                                     direction = 1
                                 else:
                                     direction = 0
@@ -851,8 +898,8 @@ def main_loop():
                                 PREV_SELECTOR_INDEX = APP_SELECTOR_INDEX
                                 APP_SELECTOR_INDEX = idx
                                 icon.start_scroll(direction)
-                                play_sound(("G3"), 100)
-                                
+                                BEEP.play(("G3"), 100)
+
                                 break
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

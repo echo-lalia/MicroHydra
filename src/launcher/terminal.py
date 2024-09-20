@@ -1,6 +1,4 @@
-"""
-MicroHydra SHELL & Terminal
-Version: 1.0
+"""MicroHydra SHELL & Terminal.
 
 A simple Terminal that can run console-based Apps.
 Have fun!
@@ -9,10 +7,15 @@ TODO:
 KFC V me 50
 """
 
+import os
+import time
+
+import machine
+
 from lib.display import Display
-from lib.userinput import UserInput
 from lib.hydra.config import Config
-import machine, time, os
+from lib.userinput import UserInput
+
 
 machine.freq(240_000_000)
 
@@ -40,53 +43,63 @@ config = Config()
 # object for reading keypresses
 kb = UserInput()
 
-#screen buffer
+# screen buffer
 scr_buf = [""]*_LINE_COUNT
 
 RTC = machine.RTC()
 
-#--------------------------------------------------------------------------------------------------
-#-------------------------------------- FUNCTION DEFINITIONS: -------------------------------------
-#--------------------------------------------------------------------------------------------------
+
+# --------------------------------------------------------------------------------------------------
+# -------------------------------------- FUNCTION DEFINITIONS: -------------------------------------
+# --------------------------------------------------------------------------------------------------
 
 def scr_feed(string):
+    """Shift each line up the screen by 1"""
     for i in range(1, _LINE_COUNT):
         scr_buf[i-1] = scr_buf[i]
     scr_buf[-1] = string
-    
+
+
 def scr_show():
-    # clear framebuffer 
+    """Show the terminal lines"""
+    # clear framebuffer
     tft.fill(config['bg_color'])
     # write current text to framebuffer
     for i in range(_LINE_COUNT):
-        tft.text(text=scr_buf[i], x=0, y=_LINE_HEIGHT*i,color=config['ui_color'])
+        tft.text(text=scr_buf[i], x=0, y=_LINE_HEIGHT*i, color=config['ui_color'])
     # write framebuffer to display
     tft.show()
 
+
 def scr_clear():
+    """Erase all terminal lines"""
     for i in range(_LINE_COUNT):
         scr_buf[i] = ""
     scr_show()
 
+
 # Custom print function that writes to the buffer
 def custom_print(*args, **kwargs):
+    """Print to terminal"""
     str_out = (' '.join(map(str, args)) + kwargs.get('end', '')).split('\n')
-    for i in str_out:
-        while len(i)>_MAX_CHARS:
-            scr_feed(i[:_MAX_CHARS])
+    for string in str_out:
+        while len(string) > _MAX_CHARS:
+            scr_feed(string[:_MAX_CHARS])
             scr_show()
-            i = i[_MAX_CHARS:]
-        
-        scr_feed(i)
+            string = string[_MAX_CHARS:]
+
+        scr_feed(string)
         scr_show()
 
 
 # Replace the built-in print function with the custom one
-print = custom_print
+print = custom_print  # noqa: A001
 
-def custom_input(prmpt):
+
+def custom_input(prmpt: str) -> str:
+    """Get user input (Override the `input` built-in)"""
     print(f"{prmpt} _")
-    
+
     current_text = []
     while True:
         keys = kb.get_new_keys()
@@ -98,46 +111,44 @@ def custom_input(prmpt):
                 current_text = current_text[:-1]
             else:
                 current_text += [i for i in keys if i != 'ENT']
-            
+
             scr_buf[-1] = f"{prmpt} " + ''.join(current_text) + "_"
             scr_show()
-            
+
             if 'ENT' in keys or 'GO' in keys:
                 scr_buf[-1] = scr_buf[-1][:-1]
                 scr_show()
-                line = ''.join(current_text)
-                return line
+                return ''.join(current_text)
 
-input = custom_input
-#--------------------------------------------------------------------------------------------------
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main Loop: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+input = custom_input  # noqa: A001
+
+
+# --------------------------------------------------------------------------------------------------
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main Loop: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main_loop():
-    """
-    The main loop of the program. Runs forever (until program is closed).
-    """
-    
+    """Run the main loop for the Terminal"""
+
     app_path = RTC.memory().decode()
     if len(app_path) > 0 and app_path[0] == '$':
-        #print(app_path[1:])
-        exec(open(app_path[1:]).read(), {'__name__': '__main__'},globals())
+        # TODO: Try replacing the below code with `__import__(app_path, globals=, locals=)`
+        exec(open(app_path[1:]).read(), {'__name__': '__main__'}, globals())
     else:
         print(f"MicroHydra v{os.uname().release}) on {os.uname().sysname}, Terminal Ver 1.0.")
         print("Press GO Button to Exit.")
-    
+
     print(f"root@MH:{os.getcwd()}# _")
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ INITIALIZATION: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    
-    # If you need to do any initial work before starting the loop, this is a decent place to do that.
-    
+
     # create variable to remember text between loops
     current_text = []
-    
-    
-    while True: # Fill this loop with your program logic! (delete old code you dont need)
-        
+
+
+    while True:
+
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ INPUT: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         
@@ -237,12 +248,8 @@ def main_loop():
 try:
     main_loop()
 except Exception as e:
-    import sys
-    with open('/log.txt', 'a') as f:
-        f.write('[TERMINAL]')
-        sys.print_exception(e, f)
-    
-    tft.text(text=f"{e}",x=0, y=0, color=config['ui_color'])
+    tft.text(text=f"{e}", x=0, y=0, color=config['ui_color'])
     tft.show()
 
-
+    time.sleep(1)
+    raise

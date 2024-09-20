@@ -1,12 +1,16 @@
-"""
-This module is intended to be a helpful, and optional, companion for lib.display.pallete,
+"""An alternative to lib.display.palette.
+
+This module is intended to be a helpful, and optional, companion for display.palette,
 for reference and convenience.
 """
 
 from .palette import Palette
 
+
 # Palette class
 class NamedPalette:
+    """Store colors in a Palette, accessible by name."""
+
     names = {
         'black':0,
         'bg_dark':1,
@@ -22,6 +26,7 @@ class NamedPalette:
         'ui_complement':15,
     }
     def __init__(self):
+        """Initialize the Palette."""
         self.palette = Palette.instance if hasattr(Palette, 'instance') else Palette()
 
     @staticmethod
@@ -40,7 +45,7 @@ class NamedPalette:
 
     def __getitem__(self, key:int|str) -> int:
         return self.palette[self._str_to_idx(key)]
-    
+
     def __iter__(self):
         for i in range(len(self)):
             yield self[i]

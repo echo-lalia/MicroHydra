@@ -1,12 +1,9 @@
-"""
-This Module provides an easy to use Display object for creating graphics in MicroHydra
-"""
+"""This Module provides an easy to use Display object for creating graphics in MicroHydra."""
 
 import machine
-try:
-    from . import st7789
-except:
-    from lib.display import st7789
+
+from . import st7789
+
 
 # ~~~~~ Magic constants:
 _MH_DISPLAY_HEIGHT = const(135)
@@ -20,21 +17,30 @@ _MH_DISPLAY_MISO = const(None)
 _MH_DISPLAY_RESET = const(33)
 _MH_DISPLAY_CS = const(37)
 _MH_DISPLAY_DC = const(34)
-_MH_DISPLAY_BACKLIGHT = const(38) 
+_MH_DISPLAY_BACKLIGHT = const(38)
 _MH_DISPLAY_ROTATION = const(1)
 
 
 class Display(st7789.ST7789):
+    """Main graphics class for MicroHydra.
+
+    Subclasses the device-specific display driver.
+    """
 
     overlay_callbacks = []
 
-    def __new__(cls, **kwargs):
+    def __new__(cls, **kwargs):  # noqa: ARG003, D102
         if not hasattr(cls, 'instance'):
-          cls.instance = super(Display, cls).__new__(cls)
+          cls.instance = super().__new__(cls)
         return cls.instance
 
 
-    def __init__(self, use_tiny_buf=False, **kwargs):
+    def __init__(
+            self,
+            *,
+            use_tiny_buf=False,
+            **kwargs):
+        """Initialize the Display."""
         # mh_if TDECK:
         # # Enable Peripherals:
         # machine.Pin(10, machine.Pin.OUT, value=1)
@@ -64,19 +70,20 @@ class Display(st7789.ST7789):
 
 
     @staticmethod
-    def _init_pin(target_pin, *args):
+    def _init_pin(target_pin, *args) -> machine.Pin|None:
         """For __init__: return a pin if an integer is given, or return None."""
         if target_pin is None:
-            return
+            return None
         return machine.Pin(target_pin, *args)
 
 
     def _draw_overlays(self):
-        """Call each overlay callback in Display.overlay_callbacks"""
+        """Call each overlay callback in Display.overlay_callbacks."""
         for callback in Display.overlay_callbacks:
             callback(self)
-        
+
 
     def show(self):
+        """Write changes to display."""
         self._draw_overlays()
         super().show()

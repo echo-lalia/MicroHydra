@@ -1,4 +1,5 @@
-# see launcher/launcher.py for a full explanation of this module
+"""Base 'apploader' for MicroHydra."""
+
 import machine
 from lib import sdcard
 import sys
@@ -47,7 +48,8 @@ try:
         __import__("/launcher/terminal.py")
     else:
         __import__(app_path)
-except Exception as e:
+
+except Exception as e:  # noqa: BLE001
     with open('log.txt', 'a') as log:
         log.write(f"[{app_path}]\n")
         sys.print_exception(e, log)

@@ -1,9 +1,8 @@
-"""
-This module contains some color logic used by MicroHydra.
+"""This module contains some color logic used by MicroHydra.
 
 Previously these functions lived in lib/mhconfig, and lib/microhydra before that.
 
-Several of these functions could almost certainly be significantly sped up by 
+Several of these functions could almost certainly be significantly sped up by
 converting the float math to integer math, and using Viper.
 """
 
@@ -11,9 +10,7 @@ converting the float math to integer math, and using Viper.
 
 @micropython.viper
 def color565(r:int, g:int, b:int) -> int:
-    """
-    Convert red, green and blue values (0-255) into a 16-bit 565 encoding.
-    """
+    """Convert red, green and blue values (0-255) into a 16-bit 565 encoding."""
     r = (r * 31) // 255
     g = (g * 63) // 255
     b = (b * 31) // 255
@@ -22,21 +19,20 @@ def color565(r:int, g:int, b:int) -> int:
 
 @micropython.viper
 def swap_bytes(color:int) -> int:
-    """
-    this just flips the left and right byte in the 16 bit color.
-    """
+    """Flip the left and right byte in the 16 bit color."""
     return ((color & 255) << 8) | (color >> 8)
 
 
-def mix(val2, val1, fac=0.5):
-    """Mix two values to the weight of fac"""
-    output = (val1 * fac) + (val2 * (1.0 - fac))
-    return output
+def mix(val2, val1, fac:float = 0.5) -> float:
+    """Mix two values to the weight of fac."""
+    return (val1 * fac) + (val2 * (1.0 - fac))
 
 
-def mix_angle_float(angle1, angle2, factor=0.5):
-    """take two angles as floats (range 0.0 to 1.0) and average them to the weight of factor.
-    Mainly for blending hue angles."""
+def mix_angle_float(angle1: float, angle2: float, factor: float = 0.5) -> float:
+    """Take two angles as floats (range 0.0 to 1.0) and average them to the weight of factor.
+
+    Mainly for blending hue angles.
+    """
     # Ensure hue values are in the range [0, 1)
     angle1 = angle1 % 1
     angle2 = angle2 % 1
@@ -44,25 +40,20 @@ def mix_angle_float(angle1, angle2, factor=0.5):
     # Calculate the angular distance between hue1 and hue2
     angular_distance = (angle2 - angle1 + 0.5) % 1 - 0.5
     # Calculate the middle hue value
-    blended = (angle1 + angular_distance * factor) % 1
-
-    return blended
+    return (angle1 + angular_distance * factor) % 1
 
 
-def separate_color565(color):
-    """
-    Separate a 16-bit 565 encoding into red, green, and blue components.
-    """
+
+def separate_color565(color: int) -> tuple[int, int, int]:
+    """Separate a 16-bit 565 encoding into red, green, and blue components."""
     red = (color >> 11) & 0x1F
     green = (color >> 5) & 0x3F
     blue = color & 0x1F
     return red, green, blue
 
 
-def combine_color565(red, green, blue):
-    """
-    Combine red, green, and blue components into a 16-bit 565 encoding.
-    """
+def combine_color565(red: int, green: int, blue: int) -> int:
+    """Combine red, green, and blue components into a 16-bit 565 encoding."""
     # Ensure color values are within the valid range
     red = max(0, min(red, 31))
     green = max(0, min(green, 63))
@@ -72,11 +63,11 @@ def combine_color565(red, green, blue):
     return (red << 11) | (green << 5) | blue
 
 
-def rgb_to_hsv(r, g, b):
-    '''
-    Convert an RGB float to an HSV float.
-    From: cpython/Lib/colorsys.py
-    '''
+def rgb_to_hsv(r: float, g: float, b: float) -> tuple[float, float, float]:
+    """Convert an RGB float to an HSV float.
+
+    From: cpython/Lib/colorsys.py.
+    """
     maxc = max(r, g, b)
     minc = min(r, g, b)
     rangec = (maxc-minc)
@@ -97,11 +88,11 @@ def rgb_to_hsv(r, g, b):
     return h, s, v
 
 
-def hsv_to_rgb(h, s, v):
-    '''
-    Convert an RGB float to an HSV float.
+def hsv_to_rgb(h: float, s: float, v: float) -> tuple[float, float, float]:
+    """Convert an RGB float to an HSV float.
+
     From: cpython/Lib/colorsys.py
-    '''
+    """
     if s == 0.0:
         return v, v, v
     i = int(h*6.0)
@@ -120,19 +111,24 @@ def hsv_to_rgb(h, s, v):
         return p, q, v
     if i == 4:
         return t, p, v
-    if i == 5:
-        return v, p, q
-    # Cannot get here
+    # i == 5:
+    return v, p, q
 
 
-def mix_color565(color1, color2, mix_factor=0.5, hue_mix_fac=None, sat_mix_fac=None):
-    """
-    High quality mixing of two rgb565 colors, by converting through HSV color space.
+def mix_color565(
+        color1: int,
+        color2: int,
+        mix_factor: float = 0.5,
+        hue_mix_fac: float|None = None,
+        sat_mix_fac: float|None = None,
+        ) -> int:
+    """Mix two rgb565 colors, by converting through HSV color space.
+
     This function is probably too slow for running constantly in a loop, but should be good for occasional usage.
     """
-    if hue_mix_fac == None:
+    if hue_mix_fac is None:
         hue_mix_fac = mix_factor
-    if sat_mix_fac == None:
+    if sat_mix_fac is None:
         sat_mix_fac = mix_factor
 
     # separate to components
@@ -165,10 +161,8 @@ def mix_color565(color1, color2, mix_factor=0.5, hue_mix_fac=None, sat_mix_fac=N
     return combine_color565(red, green, blue)
 
 
-def darker_color565(color, mix_factor=0.5):
-    """
-    Get the darker version of a 565 color.
-    """
+def darker_color565(color: int, mix_factor: float = 0.5) -> int:
+    """Get the darker version of a 565 color."""
     # separate to components
     r, g, b = separate_color565(color)
     # convert to float 0.0 to 1.0
@@ -178,7 +172,7 @@ def darker_color565(color, mix_factor=0.5):
     # convert to hsv 0.0 to 1.0
     h, s, v = rgb_to_hsv(r, g, b)
 
-    # higher sat value is percieved as darker
+    # higher sat value is perceived as darker
     s *= 1 + mix_factor
     v *= 1 - mix_factor
 
@@ -192,10 +186,8 @@ def darker_color565(color, mix_factor=0.5):
     return combine_color565(r, g, b)
 
 
-def lighter_color565(color, mix_factor=0.2):
-    """
-    Get the lighter version of a 565 color.
-    """
+def lighter_color565(color: int, mix_factor: float = 0.2) -> int:
+    """Get the lighter version of a 565 color."""
     # separate to components
     r, g, b = separate_color565(color)
     # convert to float 0.0 to 1.0
@@ -205,7 +197,7 @@ def lighter_color565(color, mix_factor=0.2):
     # convert to hsv 0.0 to 1.0
     h, s, v = rgb_to_hsv(r, g, b)
 
-    # higher sat value is percieved as darker
+    # higher sat value is perceived as darker
     s *= 1 - (mix_factor / 2)
     v *= 1 + mix_factor
 
@@ -219,42 +211,40 @@ def lighter_color565(color, mix_factor=0.2):
     return combine_color565(r, g, b)
 
 
-def color565_shiftred(color, mix_factor=0.4, hue_mix_fac=0.8, sat_mix_fac=0.8):
-    """
-    Simple convenience function which shifts a color toward red.
+def color565_shiftred(color, mix_factor=0.4, hue_mix_fac=0.8, sat_mix_fac=0.8) -> int:
+    """Shift a color towards red.
+
     This was made for displaying 'negative' ui elements, while sticking to the central color theme.
     """
     _RED = const(63488)
     return mix_color565(color, _RED, mix_factor, hue_mix_fac, sat_mix_fac)
 
 
-def color565_shiftgreen(color, mix_factor=0.1, hue_mix_fac=0.4, sat_mix_fac=0.1):
-    """
-    Simple convenience function which shifts a color toward green.
+def color565_shiftgreen(color, mix_factor=0.1, hue_mix_fac=0.4, sat_mix_fac=0.1) -> int:
+    """Shift a color towards green.
+
     This was made for displaying 'positive' ui elements, while sticking to the central color theme.
     """
     _GREEN = const(2016)
     return mix_color565(color, _GREEN, mix_factor, hue_mix_fac, sat_mix_fac)
 
 
-def color565_shiftblue(color, mix_factor=0.1, hue_mix_fac=0.4, sat_mix_fac=0.2):
-    """
-    Simple convenience function which shifts a color toward blue.
-    """
+def color565_shiftblue(color, mix_factor=0.1, hue_mix_fac=0.4, sat_mix_fac=0.2) -> int:
+    """Shifts a color toward blue."""
     _BLUE = const(31)
     return mix_color565(color, _BLUE, mix_factor, hue_mix_fac, sat_mix_fac)
 
 
-def compliment_color565(color):
+def compliment_color565(color: int) -> int:
     """Generate a complimentary color from given RGB565 color."""
     r,g,b = separate_color565(color)
     r /= 31; g /= 63; b /= 31
-    
+
     h,s,v = rgb_to_hsv(r,g,b)
-    
+
     # opposite hue
     h += 0.5
     r,g,b = hsv_to_rgb(h,s,v)
     r *= 31; g *= 63; b *= 31
-    
+
     return combine_color565(int(r), int(g), int(b))

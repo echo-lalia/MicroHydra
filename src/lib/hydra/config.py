@@ -1,7 +1,9 @@
+"""User config access for all of MicroHydra."""
+
 import json
+
 from lib.display.palette import Palette
 from lib.hydra.color import *
-
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ CONSTANT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -30,16 +32,21 @@ DEFAULT_CONFIG = const(
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Config Class ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class Config:
+    """Config provides an abstraction of the MicroHydra 'config.json' file.
+
+    This class aims to provide a convenient way for all modules and apps in MicroHydra to access a shared config.
+    The goal of this class is to prevent internal-MicroHydra scripts from reimplementing the same code repeatedly,
+    and to provide easy to read methods for apps to access MicroHydra config values.
+
+    Config is also responsible for setting a full UI color palette from the user's 2 chosen system colors.
+    """
+
     def __init__(self):
-        """
-        This class aims to provide a convenient abstraction of the MicroHydra config.json
-        The goal of this class is to prevent internal-MicroHydra scripts from reimplementing the same code repeatedly,
-        and to provide easy to read methods for apps to access MicroHydra config values.
-        """
+        """Initialize the Config with values from 'config.json'."""
         self.config = json.loads(DEFAULT_CONFIG)
         # initialize the config object with the values from config.json
         try:
-            with open("config.json", "r") as conf:
+            with open("config.json") as conf:
                 self.config.update(
                     json.loads(conf.read())
                     )
@@ -56,21 +63,19 @@ class Config:
     def __new__(cls):
         """Config is singleton; only one needs to exist."""
         if not hasattr(cls, 'instance'):
-            cls.instance = super(Config, cls).__new__(cls)
+            cls.instance = super().__new__(cls)
         return cls.instance
 
 
     def save(self):
-        """If the config has been modified, save it to config.json"""
+        """If the config has been modified, save it to 'config.json'."""
         if self._modified:
             with open("config.json", "w") as conf:
                 conf.write(json.dumps(self.config))
 
 
     def generate_palette(self):
-        """
-        Generate an expanded palette based on user-set UI/BG colors.
-        """
+        """Generate an expanded palette based on user-set UI/BG colors."""
         ui_color = self.config['ui_color']
         bg_color = self.config['bg_color']
         mid_color = mix_color565(bg_color, ui_color, 0.5)

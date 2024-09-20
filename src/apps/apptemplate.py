@@ -1,5 +1,5 @@
-"""
-MicroHydra App Template
+"""MicroHydra App Template.
+
 Version: 1.0
 
 
@@ -7,7 +7,8 @@ This is a basic skeleton for a MicroHydra app, to get you started.
 
 There is no specific requirement in the way a MicroHydra app must be organized or styled.
 The choices made here are based entirely on my own preferences and stylistic whims;
-please change anything you'd like to suit your needs (or ignore this template entirely if you'd rather)
+please change anything you'd like to suit your needs
+(or ignore this template entirely if you'd rather)
 
 This template is not intended to enforce a specific style, or to give guidelines on best practices,
 it is just intended to provide an easy starting point for learners,
@@ -18,12 +19,10 @@ Have fun!
 TODO: replace the above description with your own!
 """
 
-
+import time
 
 from lib import display, userinput
 from lib.hydra import config
-import time
-
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ _CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -47,18 +46,18 @@ CONFIG = config.Config()
 INPUT = userinput.UserInput()
 
 
-#--------------------------------------------------------------------------------------------------
-#-------------------------------------- function_definitions: -------------------------------------
-#--------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
+# -------------------------------------- function_definitions: -------------------------------------
+# --------------------------------------------------------------------------------------------------
 
 # Add any function definitions you want here
 # def hello_world():
 #     print("Hello world!")
 
 
-#--------------------------------------------------------------------------------------------------
-#---------------------------------------- ClassDefinitions: ---------------------------------------
-#--------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------------
+# ---------------------------------------- ClassDefinitions: ---------------------------------------
+# --------------------------------------------------------------------------------------------------
 
 # Add any class definitions you want here
 # class Placeholder:
@@ -66,66 +65,67 @@ INPUT = userinput.UserInput()
 #         print("Placeholder")
 
 
-#--------------------------------------------------------------------------------------------------
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main Loop: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# --------------------------------------------------------------------------------------------------
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main Loop: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main_loop():
+    """Run the main loop of the program.
+
+    Runs forever (until program is closed).
     """
-    The main loop of the program. Runs forever (until program is closed).
-    """
-    
+
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ INITIALIZATION: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    
-    # If you need to do any initial work before starting the loop, this is a decent place to do that.
+
+    # If you need to do any initial work before starting the loop, this is a decent place to do it.
 
     # create variable to remember text between loops
     current_text = "Hello World!"
 
 
 
-    while True: # Fill this loop with your program logic! (delete old code you don't need)
+    while True:  # Fill this loop with your program logic! (delete old code you don't need)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ INPUT: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         # put user input logic here
-        
+
         # get list of newly pressed keys
         keys = INPUT.get_new_keys()
-        
+
         # if there are keys, convert them to a string, and store for display
         if keys:
             current_text = str(keys)
-        
-        
+
+
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN GRAPHICS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        
+
         # put graphics rendering logic here
-        
-        # clear framebuffer 
+
+        # clear framebuffer
         DISPLAY.fill(CONFIG.palette[2])
-        
+
         # write current text to framebuffer
         DISPLAY.text(
             text=current_text,
             # center text on x axis:
-            x=_DISPLAY_WIDTH_HALF - (len(current_text) * _CHAR_WIDTH_HALF), 
+            x=_DISPLAY_WIDTH_HALF - (len(current_text) * _CHAR_WIDTH_HALF),
             y=50,
-            color=CONFIG.palette[8]
+            color=CONFIG.palette[8],
             )
-        
+
         # write framebuffer to display
         DISPLAY.show()
-        
-        
+
+
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ HOUSEKEEPING: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        
+
         # anything that needs to be done to prepare for next loop
-        
+
         # do nothing for 10 milliseconds
         time.sleep_ms(10)
 
