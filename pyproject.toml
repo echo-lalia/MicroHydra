@@ -56,6 +56,7 @@ ignore = [
   "PTH",      # Use pathlib (No pathlib module)
   "INP001",   # File is part of an implicit namespace package. (Just a bit unnecessary)
   "RUF012",   # Mutable class attributes should be annotated with `typing.ClassVar`
+  "RUF005",   # collection-literal-concatenation
 
   # MH uses commented out code in the build process:
   "ERA",   # Found commented-out code
