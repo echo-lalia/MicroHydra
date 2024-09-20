@@ -6,7 +6,8 @@ this module provides an easy way to create popup messages, options, and input fi
 import time
 
 from lib.display import Display
-from lib.hydra.config import Config
+from .config import Config
+from .utils import get_instance
 from lib.userinput import UserInput
 
 
@@ -32,18 +33,11 @@ class UIOverlay:
 
     def __init__(self, i18n=None):
         """Initialize the overlay."""
-        self.config = Config()
-        self.kb = UserInput.instance if hasattr(UserInput, 'instance') else UserInput()
-
+        self.config = get_instance(Config)
+        self.kb = get_instance(UserInput)
+        self.display = get_instance(Display, allow_init=False)
         # store translation
         self.i18n = i18n
-
-        # avoid reinitializing display!
-        try:
-            self.display = Display.instance
-        except AttributeError as e:
-            msg = "Display has no instance. (Please initialize Display before UIOverlay)"
-            raise AttributeError(msg) from e
 
 
     def text_entry(self, start_value='', title="Enter text:") -> str:

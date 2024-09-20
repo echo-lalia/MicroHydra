@@ -10,6 +10,7 @@ such as key repetition, and global keyboard shortcuts.
 import time
 from lib.hydra.config import Config
 from lib.display import Display
+from lib.hydra.utils import get_instance
 import machine
 from . import _keys
 
@@ -61,7 +62,7 @@ class UserInput(_keys.Keys):
         allow_locking_keys=False,
         **kwargs):
         """Initialize the input drivers with the given settings."""
-        self.config = Config()
+        self.config = get_instance(Config)
 
         # key repetition / locking keys
         self.tracker = {}

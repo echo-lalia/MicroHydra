@@ -18,7 +18,8 @@ Known issue:
 from machine import Timer
 
 from lib.audio import Audio
-from lib.hydra.config import Config
+from .config import Config
+from .utils import get_instance
 
 
 _SQUARE = const(\
@@ -73,8 +74,8 @@ class Beeper:
 
     def __init__(self):
         """Initialize the Beeper (and I2SSound)."""
-        self.audio = Audio.instance if hasattr(Audio, 'instance') else Audio()
-        self.config = Config.instance if hasattr(Config, 'instance') else Config()
+        self.audio = get_instance(Audio)
+        self.config = get_instance(Config)
         self.note_buf = []
         self.timer = Timer(-1)
 
