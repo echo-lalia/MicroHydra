@@ -24,7 +24,7 @@ app_path = _LAUNCHER
 # mh_end_if
 
 # if this was not a power reset, we are probably launching an app:
-if machine.reset_cause() != machine.PWRON_RESET: 
+if machine.reset_cause() != machine.PWRON_RESET:
     rtc = machine.RTC()
     app_path = rtc.memory().decode()
 
@@ -53,7 +53,7 @@ except Exception as e:  # noqa: BLE001
     with open('log.txt', 'a') as log:
         log.write(f"[{app_path}]\n")
         sys.print_exception(e, log)
-    try:
-        __import__(_LAUNCHER)
-    except ImportError:
-        print("Launcher couldn't be imported")
+    # reboot
+    rtc.memory(_LAUNCHER)
+    machine.reset()
+
