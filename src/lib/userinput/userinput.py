@@ -102,7 +102,7 @@ class UserInput(_keys.Keys):
 
 
     @micropython.viper
-    def _get_new_keys(self) -> list[str]:
+    def _get_new_keys(self):  # noqa: ANN202
         """Viper component of get_new_keys."""
         # using viper for this part is probably not critical for speed.
         # but in my experience viper tends to be much faster any time
