@@ -19,7 +19,7 @@ skip = """
 
 [tool.ruff]
 # Exclude third-party code from linting and formatting
-extend-exclude = ["devices", "esp-idf", "./MicroHydra", "MicroPython", "src/font"]
+extend-exclude = ["esp-idf", "./MicroHydra", "MicroPython", "src/font"]
 line-length = 120
 target-version = "py39"
 # Add micropython-specific (and viper-specific) built-in names

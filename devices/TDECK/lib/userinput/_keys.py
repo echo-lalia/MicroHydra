@@ -1,6 +1,4 @@
-"""
-Read and return Keyboard / Trackball data
-for the Lilygo T-Deck.
+"""Read and return Keyboard / Trackball data for the Lilygo T-Deck.
 
 !Important note!:
     The T-Deck has a separate ESP32C3 in its keyboard that communicates
@@ -79,25 +77,23 @@ ALWAYS_NEW_KEYS = const(('UP', 'RIGHT', 'LEFT', 'DOWN'))
 
 
 class Keys:
-    """
-    Keys class is responsible for reading and returning currently pressed keys.
-    It is intented to be used by the Input module.
-    
+    """Keys class is responsible for reading and returning currently pressed keys.
+
+    Keys is intented to be used by the Input module.
+
     Args:
-    =====
-    
-    tb_move_thresh : int = 2
-        how much the trackball must move before sending a directional keystroke.
+        tb_repeat_ms: (int)
+            Minimum time between inputs .
     """
-    
+
     # optional values set preferred main/secondary action keys:
     main_action = "G0"
     secondary_action = "ENT"
     aux_action = "SPC"
 
     ext_dir_dict = {'i':'UP', 'j':'LEFT', 'k':'DOWN', 'l':'RIGHT', 'q':'ESC'}
-    
-    def __init__(self, tb_move_thresh = 1, **kwargs):
+
+    def __init__(self, tb_repeat_ms=50, **kwargs):  # noqa: ARG002
         # turn on keyboard
         KBD_PWR.value(1)
 
@@ -107,45 +103,55 @@ class Keys:
         # Stores a single int for writing to display
         # (because I2C requires it be a buffer)
         self.code_buf = bytearray(1)
-        
+
         # enable raw mode (REQUIRES HYDRA KB FIRMWARE)
         self._send_code(_ENABLE_RAW_MODE)
         self.firmware_compat_mode = False
-        
+
         # trackball read pins
         self.tb_up = Pin(3, mode=Pin.IN, pull=Pin.PULL_UP)
         self.tb_down = Pin(15, mode=Pin.IN, pull=Pin.PULL_UP)
         self.tb_left = Pin(1, mode=Pin.IN, pull=Pin.PULL_UP)
         self.tb_right = Pin(2, mode=Pin.IN, pull=Pin.PULL_UP)
         self.tb_click = Pin(0, mode=Pin.IN, pull=Pin.PULL_UP)
-        
+
         # irq used to count directional input
         self.tb_up.irq(trigger=Pin.IRQ_FALLING, handler=self._handle_irq)
         self.tb_down.irq(trigger=Pin.IRQ_FALLING, handler=self._handle_irq)
         self.tb_left.irq(trigger=Pin.IRQ_FALLING, handler=self._handle_irq)
         self.tb_right.irq(trigger=Pin.IRQ_FALLING, handler=self._handle_irq)
-        
+
         # trackball motion
+        self.tb_repeat_ms = tb_repeat_ms
+        self.tb_timer = {
+            self.tb_up: None,
+            self.tb_down: None,
+            self.tb_left: None,
+            self.tb_right: None,
+            }
         self.tb_x = 0
         self.tb_y = 0
-        
-        # set configuration
-        self.tb_move_thresh = tb_move_thresh
-        
+
         self.key_state = []
 
 
     @staticmethod
-    def ext_dir_keys(keylist):
-        """Convert typical (aphanumeric) keys into extended movement-specific keys"""
+    def ext_dir_keys(keylist: list) -> list:
+        """Convert typical (aphanumeric) keys into extended movement-specific keys."""
         for idx, key in enumerate(keylist):
             if key in Keys.ext_dir_dict:
                 keylist[idx] = Keys.ext_dir_dict[key]
         return keylist
 
 
-    def _handle_irq(self, tb_pin):
-        """Respond to trackball movements"""
+    def _handle_irq(self, tb_pin: Pin):
+        """Respond to trackball movements."""
+        if self.tb_timer[tb_pin] is not None \
+        and time.ticks_diff(time.ticks_ms(), self.tb_timer[tb_pin]) < self.tb_repeat_ms:
+            return
+
+        self.tb_timer[tb_pin] = time.ticks_ms()
+
         if tb_pin == self.tb_left:
             self.tb_x -= 1
         elif tb_pin == self.tb_right:
@@ -157,37 +163,38 @@ class Keys:
             self.tb_y += 1
 
 
-    def _send_code(self, code):
-        """Send a single code to the keyboard"""
+    def _send_code(self, code: int):
+        """Send a single code to the keyboard."""
         self.code_buf[0] = code
         self.i2c.writeto(_I2C_ADDR, self.code_buf)
 
 
-    def _add_tb_keys(self, keylist):
-        """Add trackball directions to keylist"""
+    def _add_tb_keys(self, keylist: list):
+        """Add trackball directions to keylist."""
         tb_x = self.tb_x
         tb_y = self.tb_y
-        move_thresh = self.tb_move_thresh
-        
-        tb_x //= move_thresh
-        tb_y //= move_thresh
-        
+
+        if not (tb_x or tb_y):
+            if any(self.tb_timer.values()):
+                for key in self.tb_timer:
+                    self.tb_timer[key] = None
+            return
+
         if tb_x:
             if tb_x > 0:
                 keylist.append("RIGHT")
             else:
                 keylist.append("LEFT")
+            self.tb_x = 0
         if tb_y:
             if tb_y > 0:
                 keylist.append("DOWN")
             else:
                 keylist.append("UP")
-        
-        self.tb_x = 0
-        self.tb_y = 0
+            self.tb_y = 0
 
 
-    def _special_mod_keys(self, codes, keylist):
+    def _special_mod_keys(self, keylist: list):
         """Convert device-specific key combos into general keys."""
         # shortcut for "OPT" key
         if "G0" in keylist \
@@ -203,61 +210,59 @@ class Keys:
             keylist.append("ESC")
 
 
-    def _alt_get_pressed_keys(self, **kwargs):
-        """Alternate version of get_pressed_keys for compatibility"""
+    def _alt_get_pressed_keys(self, **kwargs) -> list:  # noqa: ARG002
+        """Alternate version of get_pressed_keys (for compatibility)."""
         read_key = self.i2c.readfrom(_I2C_ADDR, 1).decode()
         tb_val = self.tb_click.value()
         keys = []
-        
+
         if read_key == "\x00" \
         and not self.tb_x \
         and not self.tb_y \
         and tb_val:
             self.key_state = keys
             return keys
-        
+
         # tb button
         if tb_val == 0:
             keys.append("G0")
-        
+
         if read_key != "\x00":
             if read_key == "\x08":
                 keys.append("BSPC")
             else:
                 keys.append(read_key)
-        
+
         self._add_tb_keys(keys)
         self.key_state = keys
         return keys
 
 
-    def set_backlight(self, value:bool):
-        """Turn keyboard backlight on or off"""
+    def set_backlight(self, value:bool):  # noqa: FBT001
+        """Turn keyboard backlight on or off."""
         if value:
             self._send_code(_BACKLIGHT_ON)
         else:
             self._send_code(_BACKLIGHT_OFF)
-        
 
-    def get_pressed_keys(self, force_fn=False, force_shift=False):
-        """
-        Return currently pressed keys.
+
+    def get_pressed_keys(self, *, force_fn=False, force_shift=False) -> list:
+        """Return currently pressed keys.
+
         Also, populate self.key_state with current vals.
-        
-        Args:
-        =====
 
-        force_fn : bool = False
+
+        Args:
+        force_fn: (bool)
             If true, forces the use of 'FN' key layer
 
-        force_shift : bool - False
+        force_shift: (bool)
             If True, forces the use of 'SHIFT' key layer
-
         """
         codes = self.i2c.readfrom(_I2C_ADDR, _NUM_READ_KEYS)
         tb_val = self.tb_click.value()
         keys = []
-        
+
         # early return on no input
         if codes == _EMPTY_BYTES \
         and not self.tb_x \
@@ -265,7 +270,8 @@ class Keys:
         and tb_val:
             self.key_state = keys
             return keys
-        
+
+
         # process special keys before converting to readable format
         if (_KC_FN in codes and tb_val) \
         or force_fn:
@@ -279,10 +285,10 @@ class Keys:
         # tb button
         if tb_val == 0:
             keys.append("G0")
-        
+
         for code in codes:
             if code != 0:
-                if code in keymap.keys():
+                if code in keymap:
                     keys.append(keymap[code])
 
                 elif code > 100:
@@ -293,17 +299,7 @@ class Keys:
                     self.get_pressed_keys = self._alt_get_pressed_keys
                     return keys
 
-        self._special_mod_keys(codes, keys)
+        self._special_mod_keys(keys)
         self._add_tb_keys(keys)
         self.key_state = keys
         return keys
-
-
-if __name__ == "__main__":
-    keys = Keys()
-    while True:
-        print(keys.ext_dir_keys(keys.get_pressed_keys()))
-
-        time.sleep_ms(50)
-
-
