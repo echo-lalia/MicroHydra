@@ -80,7 +80,7 @@ class Keys:
         self.key_state = []
 
     @micropython.viper
-    def scan(self) -> list:
+    def scan(self):  # noqa: ANN202
         """Scan through the matrix to see what keys are pressed."""
         key_list_buffer = []
         self._key_list_buffer = key_list_buffer
