@@ -415,6 +415,55 @@ def refresh_files(view: ListView) -> tuple[list, dict]:
     return file_list, dir_dict
 
 
+def panic_recover() -> tuple[ListView, list, dict]:
+    """When an error would cause a crash, try recovering instead."""
+    os.chdir('/')
+    file_list, dir_dict = parse_files()
+    view = ListView(tft, config, file_list, dir_dict)
+    return view, file_list, dir_dict
+
+
+def handle_input(key, view, file_list, dir_dict) -> tuple[list, dict]:
+    """React to user inputs."""
+    if key == "UP":
+        view.up()
+        beep.play(("G3", "B3"), 30)
+    elif key == "DOWN":
+        view.down()
+        beep.play(("D3", "B3"), 30)
+
+    elif key in {kb.main_action, kb.secondary_action}:
+        beep.play(("G3", "B3", "D3"), 30)
+        selection_name = file_list[view.cursor_index]
+        if selection_name == "/.../":  # new file
+            ext_options(overlay)
+            file_list, dir_dict = refresh_files(view)
+
+        elif dir_dict[selection_name]:
+            # this is a directory, open it
+            os.chdir(selection_name)
+            file_list, dir_dict = refresh_files(view)
+        else:
+            # this is a file, give file options
+            file_options(file_list[view.cursor_index], overlay)
+            file_list, dir_dict = refresh_files(view)
+
+    elif key ==  "BSPC":
+        beep.play(("D3", "B3", "G3"), 30)
+        # previous directory
+        if os.getcwd() == "/sd":
+            os.chdir("/")
+        else:
+            os.chdir("..")
+        file_list, dir_dict = refresh_files(view)
+
+    elif key == kb.aux_action:
+        ext_options(overlay)
+        file_list, dir_dict = refresh_files(view)
+
+    return file_list, dir_dict
+
+
 def main_loop(tft, kb, config, overlay):
     """Run the main loop."""
 
@@ -428,42 +477,14 @@ def main_loop(tft, kb, config, overlay):
         new_keys = kb.get_new_keys()
         kb.ext_dir_keys(new_keys)
 
-        for key in new_keys:
-            if key == "UP":
-                view.up()
-                beep.play(("G3", "B3"), 30)
-            elif key == "DOWN":
-                view.down()
-                beep.play(("D3", "B3"), 30)
+        try:
+            for key in new_keys:
+                file_list, dir_dict = handle_input(key, view, file_list, dir_dict)
 
-            elif key in {kb.main_action, kb.secondary_action}:
-                beep.play(("G3", "B3", "D3"), 30)
-                selection_name = file_list[view.cursor_index]
-                if selection_name == "/.../":  # new file
-                    ext_options(overlay)
-                    file_list, dir_dict = refresh_files(view)
-
-                elif dir_dict[selection_name]:
-                    # this is a directory, open it
-                    os.chdir(selection_name)
-                    file_list, dir_dict = refresh_files(view)
-                else:
-                    # this is a file, give file options
-                    file_options(file_list[view.cursor_index], overlay)
-                    file_list, dir_dict = refresh_files(view)
-
-            elif key ==  "BSPC":
-                beep.play(("D3", "B3", "G3"), 30)
-                # previous directory
-                if os.getcwd() == "/sd":
-                    os.chdir("/")
-                else:
-                    os.chdir("..")
-                file_list, dir_dict = refresh_files(view)
-
-            elif key == kb.aux_action:
-                ext_options(overlay)
-                file_list, dir_dict = refresh_files(view)
+        except (OSError, UnicodeError) as e:
+            # File operations can sometimes have unexpected results
+            overlay.error(repr(e))
+            view, file_list, dir_dict = panic_recover()
 
         view.draw()
         tft.show()
