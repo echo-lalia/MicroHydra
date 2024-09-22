@@ -111,7 +111,7 @@ def request_file(file_path: str) -> requests.Response:
     """Get the specific app file from GitHub"""
     TERM.print('Making request...')
     response = requests.get(  # noqa: S113 # no point using a timeout here
-        f'https://api.github.com/repos/echo-lalia/MicroHydra-Apps/contents/catalog-output/{file_path}',
+        f'https://raw.githubusercontent.com/echo-lalia/MicroHydra-Apps/main/catalog-output/{file_path}',
         headers={
             "accept": "application/vnd.github.v3.raw",
             "User-Agent": f"{Device.name} - MicroHydra",

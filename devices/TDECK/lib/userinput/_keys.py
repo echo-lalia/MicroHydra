@@ -41,7 +41,7 @@ KEYMAP_FN = {
     1:'#',   2:'1',  17:'2',  33:'3', 35:'(', 51:')', 49:'_', 67:'-', 65:'+', 20:'@',
     4:'*',  18:'4',  19:'5',  39:'6', 34:'/', 50:':', 55:';', 71:"'", 66:'"', 68:'DEL',
     5:'ALT',22:'7',  21:'8',  38:'9', 37:'?', 53:'!', 54:',', 70:'.', 69:'SPEAK',
-          23:'SHIFT',  7:'0',          6:'SPC',     3:'FN',  36:'SHIFT',
+          23:'SHIFT',  7:'0',          6:'TAB',     3:'FN',  36:'SHIFT',
     }
 
 
@@ -93,7 +93,7 @@ class Keys:
 
     ext_dir_dict = {'i':'UP', 'j':'LEFT', 'k':'DOWN', 'l':'RIGHT', 'q':'ESC'}
 
-    def __init__(self, tb_repeat_ms=50, **kwargs):  # noqa: ARG002
+    def __init__(self, tb_repeat_ms=60, **kwargs):  # noqa: ARG002
         # turn on keyboard
         KBD_PWR.value(1)
 
