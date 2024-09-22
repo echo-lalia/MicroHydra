@@ -112,7 +112,7 @@ class Beeper:
         """Play the given note.
 
         This is the main outward-facing method of Beeper.
-        Use this to play a simple square wave over the SPI speaker.
+        Use this to play a simple square wave over the I2C speaker.
 
         "notes" should be:
         - a string containing a note's name
