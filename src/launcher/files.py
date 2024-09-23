@@ -19,8 +19,8 @@ from lib.hydra.config import Config
 from lib.hydra.i18n import I18n
 
 
-_MH_DISPLAY_HEIGHT = const(240)
-_MH_DISPLAY_WIDTH = const(320)
+_MH_DISPLAY_HEIGHT = const(135)
+_MH_DISPLAY_WIDTH = const(240)
 
 
 _TRANS = const("""[
@@ -44,7 +44,7 @@ _DISPLAY_WIDTH_HALF = const(_MH_DISPLAY_WIDTH // 2)
 
 _ITEMS_PER_SCREEN = const(_MH_DISPLAY_HEIGHT // 32)
 _ITEMS_PER_SCREEN_MINUS = const(_ITEMS_PER_SCREEN - 1)
-_LEFT_PADDING = const(_MH_DISPLAY_WIDTH // 20)
+_LEFT_PADDING = const(_MH_DISPLAY_WIDTH // 24)
 
 # calculate padding around items based on amount of unused space
 _CHAR_PADDING = const((_MH_DISPLAY_HEIGHT - (_ITEMS_PER_SCREEN * 32)) // _ITEMS_PER_SCREEN)
@@ -61,8 +61,8 @@ _SCROLLBAR_START_X = const(_MH_DISPLAY_WIDTH - _SCROLLBAR_WIDTH)
 # for horizontal text scroll animation:
 _SCROLL_TIME = const(5000)  # ms per one text scroll
 
+# Delimiter for multiple main.py paths
 _PATH_JOIN = const("|//|")
-
 
 # hamburger menu icon:
 _HAMBURGER_WIDTH = const(32)
@@ -173,7 +173,7 @@ class ListView:
 
             # special stylilng on menu button
             if mytext == "/.../":
-                self.draw_hamburger_menu(tft, idx * _LINE_HEIGHT, self.config.palette[clr_idx])
+                self.draw_hamburger_menu(tft, idx * _LINE_HEIGHT + _TOP_PADDING, self.config.palette[clr_idx])
                 break  # hamburger menu is always last
 
             # special styling for directories
@@ -258,6 +258,41 @@ def ping_pong_ease(value: int, modulo: int) -> float:
     return (fac)
 
 
+
+def path_join(*args) -> str:
+    """Join multiple paths together."""
+    path = "/".join(args)
+    # Remove any repeated slashes
+    while "//" in path:
+        path = path.replace("//", "/")
+    if path.endswith("/") and len(path) > 1:
+        path = path[:-1]
+    return path
+
+
+def path_split(path_str) -> tuple[str, str]:
+    """Split last element off of path. (similar to os.path.split)."""
+    # Early return on root dir
+    if path_str == "/":
+        return "/", ""
+
+    *head, tail = path_str.split("/")
+    head = path_join(*head)
+    return head, tail
+
+
+def prev_dir():
+    """Move back to the previous directory (similar to "..")."""
+    # this funciton is needed because ".." doesn't work as expected with SDCards
+    # If you chdir("..") on "/sd" you will not move.
+    # And, if you chdir("..") back to "/" from anywhere else,
+    # "/sd" won't show up on os.listdir()
+    head = path_split(os.getcwd())[0]
+    if not head:
+        head = "/"
+    os.chdir(head)
+
+
 def parse_files()  -> tuple[list, dict]:
     """Get a list of directories/files, and a dictionary of which is which.
 
@@ -325,11 +360,11 @@ def ext_options(overlay):
 
         source_path, file_name = clipboard
 
-        source = f"{source_path}/{file_name}".replace('//', '/')
-        dest = f"{cwd}/{file_name}".replace('//', '/')
+        source = path_join(source_path, file_name)
+        dest = path_join(cwd, file_name)
 
         if source == dest:
-            dest = f"{cwd}/{file_name}.bak".replace('//', '/')
+            dest += ".bak"
 
         with open(source, "rb") as old_file, open(dest, "wb") as new_file:
             while True:
@@ -450,11 +485,7 @@ def handle_input(key, view, file_list, dir_dict) -> tuple[list, dict]:
 
     elif key ==  "BSPC":
         beep.play(("D3", "B3", "G3"), 30)
-        # previous directory
-        if os.getcwd() == "/sd":
-            os.chdir("/")
-        else:
-            os.chdir("..")
+        prev_dir()
         file_list, dir_dict = refresh_files(view)
 
     elif key == kb.aux_action:
