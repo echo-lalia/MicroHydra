@@ -1,22 +1,24 @@
 <p align="center">
     <a href="https://github.com/echo-lalia/MicroHydra-Apps" alt="Apps">
-        <img src="https://img.shields.io/badge/Apps-purple" /></a>
+        <img src="https://img.shields.io/badge/Apps-d66e28" /></a>
  &nbsp;&nbsp;
     <a href="https://github.com/echo-lalia/microhydra-frozen" alt="MicroHydra Firmware">
-        <img src="https://img.shields.io/badge/Firmware-purple" /></a>
+        <img src="https://img.shields.io/badge/Firmware-d66e28" /></a>
   &nbsp;&nbsp;
     <a href="https://github.com/echo-lalia/Cardputer-MicroHydra/wiki" alt="Wiki">
-        <img src="https://img.shields.io/badge/Wiki-slateblue" /></a>
+        <img src="https://img.shields.io/badge/Wiki-b63532" /></a>
   &nbsp;&nbsp;
     <a href="https://github.com/echo-lalia/Cardputer-MicroHydra?tab=GPL-3.0-1-ov-file" alt="License">
-        <img src="https://img.shields.io/github/license/echo-lalia/Cardputer-MicroHydra?color=darkslateblue" /></a>
+        <img src="https://img.shields.io/github/license/echo-lalia/Cardputer-MicroHydra?labelColor=47102a&color=8d1f52" /></a>
   &nbsp;&nbsp;
     <a href="https://github.com/echo-lalia/Cardputer-MicroHydra" alt="Likes">
-        <img src="https://img.shields.io/github/stars/echo-lalia/Cardputer-MicroHydra?style=flat&color=darkslateblue" /></a>
+        <img src="https://img.shields.io/github/stars/echo-lalia/Cardputer-MicroHydra?style=flat&labelColor=47102a&color=8d1f52" /></a>
   &nbsp;&nbsp;
     <a href="https://discord.gg/6e4KUDpgQC" alt="Discord">
-        <img src="https://img.shields.io/discord/1279691612099973151?logo=discord&label=Discord&color=darkslateblue" /></a>
-
+        <img src="https://img.shields.io/discord/1279691612099973151?logo=discord&logoColor=c86744&label=Discord&labelColor=300f2d&color=621e5a" /></a>
+  &nbsp;&nbsp;
+    <a href="https://ko-fi.com/ethanlacasse" alt="KoFi">
+        <img src="https://img.shields.io/badge/Support_MicroHydra-4c1b52?logo=kofi&logoColor=b63532" /></a>
 </p>
 
 
