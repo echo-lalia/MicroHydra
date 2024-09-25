@@ -108,7 +108,7 @@ def connect_wifi():
 
 
 def request_file(file_path: str) -> requests.Response:
-    """Get the specific app file from GitHub"""
+    """Get the specific app file from GitHub."""
     TERM.print('Making request...')
     response = requests.get(  # noqa: S113 # no point using a timeout here
         f'https://raw.githubusercontent.com/echo-lalia/MicroHydra-Apps/main/catalog-output/{file_path}',
@@ -134,7 +134,7 @@ def try_request_file(file_path: str) -> requests.Response:
 
 
 def fetch_app_catalog() -> dict:
-    """Download compact app catalog from apps repo"""
+    """Download compact app catalog from apps repo."""
 
     TERM.print(I18N["Getting app catalog..."])
 
@@ -146,8 +146,8 @@ def fetch_app_catalog() -> dict:
 
 
 _MAX_WBITS = const(15)
-def fetch_app(app_name, mpy_matches):  # noqa: E302
-    """Download and extract given app from repo"""
+def fetch_app(app_name, mpy_matches):
+    """Download and extract given app from repo."""
     TERM.print("")
     TERM.print(f"Fetching {app_name}.")
     TERM.print(I18N["Connecting to GitHub..."])
@@ -203,19 +203,22 @@ _MAX_H_CHARS = const(_MH_DISPLAY_WIDTH // 8)
 
 
 class CatalogDisplay:
-    """Construct for displaying and selecting catalog options"""
+    """Construct for displaying and selecting catalog options."""
 
     def __init__(self, catalog: dict):
-        """Create a Catalog using given dict"""
+        """Create a Catalog using given dict."""
         self.mpy_version = catalog.pop("mpy_version")
 
         self.names = list(catalog.keys())
+        # sort alphabetically without uppercase/lowercase discrimination:
+        self.names.sort(key=lambda st: st.lower())
+
         self.catalog = catalog
 
         self.idx = 0
 
     def move(self, val: int):
-        """Move the selector index by `val`"""
+        """Move the selector index by `val`."""
         self.idx += val
         self.idx %= len(self.names)
 
@@ -242,7 +245,7 @@ class CatalogDisplay:
 
 
     def draw(self):
-        """Draw the selected option to the display"""
+        """Draw the selected option to the display."""
         name = self.names[self.idx]
         # separate author
         *desc, author = self.catalog[name].split(' - ')
