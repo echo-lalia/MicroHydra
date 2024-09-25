@@ -62,10 +62,7 @@ DISPLAY = Display(
     # mh_end_if
     )
 
-# object for accessing microhydra config (Delete if unneeded)
 CONFIG = Config()
-
-# object for reading keypresses (or other user input)
 INPUT = userinput.UserInput()
 
 NIC = network.WLAN(network.STA_IF)
@@ -217,7 +214,7 @@ def fetch_app(app_name, mpy_matches):
 
 _AUTHOR_Y = const(_MH_DISPLAY_HEIGHT // 2)
 _NAME_Y = const(_MH_DISPLAY_HEIGHT // 4 - 8)
-_DESC_Y = const(_AUTHOR_Y + _NAME_Y)
+_DESC_Y = const(_AUTHOR_Y + _NAME_Y + 6)
 _MAX_H_CHARS = const(_MH_DISPLAY_WIDTH // 8)
 
 
@@ -295,7 +292,7 @@ class CatalogDisplay:
         DISPLAY.text(name, _DISPLAY_WIDTH_HALF - (len(name) * 4), _NAME_Y, CONFIG.palette[8])
 
         # draw author
-        DISPLAY.text(I18N["Author:"], _DISPLAY_WIDTH_HALF - 28, _AUTHOR_Y - 10, CONFIG.palette[3])
+        DISPLAY.text(I18N["Author:"], _DISPLAY_WIDTH_HALF - 28, _AUTHOR_Y - 14, CONFIG.palette[3])
         DISPLAY.text(
             author,
             _DISPLAY_WIDTH_HALF - (len(author) * 4),
@@ -307,7 +304,7 @@ class CatalogDisplay:
         DISPLAY.text(
             I18N["Description:"],
             _DISPLAY_WIDTH_HALF - 48,
-            _DESC_Y - 10,
+            _DESC_Y - 14,
             CONFIG.palette[3],
             )
         desc_y = _DESC_Y
@@ -320,8 +317,6 @@ class CatalogDisplay:
                 CONFIG.palette[6],
                 )
             desc_y += 9
-
-        DISPLAY.show()
 
 
 # --------------------------------------------------------------------------------------------------
@@ -347,6 +342,20 @@ def main_loop():
     catalog_display = CatalogDisplay(catalog)
     catalog_display.draw()
 
+    # Add usage hint
+    DISPLAY.text(
+        I18N["Select an app to download:"],
+        _DISPLAY_WIDTH_HALF - 104,  # Center text
+        2,
+        CONFIG.palette[0],
+    )
+    DISPLAY.text(
+        I18N["Press backspace to exit"],
+        _DISPLAY_WIDTH_HALF - 92,  # Center text
+        _MH_DISPLAY_HEIGHT-10,
+        CONFIG.palette[0],
+    )
+    DISPLAY.show()
 
     while True:
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -374,6 +383,7 @@ def main_loop():
                     catalog_display.jump_to(key)
 
             catalog_display.draw()
+            DISPLAY.show()
 
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
