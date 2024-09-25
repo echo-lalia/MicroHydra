@@ -79,6 +79,25 @@ I18N = I18n(_TRANS)
 # -------------------------------------- function_definitions: -------------------------------------
 # --------------------------------------------------------------------------------------------------
 
+def check_wifi():
+    """Verify WiFi has been configured, print error and exit if not."""
+    if not CONFIG['wifi_ssid']:
+        TERM.print(I18N["Error: WiFi SSID is blank!"])
+        TERM.print(I18N["Please use the Settings app to set up your WiFi access."])
+        TERM.print('')
+        TERM.print("(Press any key to go to settings...)")
+        time.sleep_ms(500)
+        while not INPUT.get_new_keys():
+            time.sleep_ms(10)
+        machine.RTC().memory(
+            # mh_if frozen:
+            # ".frozen/launcher/settings",
+            # mh_else:
+            "/launcher/settings",
+            # mh_end_if
+        )
+        machine.reset()
+
 
 def connect_wifi():
     """Connect to the configured WiFi network."""
@@ -314,7 +333,7 @@ def main_loop():
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ INITIALIZATION: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+    check_wifi()
     connect_wifi()
     catalog = fetch_app_catalog()
 
