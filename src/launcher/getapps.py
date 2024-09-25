@@ -62,10 +62,7 @@ DISPLAY = Display(
     # mh_end_if
     )
 
-# object for accessing microhydra config (Delete if unneeded)
 CONFIG = Config()
-
-# object for reading keypresses (or other user input)
 INPUT = userinput.UserInput()
 
 NIC = network.WLAN(network.STA_IF)
@@ -78,6 +75,25 @@ I18N = I18n(_TRANS)
 # --------------------------------------------------------------------------------------------------
 # -------------------------------------- function_definitions: -------------------------------------
 # --------------------------------------------------------------------------------------------------
+
+def check_wifi():
+    """Verify WiFi has been configured, print error and exit if not."""
+    if not CONFIG['wifi_ssid']:
+        TERM.print(I18N["Error: WiFi SSID is blank!"])
+        TERM.print(I18N["Please use the Settings app to set up your WiFi access."])
+        TERM.print('')
+        TERM.print("(Press any key to go to settings...)")
+        time.sleep_ms(500)
+        while not INPUT.get_new_keys():
+            time.sleep_ms(10)
+        machine.RTC().memory(
+            # mh_if frozen:
+            # ".frozen/launcher/settings",
+            # mh_else:
+            "/launcher/settings",
+            # mh_end_if
+        )
+        machine.reset()
 
 
 def connect_wifi():
@@ -108,7 +124,7 @@ def connect_wifi():
 
 
 def request_file(file_path: str) -> requests.Response:
-    """Get the specific app file from GitHub"""
+    """Get the specific app file from GitHub."""
     TERM.print('Making request...')
     response = requests.get(  # noqa: S113 # no point using a timeout here
         f'https://raw.githubusercontent.com/echo-lalia/MicroHydra-Apps/main/catalog-output/{file_path}',
@@ -134,7 +150,7 @@ def try_request_file(file_path: str) -> requests.Response:
 
 
 def fetch_app_catalog() -> dict:
-    """Download compact app catalog from apps repo"""
+    """Download compact app catalog from apps repo."""
 
     TERM.print(I18N["Getting app catalog..."])
 
@@ -146,8 +162,8 @@ def fetch_app_catalog() -> dict:
 
 
 _MAX_WBITS = const(15)
-def fetch_app(app_name, mpy_matches):  # noqa: E302
-    """Download and extract given app from repo"""
+def fetch_app(app_name, mpy_matches):
+    """Download and extract given app from repo."""
     TERM.print("")
     TERM.print(f"Fetching {app_name}.")
     TERM.print(I18N["Connecting to GitHub..."])
@@ -198,26 +214,41 @@ def fetch_app(app_name, mpy_matches):  # noqa: E302
 
 _AUTHOR_Y = const(_MH_DISPLAY_HEIGHT // 2)
 _NAME_Y = const(_MH_DISPLAY_HEIGHT // 4 - 8)
-_DESC_Y = const(_AUTHOR_Y + _NAME_Y)
+_DESC_Y = const(_AUTHOR_Y + _NAME_Y + 6)
 _MAX_H_CHARS = const(_MH_DISPLAY_WIDTH // 8)
 
 
 class CatalogDisplay:
-    """Construct for displaying and selecting catalog options"""
+    """Construct for displaying and selecting catalog options."""
 
     def __init__(self, catalog: dict):
-        """Create a Catalog using given dict"""
+        """Create a Catalog using given dict."""
         self.mpy_version = catalog.pop("mpy_version")
 
         self.names = list(catalog.keys())
+        # sort alphabetically without uppercase/lowercase discrimination:
+        self.names.sort(key=lambda st: st.lower())
+
         self.catalog = catalog
 
         self.idx = 0
 
     def move(self, val: int):
-        """Move the selector index by `val`"""
+        """Move the selector index by `val`."""
         self.idx += val
         self.idx %= len(self.names)
+
+
+    def jump_to(self, letter):
+        """Jump to the next app that starts with the given letter."""
+        # search for that letter in the app list
+        for i in range(1, len(self.names)):
+            # scan to the right, starting at self.idx
+            i = (i + self.idx) % len(self.names)
+            name = self.names[i]
+            if name.lower().startswith(letter):
+                self.idx = i
+                return
 
 
     @staticmethod
@@ -242,7 +273,7 @@ class CatalogDisplay:
 
 
     def draw(self):
-        """Draw the selected option to the display"""
+        """Draw the selected option to the display."""
         name = self.names[self.idx]
         # separate author
         *desc, author = self.catalog[name].split(' - ')
@@ -261,7 +292,7 @@ class CatalogDisplay:
         DISPLAY.text(name, _DISPLAY_WIDTH_HALF - (len(name) * 4), _NAME_Y, CONFIG.palette[8])
 
         # draw author
-        DISPLAY.text(I18N["Author:"], _DISPLAY_WIDTH_HALF - 28, _AUTHOR_Y - 10, CONFIG.palette[3])
+        DISPLAY.text(I18N["Author:"], _DISPLAY_WIDTH_HALF - 28, _AUTHOR_Y - 14, CONFIG.palette[3])
         DISPLAY.text(
             author,
             _DISPLAY_WIDTH_HALF - (len(author) * 4),
@@ -273,7 +304,7 @@ class CatalogDisplay:
         DISPLAY.text(
             I18N["Description:"],
             _DISPLAY_WIDTH_HALF - 48,
-            _DESC_Y - 10,
+            _DESC_Y - 14,
             CONFIG.palette[3],
             )
         desc_y = _DESC_Y
@@ -287,8 +318,6 @@ class CatalogDisplay:
                 )
             desc_y += 9
 
-        DISPLAY.show()
-
 
 # --------------------------------------------------------------------------------------------------
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -299,7 +328,7 @@ def main_loop():
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ INITIALIZATION: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+    check_wifi()
     connect_wifi()
     catalog = fetch_app_catalog()
 
@@ -313,6 +342,20 @@ def main_loop():
     catalog_display = CatalogDisplay(catalog)
     catalog_display.draw()
 
+    # Add usage hint
+    DISPLAY.text(
+        I18N["Select an app to download:"],
+        _DISPLAY_WIDTH_HALF - 104,  # Center text
+        2,
+        CONFIG.palette[0],
+    )
+    DISPLAY.text(
+        I18N["Press backspace to exit"],
+        _DISPLAY_WIDTH_HALF - 92,  # Center text
+        _MH_DISPLAY_HEIGHT-10,
+        CONFIG.palette[0],
+    )
+    DISPLAY.show()
 
     while True:
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -332,11 +375,15 @@ def main_loop():
                     fetch_app(catalog_display.names[catalog_display.idx], mpy_matches)
                     time.sleep(2)
 
-                elif key in {'ESC', 'q', 'BSPC'}:
+                elif key in {'ESC', 'BSPC'}:
                     NIC.active(False)
                     machine.reset()
 
+                elif len(key) == 1:
+                    catalog_display.jump_to(key)
+
             catalog_display.draw()
+            DISPLAY.show()
 
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
