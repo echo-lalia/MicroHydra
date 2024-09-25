@@ -223,6 +223,18 @@ class CatalogDisplay:
         self.idx %= len(self.names)
 
 
+    def jump_to(self, letter):
+        """Jump to the next app that starts with the given letter."""
+        # search for that letter in the app list
+        for i in range(1, len(self.names)):
+            # scan to the right, starting at self.idx
+            i = (i + self.idx) % len(self.names)
+            name = self.names[i]
+            if name.lower().startswith(letter):
+                self.idx = i
+                return
+
+
     @staticmethod
     def split_lines(text: str) -> list:
         """Split a string into multiple lines, based on max line-length."""
@@ -335,9 +347,12 @@ def main_loop():
                     fetch_app(catalog_display.names[catalog_display.idx], mpy_matches)
                     time.sleep(2)
 
-                elif key in {'ESC', 'q', 'BSPC'}:
+                elif key in {'ESC', 'BSPC'}:
                     NIC.active(False)
                     machine.reset()
+
+                elif len(key) == 1:
+                    catalog_display.jump_to(key)
 
             catalog_display.draw()
 
