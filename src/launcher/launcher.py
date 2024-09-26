@@ -50,9 +50,9 @@ from lib.hydra.i18n import I18n
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ _CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-_MH_DISPLAY_WIDTH = const(320)
-_MH_DISPLAY_HEIGHT = const(240)
-_MH_DISPLAY_BACKLIGHT = const(42)
+_MH_DISPLAY_WIDTH = const(240)
+_MH_DISPLAY_HEIGHT = const(135)
+_MH_DISPLAY_BACKLIGHT = const(38)
 
 _DISPLAY_WIDTH_HALF = const(_MH_DISPLAY_WIDTH//2)
 
@@ -87,6 +87,7 @@ _APPNAME_Y = const(_ICON_Y + _ICON_HEIGHT + _Y_PADDING)
 
 
 _SCROLL_ANIMATION_TIME = const(400)
+_SCROLL_ANIMATION_QUICK = const(250)
 
 
 _ASCII_MAX = const(128)
@@ -492,6 +493,7 @@ class IconWidget:
         self.x = _DISPLAY_WIDTH_HALF
         self.prev_x = 0
         self.scroll_start_ms = time.ticks_ms()
+        self.anim = _SCROLL_ANIMATION_TIME
         self.force_update()
 
         # buffer for storing one custom icon
@@ -531,7 +533,7 @@ class IconWidget:
         fac = time.ticks_diff(
             time.ticks_ms(),
             self.scroll_start_ms,
-            ) / _SCROLL_ANIMATION_TIME
+            ) / self.anim_time
 
         if fac >= 1:
             self.direction = 0
@@ -548,6 +550,9 @@ class IconWidget:
         """Initialize the scrolling animation."""
         if self.next_icon != self.drawn_icon:
             self.force_update()
+            self.anim_time = _SCROLL_ANIMATION_QUICK
+        else:
+            self.anim_time = _SCROLL_ANIMATION_TIME
 
         draw_scrollbar()
         draw_app_name()
@@ -799,19 +804,19 @@ def main_loop():
         new_keys = KB.get_new_keys()
 
         # mh_if CARDPUTER:
-        # # Cardputer should use extended movement keys in the launcher
-        # KB.ext_dir_keys(new_keys)
+        # Cardputer should use extended movement keys in the launcher
+        KB.ext_dir_keys(new_keys)
         # mh_end_if
 
         # mh_if touchscreen:
-        # add swipes to direcitonal input
-        touch_events = KB.get_touch_events()
-        for event in touch_events:
-            if hasattr(event, 'direction'):
-                if event.direction == 'RIGHT':
-                    new_keys.append('LEFT')
-                elif event.direction == 'LEFT':
-                    new_keys.append('RIGHT')
+        # # add swipes to direcitonal input
+        # touch_events = KB.get_touch_events()
+        # for event in touch_events:
+        #     if hasattr(event, 'direction'):
+        #         if event.direction == 'RIGHT':
+        #             new_keys.append('LEFT')
+        #         elif event.direction == 'LEFT':
+        #             new_keys.append('RIGHT')
         # mh_end_if
 
         if new_keys:
@@ -918,6 +923,9 @@ def main_loop():
 
         if SYNCING_CLOCK:
             try_sync_clock()
+
+        # short sleep makes the animation look a little less flickery
+        time.sleep_ms(5)
 
 
 # run the main loop!

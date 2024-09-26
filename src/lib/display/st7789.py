@@ -275,17 +275,21 @@ class ST7789(DisplayCore):
 
     @micropython.viper
     def _write_tiny_buf(self, y_min: int, y_max: int):
-        """Convert tiny_buf data to RGB565 and write to SPI."""
+        """Convert tiny_buf data to RGB565 and write to SPI.
+
+        This Viper method iterates over each line from y_min to y_max,
+        converts the 4bit data to 16bit RGB565 format,
+        and sends the data over SPI.
+        """
         if self.cs:
             self.cs.off()
         self.dc.on()
 
         width = int(self.width)
-
         start_y = int(y_min)
         end_y = int(y_max)
 
-        # swap colors if needed
+        # swap colors in palette if needed
         if self.needs_swap:
             palette_buf = bytearray(32)
             target_palette_ptr = ptr16(palette_buf)
@@ -293,40 +297,35 @@ class ST7789(DisplayCore):
             for i in range(16):
                 target_palette_ptr[i] = ((source_palette_ptr[i] & 255) << 8) | (source_palette_ptr[i] >> 8)
         else:
-            palette_buf = self.palette.buf
+            target_palette_ptr = ptr16(self.palette.buf)
 
-        #for y in range(start_y, end_y):
+
+        # prepare variables for line conversion loop:
+        source_ptr = ptr8(self.fbuf)
+        source_width = width // 2 if (width % 8 == 0) else ((width + 1) // 2)
+        output_buf = bytearray(width * 2)
+        output = ptr16(output_buf)
+
+        # Iterate (vertically) over each horizontal line in given range:
         while start_y < end_y:
-            self.spi.write(
-                self._convert_tiny_line(palette_buf, start_y, width)
-                )
+            source_start_idx = source_width * start_y
+            output_idx = 0
+            # Iterate over horizontal pixels:
+            while output_idx < width:
+                # Calculate source pixel location, and sample it.
+                source_idx = source_start_idx + (output_idx // 2)
+                sample = source_ptr[source_idx] >> 4 if (output_idx % 2 == 0) else source_ptr[source_idx] & 0xf
+
+                output[output_idx] = target_palette_ptr[sample]
+                output_idx += 1
+
+            # Write buffer to SPI
+            self.spi.write(output_buf)
+
             start_y += 1
 
         if self.cs:
             self.cs.on()
-
-
-    @micropython.viper
-    def _convert_tiny_line(self, palette_buf, y:int, width:int):  # noqa: ANN202
-        """Convert a single line of the requested size (For `_write_tiny_buf)."""
-        source_ptr = ptr8(self.fbuf)
-        palette = ptr16(palette_buf)
-        output_buf = bytearray(width * 2)
-        output = ptr16(output_buf)
-
-        source_width = width // 2 if (width % 8 == 0) else ((width + 1) // 2)
-        source_start_idx = source_width * y
-        output_idx = 0
-
-        while output_idx < width:
-            source_idx = source_start_idx + (output_idx // 2)
-            sample = source_ptr[source_idx] >> 4 if (output_idx % 2 == 0) else source_ptr[source_idx] & 0xf
-
-            output[output_idx] = palette[sample]
-
-            output_idx += 1
-
-        return output_buf
 
 
     def _write_normal_buf(self, y_min: int, y_max: int):
