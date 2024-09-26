@@ -52,7 +52,6 @@ class DisplayCore:
                 # round width up to 8 bits
                 size = (height * width) // 2 if (width % 8 == 0) else (height * (width + 1)) // 2
                 reserved_bytearray = bytearray(size)
-
             else: # full sized buffer
                 reserved_bytearray = bytearray(height*width*2)
 
@@ -65,7 +64,7 @@ class DisplayCore:
             framebuf.GS4_HMSB if use_tiny_buf else framebuf.RGB565,
             )
 
-        self.palette = Palette()
+        self.palette = get_instance(Palette)
         self.palette.use_tiny_buf = self.use_tiny_buf = use_tiny_buf
 
         # keep track of min/max y vals for writing to display
@@ -81,6 +80,8 @@ class DisplayCore:
 
 
 
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DisplayCore utils: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     def _reset_show_min(self) -> tuple[int, int]:
         """Return and reset y boundaries."""
         # clamp min and max
@@ -115,6 +116,64 @@ class DisplayCore:
             color = ((color & 0xff) << 8) | (color >> 8)
         return color
 
+    def blit_buffer(
+            self,
+            buffer: bytearray|framebuf.FrameBuffer,
+            x: int,
+            y: int,
+            width: int,
+            height: int,
+            *,
+            key: int = -1,
+            palette: framebuf.FrameBuffer|None = None):
+        """Copy buffer to display framebuf at the given location.
+
+        Args:
+            buffer (bytearray): Data to copy to display
+            x (int): Top left corner x coordinate
+            Y (int): Top left corner y coordinate
+            width (int): Width
+            height (int): Height
+            key (int): color to be considered transparent
+            palette (framebuf): the color pallete to use for the buffer
+        """
+        self._set_show_min(y, y + height)
+        if not isinstance(buffer, framebuf.FrameBuffer):
+            buffer = framebuf.FrameBuffer(
+                buffer, width, height,
+                framebuf.GS4_HMSB if self.use_tiny_buf else framebuf.RGB565,
+                )
+
+        self.fbuf.blit(buffer, x, y, key, palette)
+
+
+
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FrameBuffer Primitives: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    def fill(self, color: int):
+        """Fill the entire FrameBuffer with the specified color.
+
+        Args:
+            color (int): 565 encoded color
+        """
+        # whole display must show
+        self._set_show_min(0, self.height)
+        color = self._format_color(color)
+        self.fbuf.fill(color)
+
+
+    def pixel(self, x: int, y: int, color: int):
+        """Draw a pixel at the given location and color.
+
+        Args:
+            x (int): x coordinate
+            Y (int): y coordinate
+            color (int): 565 encoded color
+        """
+        self._set_show_min(y, y)
+        color = self._format_color(color)
+        self.fbuf.pixel(x,y,color)
+
 
     def vline(self, x: int, y: int, length: int, color: int):
         """Draw vertical line at the given location and color.
@@ -144,71 +203,6 @@ class DisplayCore:
         self.fbuf.hline(x, y, length, color)
 
 
-    def pixel(self, x: int, y: int, color: int):
-        """Draw a pixel at the given location and color.
-
-        Args:
-            x (int): x coordinate
-            Y (int): y coordinate
-            color (int): 565 encoded color
-        """
-        self._set_show_min(y, y)
-        color = self._format_color(color)
-        self.fbuf.pixel(x,y,color)
-
-
-    def rect(self, x: int, y: int, w: int, h: int, color: int, *, fill: bool = False):
-        """Draw a rectangle at the given location, size and color.
-
-        Args:
-            x (int): Top left corner x coordinate
-            y (int): Top left corner y coordinate
-            width (int): Width in pixels
-            height (int): Height in pixels
-            color (int): 565 encoded color
-        """
-        self._set_show_min(y, y + h)
-        color = self._format_color(color)
-        self.fbuf.rect(x,y,w,h,color,fill)
-
-
-    def ellipse(self, x:int, y:int, xr:int, yr:int, color:int, *, fill:bool=False, m:int=0xf):
-        """Draw an ellipse at the given location, radius and color.
-
-        Args:
-            x (int): Center x coordinate
-            y (int): Center y coordinate
-            xr (int): x axis radius
-            yr (int): y axis radius
-            color (int): 565 encoded color
-            fill (bool): fill in the ellipse. Default is False
-        """
-        self._set_show_min(y - yr, y + yr + 1)
-        color = self._format_color(color)
-        self.fbuf.ellipse(x,y,xr,yr,color,fill,m)
-
-
-    def fill_rect(self, x:int, y:int, width:int, height:int, color:int):
-        """Draw a rectangle at the given location, size and filled with color.
-
-        This is just a wrapper for the rect() method,
-        and is provided for some compatibility with the original st7789py driver.
-        """
-        self.rect(x, y, width, height, color, fill=True)
-
-
-    def fill(self, color: int):
-        """Fill the entire FrameBuffer with the specified color.
-
-        Args:
-            color (int): 565 encoded color
-        """
-        # whole display must show
-        self._set_show_min(0, self.height)
-        color = self._format_color(color)
-        self.fbuf.fill(color)
-
-
     def line(self, x0: int, y0: int, x1: int, y1: int, color: int):
         """
         Draw a single pixel wide line starting at x0, y0 and ending at x1, y1.
@@ -228,13 +222,96 @@ class DisplayCore:
         self.fbuf.line(x0, y0, x1, y1, color)
 
 
+    def rect(self, x: int, y: int, w: int, h: int, color: int, *, fill: bool = False):
+        """Draw a rectangle at the given location, size and color.
+
+        Args:
+            x (int): Top left corner x coordinate
+            y (int): Top left corner y coordinate
+            width (int): Width in pixels
+            height (int): Height in pixels
+            color (int): 565 encoded color
+        """
+        self._set_show_min(y, y + h)
+        color = self._format_color(color)
+        self.fbuf.rect(x,y,w,h,color,fill)
+
+
+    def fill_rect(self, x:int, y:int, width:int, height:int, color:int):
+        """Draw a rectangle at the given location, size and filled with color.
+
+        This is just a wrapper for the rect() method,
+        and is provided for some compatibility with the original st7789py driver.
+        """
+        self.rect(x, y, width, height, color, fill=True)
+
+
+    def ellipse(self, x:int, y:int, xr:int, yr:int, color:int, *, fill:bool=False, m:int=0xf):
+        """Draw an ellipse at the given location, radius and color.
+
+        Args:
+            x (int): Center x coordinate
+            y (int): Center y coordinate
+            xr (int): x axis radius
+            yr (int): y axis radius
+            color (int): 565 encoded color
+            fill (bool): fill in the ellipse. Default is False
+        """
+        self._set_show_min(y - yr, y + yr + 1)
+        color = self._format_color(color)
+        self.fbuf.ellipse(x,y,xr,yr,color,fill,m)
+
+
+    def polygon(self, coords, x: int, y: int, color: int, *, fill: bool = False):
+        """Draw a polygon from an array of coordinates.
+
+        Args:
+            coords (array('h')): An array of x/y coordinates defining the shape
+            x (int): column to start drawing at
+            y (int): row to start drawing at
+            color (int): Color of polygon
+            fill (bool=False) : fill the polygon (or draw an outline)
+        """
+        # calculate approx height so min/max can be set
+        h = max(coords)
+        self._set_show_min(y, y + h)
+        color = self._format_color(color)
+        self.fbuf.poly(x, y, coords, color, fill)
+
+
     def scroll(self, xstep: int, ystep: int):
         """Shift the contents of the FrameBuffer by the given vector.
 
-        This is a wrapper for the framebuffer.scroll method:
+        This is a wrapper for the framebuffer.scroll method.
         """
         self._set_show_min(0, self.height)
         self.fbuf.scroll(xstep,ystep)
+
+
+
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Text Drawing: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    def text(self, text: str, x: int, y: int, color: int, font=None):
+        """Draw text to the framebuffer.
+
+        Text is drawn with no background.
+        If 'font' is None, uses the built-in font.
+
+        Args:
+            text (str): text to write
+            x (int): column to start drawing at
+            y (int): row to start drawing at
+            color (int): encoded color to use for text
+            font (optional): bitmap font module to use
+        """
+        color = self._format_color(color)
+
+        if font:
+            self._set_show_min(y, y + font.HEIGHT)
+            self._bitmap_text(font, text, x, y, color)
+        else:
+            self._set_show_min(y, y + 8)
+            self._utf8_text(text, x, y, color)
 
 
     @micropython.viper
@@ -404,30 +481,6 @@ class DisplayCore:
             idx += 1
 
 
-    def text(self, text: str, x: int, y: int, color: int, font=None):
-        """Draw text to the framebuffer.
-
-        Text is drawn with no background.
-        If 'font' is None, uses the built-in font.
-
-        Args:
-            text (str): text to write
-            x (int): column to start drawing at
-            y (int): row to start drawing at
-            color (int): encoded color to use for text
-            font (optional): bitmap font module to use
-        """
-        color = self._format_color(color)
-
-        if font:
-            self._set_show_min(y, y + font.HEIGHT)
-            self._bitmap_text(font, text, x, y, color)
-        else:
-            self._set_show_min(y, y + 8)
-            self._utf8_text(text, x, y, color)
-
-
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~ Text Stuff:
     @staticmethod
     def get_total_width(text: str, *, scale: int = 8) -> int:
         """Get the total width of a line (with UTF8 chars).
@@ -475,6 +528,9 @@ class DisplayCore:
         return total_width * scale
 
 
+
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Bitmap Drawing: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     def bitmap(
             self,bitmap, x: int,
             y: int,
@@ -537,7 +593,7 @@ class DisplayCore:
         px_idx = 0
         while px_idx < bitmap_pixels:
             source_bit = (px_idx * bpp) + starting_bit
-            source_idx = source_bit // 8 
+            source_idx = source_bit // 8
             source_shift = 7 - (source_bit % 8)
 
             # bitmap value is an index in the color palette
@@ -567,51 +623,3 @@ class DisplayCore:
                     fbuf16[target_idx] = clr
 
             px_idx += 1
-
-
-    def polygon(self, coords, x: int, y: int, color: int, *, fill: bool = False):
-        """Draw a polygon from an array of coordinates.
-
-        Args:
-            coords (array('h')): An array of x/y coordinates defining the shape
-            x (int): column to start drawing at
-            y (int): row to start drawing at
-            color (int): Color of polygon
-            fill (bool=False) : fill the polygon (or draw an outline)
-        """
-        # calculate approx height so min/max can be set
-        h = max(coords)
-        self._set_show_min(y, y + h)
-        color = self._format_color(color)
-        self.fbuf.poly(x, y, coords, color, fill)
-
-
-    def blit_buffer(
-            self,
-            buffer: bytearray|framebuf.FrameBuffer,
-            x: int,
-            y: int,
-            width: int,
-            height: int,
-            *,
-            key: int = -1,
-            palette: framebuf.FrameBuffer|None = None):
-        """Copy buffer to display framebuf at the given location.
-
-        Args:
-            buffer (bytearray): Data to copy to display
-            x (int): Top left corner x coordinate
-            Y (int): Top left corner y coordinate
-            width (int): Width
-            height (int): Height
-            key (int): color to be considered transparent
-            palette (framebuf): the color pallete to use for the buffer
-        """
-        self._set_show_min(y, y + height)
-        if not isinstance(buffer, framebuf.FrameBuffer):
-            buffer = framebuf.FrameBuffer(
-                buffer, width, height,
-                framebuf.GS4_HMSB if self.use_tiny_buf else framebuf.RGB565,
-                )
-
-        self.fbuf.blit(buffer, x, y, key, palette)

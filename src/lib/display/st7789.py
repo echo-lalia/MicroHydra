@@ -161,12 +161,6 @@ _DISPLAY_128x128 = const((
     (0xc0, 128, 128, 2, 1),
     (0xa0, 128, 128, 1, 2)))
 
-# index values into rotation table
-_WIDTH = const(0)
-_HEIGHT = const(1)
-_XSTART = const(2)
-_YSTART = const(3)
-
 # Supported displays (physical width, physical height, rotation table)
 _SUPPORTED_DISPLAYS = const((
     (240, 320, _DISPLAY_240x320),
@@ -272,7 +266,6 @@ class ST7789(DisplayCore):
                 return display[2]
         msg = f"{width}x{height} display. Not in `_SUPPORTED_DISPLAYS`"
         raise ValueError(msg)
-
 
 
     def init(self, commands: tuple):
@@ -405,7 +398,7 @@ class ST7789(DisplayCore):
         # mh_end_if
 
 
-    def inversion_mode(self, value):
+    def inversion_mode(self, value: bool):
         """
         Enable or disable display inversion mode.
 
