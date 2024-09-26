@@ -82,7 +82,7 @@ class DisplayCore:
 
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DisplayCore utils: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    def _reset_show_min(self) -> tuple[int, int]:
+    def reset_show_y(self) -> tuple[int, int]:
         """Return and reset y boundaries."""
         # clamp min and max
         y_min = max(self._show_y_min, 0)
@@ -95,7 +95,7 @@ class DisplayCore:
 
 
     @micropython.viper
-    def _set_show_min(self, y0: int, y1: int):
+    def _set_show_y(self, y0: int, y1: int):
         """Set/store minimum and maximum Y to show next time show() is called."""
         y_min = int(self._show_y_min)
         y_max = int(self._show_y_max)
@@ -115,6 +115,7 @@ class DisplayCore:
         if (not self.use_tiny_buf) and self.needs_swap:
             color = ((color & 0xff) << 8) | (color >> 8)
         return color
+
 
     def blit_buffer(
             self,
@@ -137,7 +138,7 @@ class DisplayCore:
             key (int): color to be considered transparent
             palette (framebuf): the color pallete to use for the buffer
         """
-        self._set_show_min(y, y + height)
+        self._set_show_y(y, y + height)
         if not isinstance(buffer, framebuf.FrameBuffer):
             buffer = framebuf.FrameBuffer(
                 buffer, width, height,
@@ -157,7 +158,7 @@ class DisplayCore:
             color (int): 565 encoded color
         """
         # whole display must show
-        self._set_show_min(0, self.height)
+        self._set_show_y(0, self.height)
         color = self._format_color(color)
         self.fbuf.fill(color)
 
@@ -170,7 +171,7 @@ class DisplayCore:
             Y (int): y coordinate
             color (int): 565 encoded color
         """
-        self._set_show_min(y, y)
+        self._set_show_y(y, y)
         color = self._format_color(color)
         self.fbuf.pixel(x,y,color)
 
@@ -184,7 +185,7 @@ class DisplayCore:
             length (int): length of line
             color (int): 565 encoded color
         """
-        self._set_show_min(y, y + length)
+        self._set_show_y(y, y + length)
         color = self._format_color(color)
         self.fbuf.vline(x, y, length, color)
 
@@ -198,7 +199,7 @@ class DisplayCore:
             length (int): length of line
             color (int): 565 encoded color
         """
-        self._set_show_min(y, y)
+        self._set_show_y(y, y)
         color = self._format_color(color)
         self.fbuf.hline(x, y, length, color)
 
@@ -214,7 +215,7 @@ class DisplayCore:
             y1 (int): End point y coordinate
             color (int): 565 encoded color
         """
-        self._set_show_min(
+        self._set_show_y(
             min(y0,y1),
             max(y0,y1),
         )
@@ -232,7 +233,7 @@ class DisplayCore:
             height (int): Height in pixels
             color (int): 565 encoded color
         """
-        self._set_show_min(y, y + h)
+        self._set_show_y(y, y + h)
         color = self._format_color(color)
         self.fbuf.rect(x,y,w,h,color,fill)
 
@@ -257,7 +258,7 @@ class DisplayCore:
             color (int): 565 encoded color
             fill (bool): fill in the ellipse. Default is False
         """
-        self._set_show_min(y - yr, y + yr + 1)
+        self._set_show_y(y - yr, y + yr + 1)
         color = self._format_color(color)
         self.fbuf.ellipse(x,y,xr,yr,color,fill,m)
 
@@ -274,7 +275,7 @@ class DisplayCore:
         """
         # calculate approx height so min/max can be set
         h = max(coords)
-        self._set_show_min(y, y + h)
+        self._set_show_y(y, y + h)
         color = self._format_color(color)
         self.fbuf.poly(x, y, coords, color, fill)
 
@@ -284,7 +285,7 @@ class DisplayCore:
 
         This is a wrapper for the framebuffer.scroll method.
         """
-        self._set_show_min(0, self.height)
+        self._set_show_y(0, self.height)
         self.fbuf.scroll(xstep,ystep)
 
 
@@ -307,10 +308,10 @@ class DisplayCore:
         color = self._format_color(color)
 
         if font:
-            self._set_show_min(y, y + font.HEIGHT)
+            self._set_show_y(y, y + font.HEIGHT)
             self._bitmap_text(font, text, x, y, color)
         else:
-            self._set_show_min(y, y + 8)
+            self._set_show_y(y, y + 8)
             self._utf8_text(text, x, y, color)
 
 
@@ -572,7 +573,7 @@ class DisplayCore:
 
         use_tiny_buf = bool(self.use_tiny_buf)
 
-        self._set_show_min(y, y + height)
+        self._set_show_y(y, y + height)
 
         # format color palette into a pointer
         palette_buf = bytearray(palette_len * 2)

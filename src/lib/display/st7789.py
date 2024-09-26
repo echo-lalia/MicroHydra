@@ -40,22 +40,6 @@ This driver supports:
 - 320x240, 240x240, 135x240 and 128x128 pixel displays
 - Display rotation
 - RGB and BGR color orders
-- Hardware based scrolling
-- Drawing text using 8 and 16 bit wide bitmap fonts with heights that are
-  multiples of 8.  Included are 12 bitmap fonts derived from classic pc
-  BIOS text mode fonts.
-- Drawing converted bitmaps
-- Named color constants
-
-  - BLACK
-  - BLUE
-  - RED
-  - GREEN
-  - CYAN
-  - MAGENTA
-  - YELLOW
-  - WHITE
-
 """
 
 import struct
@@ -480,7 +464,7 @@ class ST7789(DisplayCore):
         # mh_end_if
 
         # Reset and clamp min/max vals
-        y_min, y_max = self._reset_show_min()
+        y_min, y_max = self.reset_show_y()
 
         if y_min >= y_max:
             # nothing to show
