@@ -284,6 +284,9 @@ class DisplayCore:
         """Shift the contents of the FrameBuffer by the given vector.
 
         This is a wrapper for the framebuffer.scroll method.
+        Args:
+            xstep (int): Distance to move fbuf to the right
+            ystep (int): Distance to move fbuf down
         """
         self._set_show_y(0, self.height)
         self.fbuf.scroll(xstep,ystep)
@@ -483,19 +486,19 @@ class DisplayCore:
 
 
     @staticmethod
-    def get_total_width(text: str, *, scale: int = 8) -> int:
+    def get_total_width(text: str, *, width: int = 8) -> int:
         """Get the total width of a line (with UTF8 chars).
 
         Args:
             text (str): The text string to measure.
-            scale (int): Optional width of each (single-width) character.
+            width (int): Optional width of each (single-width) character.
         """
-        return DisplayCore._get_total_width(text, len(bytes(text, "utf-8")), scale)
+        return DisplayCore._get_total_width(text, len(bytes(text, "utf-8")), width)
 
 
     @staticmethod
     @micropython.viper
-    def _get_total_width(text_ptr: ptr8, text_len: int, scale: int) -> int:
+    def _get_total_width(text_ptr: ptr8, text_len: int, width: int) -> int:
         """Fast viper component of get_total_width.
 
         Scans over raw string bytes to count number of single-byte or multi-byte characters.
@@ -526,14 +529,16 @@ class DisplayCore:
 
             idx += 1
 
-        return total_width * scale
+        return total_width * width
 
 
 
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Bitmap Drawing: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     def bitmap(
-            self,bitmap, x: int,
+            self,
+            bitmap,
+            x: int,
             y: int,
             *,
             index: int = 0,
