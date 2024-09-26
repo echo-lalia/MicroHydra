@@ -18,13 +18,33 @@ class DisplayCore:
 
     def __init__(
             self,
-            width,
-            height,
-            rotation=0,
-            use_tiny_buf=False,
-            reserved_bytearray=None,
-            needs_swap=True,
-            **kwargs):
+            width: int,
+            height: int,
+            *,
+            rotation: int = 0,
+            use_tiny_buf: bool = False,
+            reserved_bytearray: bytearray|None = None,
+            needs_swap: bool = True,
+            **kwargs):  # noqa: ARG002
+        """Create the DisplayCore.
+
+        Args:
+            width (int): display width
+            height (int): display height
+        Kwargs:
+            rotation (int):
+                How to rotate the framebuffer (Default 0)
+            use_tiny_buf (bool):
+                Whether or not to use a smaller, 4bit framebuffer (rather than 16 bit).
+                If True, frame is stored in 4bits and converted line-by-line when `show` is called.
+            reserved_bytearray (bytearray|None):
+                A pre-allocated byte array to use for the framebuffer (rather than creating one on init).
+            needs_swap (bool):
+                Whether or not the RGB565 bytes must be swapped to show up correctly on the display.
+            **kwargs (Any):
+                Any other kwargs are captured and ignored.
+                This is an effort to allow any future/additional versions of this module to be more compatible.
+        """
         #init the fbuf
         if reserved_bytearray is None:
             # use_tiny_fbuf tells us to use a smaller framebuffer (4 bits per pixel rather than 16 bits)
@@ -47,7 +67,7 @@ class DisplayCore:
 
         self.palette = Palette()
         self.palette.use_tiny_buf = self.use_tiny_buf = use_tiny_buf
-        
+
         # keep track of min/max y vals for writing to display
         # this speeds up drawing significantly.
         # only y value is currently used, because framebuffer is stored in horizontal lines,
@@ -74,12 +94,11 @@ class DisplayCore:
 
 
     @micropython.viper
-    def _set_show_min(self, y0:int, y1:int):
+    def _set_show_min(self, y0: int, y1: int):
         """Set/store minimum and maximum Y to show next time show() is called."""
         y_min = int(self._show_y_min)
         y_max = int(self._show_y_max)
-        
-        
+
         if y_min > y0:
             y_min = y0
         if y_max < y1:
@@ -88,19 +107,17 @@ class DisplayCore:
         self._show_y_min = y_min
         self._show_y_max = y_max
 
-    
+
     @micropython.viper
-    def _format_color(self, color:int) -> int:
+    def _format_color(self, color: int) -> int:
         """Swap color bytes if needed, do nothing otherwise."""
         if (not self.use_tiny_buf) and self.needs_swap:
             color = ((color & 0xff) << 8) | (color >> 8)
         return color
 
 
-
-    def vline(self, x, y, length, color):
-        """
-        Draw vertical line at the given location and color.
+    def vline(self, x: int, y: int, length: int, color: int):
+        """Draw vertical line at the given location and color.
 
         Args:
             x (int): x coordinate
@@ -113,9 +130,8 @@ class DisplayCore:
         self.fbuf.vline(x, y, length, color)
 
 
-    def hline(self, x, y, length, color):
-        """
-        Draw horizontal line at the given location and color.
+    def hline(self, x: int, y: int, length: int, color: int):
+        """Draw horizontal line at the given location and color.
 
         Args:
             x (int): x coordinate
@@ -128,9 +144,8 @@ class DisplayCore:
         self.fbuf.hline(x, y, length, color)
 
 
-    def pixel(self, x, y, color):
-        """
-        Draw a pixel at the given location and color.
+    def pixel(self, x: int, y: int, color: int):
+        """Draw a pixel at the given location and color.
 
         Args:
             x (int): x coordinate
@@ -142,11 +157,8 @@ class DisplayCore:
         self.fbuf.pixel(x,y,color)
 
 
-
-
-    def rect(self, x, y, w, h, color, fill=False):
-        """
-        Draw a rectangle at the given location, size and color.
+    def rect(self, x: int, y: int, w: int, h: int, color: int, *, fill: bool = False):
+        """Draw a rectangle at the given location, size and color.
 
         Args:
             x (int): Top left corner x coordinate
@@ -160,9 +172,8 @@ class DisplayCore:
         self.fbuf.rect(x,y,w,h,color,fill)
 
 
-    def ellipse(self, x, y, xr, yr, color, fill=False, m=0xf):
-        """
-        Draw an ellipse at the given location, radius and color.
+    def ellipse(self, x:int, y:int, xr:int, yr:int, color:int, *, fill:bool=False, m:int=0xf):
+        """Draw an ellipse at the given location, radius and color.
 
         Args:
             x (int): Center x coordinate
@@ -177,27 +188,17 @@ class DisplayCore:
         self.fbuf.ellipse(x,y,xr,yr,color,fill,m)
 
 
-    def fill_rect(self, x, y, width, height, color):
-        """
-        Draw a rectangle at the given location, size and filled with color.
-        
-        This is just a wrapper for the rect() method,
-        and is provided for compatibility with the original st7789py driver.
+    def fill_rect(self, x:int, y:int, width:int, height:int, color:int):
+        """Draw a rectangle at the given location, size and filled with color.
 
-        Args:
-            x (int): Top left corner x coordinate
-            y (int): Top left corner y coordinate
-            width (int): Width in pixels
-            height (int): Height in pixels
-            color (int): 565 encoded color
+        This is just a wrapper for the rect() method,
+        and is provided for some compatibility with the original st7789py driver.
         """
-        self._set_show_min(y, y + height)
         self.rect(x, y, width, height, color, fill=True)
 
 
-    def fill(self, color):
-        """
-        Fill the entire FrameBuffer with the specified color.
+    def fill(self, color: int):
+        """Fill the entire FrameBuffer with the specified color.
 
         Args:
             color (int): 565 encoded color
@@ -208,7 +209,7 @@ class DisplayCore:
         self.fbuf.fill(color)
 
 
-    def line(self, x0, y0, x1, y1, color):
+    def line(self, x0: int, y0: int, x1: int, y1: int, color: int):
         """
         Draw a single pixel wide line starting at x0, y0 and ending at x1, y1.
 
@@ -221,19 +222,15 @@ class DisplayCore:
         """
         self._set_show_min(
             min(y0,y1),
-            max(y0,y1)
-            )
+            max(y0,y1),
+        )
         color = self._format_color(color)
         self.fbuf.line(x0, y0, x1, y1, color)
 
 
-    def scroll(self,xstep,ystep):
-        """
-        Shift the contents of the FrameBuffer by the given vector.
-        This may leave a footprint of the previous colors in the FrameBuffer.
+    def scroll(self, xstep: int, ystep: int):
+        """Shift the contents of the FrameBuffer by the given vector.
 
-        Unlike vscsad which uses the hardware for scrolling,
-        this method scrolls the framebuffer itself.
         This is a wrapper for the framebuffer.scroll method:
         """
         self._set_show_min(0, self.height)
@@ -242,16 +239,9 @@ class DisplayCore:
 
     @micropython.viper
     def _bitmap_text(self, font, text, x:int, y:int, color:int):
-        """
-        Internal viper method to draw text.
-        Designed to be envoked using the 'text' method.
+        """Quickly draw a text with a bitmap font using viper.
 
-        Args:
-            font (module): font module to use
-            text (str): text to write
-            x (int): column to start drawing at
-            y (int): row to start drawing at
-            color (int): encoded color to use for characters
+        Designed to be envoked using the 'text' method.
         """
         width = int(font.WIDTH)
         height = int(font.HEIGHT)
@@ -259,44 +249,43 @@ class DisplayCore:
         self_height = int(self.height)
 
         utf8_scale = height // 8
-        
+
         # early return for text off screen
         if y >= self_height or (y + height) < 0:
             return
-        
+
         glyphs = ptr8(font.FONT)
-        
+
         char_px_len = width * height
-        
+
         first = int(font.FIRST)
         last = int(font.LAST)
-        
-        
+
         use_tiny_fbuf = bool(self.use_tiny_buf)
         fbuf16 = ptr16(self.fbuf)
         fbuf8 = ptr8(self.fbuf)
-        
+
         for char in text:
             ch_idx = int(ord(char))
-            
+
             # only draw chars that exist in font
             if first <= ch_idx < last:
                 bit_start = (ch_idx - first) * char_px_len
-                
+
                 px_idx = 0
                 while px_idx < char_px_len:
                     byte_idx = (px_idx + bit_start) // 8
                     shift_amount = 7 - ((px_idx + bit_start) % 8)
-                    
+
                     target_x = x + px_idx % width
                     target_y = y + px_idx // width
-                    
+
                     # dont draw pixels off the screen (ptrs don't check your work!)
                     if ((glyphs[byte_idx] >> shift_amount) & 0x1) == 1 \
                     and 0 <= target_x < self_width \
                     and 0 <= target_y < self_height:
                         target_px = (target_y * self_width) + target_x
-                        
+
                         # I tried putting this if/else before px loop,
                         # surprisingly, there was not a noticable speed difference,
                         # and the code was harder to read. So, I put it back.
@@ -310,12 +299,12 @@ class DisplayCore:
                             # draw to 16 bits
                             target_idx = target_px
                             fbuf16[target_idx] = color
-                    
+
                     px_idx += 1
                 x += width
             else:
                 # try drawing with utf8 instead
-                x += int(self.utf8_putc(ch_idx, x, y, color, utf8_scale))
+                x += int(self._utf8_putc(ch_idx, x, y, color, utf8_scale))
 
             # early return for text off screen
             if x >= self_width:
@@ -323,14 +312,14 @@ class DisplayCore:
 
 
     @micropython.viper
-    def utf8_putc(self, char:int, x:int, y:int, color:int, scale:int) -> int:
-        """Render a single character on the screen."""
+    def _utf8_putc(self, char:int, x:int, y:int, color:int, scale:int) -> int:
+        """Render a single UTF8 character on the screen."""
         width = 4 if char < 128 else 8
         height = 8
 
         if not 0x0000 <= char <= 0xFFFF:
             return width * scale
-        
+
         # set up viper variables
         use_tiny_fbuf = bool(self.use_tiny_buf)
         fbuf16 = ptr16(self.fbuf)
@@ -369,7 +358,7 @@ class DisplayCore:
             # calculate x/y position from pixel index
             target_x = x + ((px_idx % width) * scale)
             target_y = y - ((px_idx // width) * scale)
-            
+
             if (cur[ptr_idx] >> shft_idx) & 1 == 1:
                 # iterate over x/y scale
                 scale_idx = 0
@@ -393,35 +382,34 @@ class DisplayCore:
                             fbuf16[target_idx] = color
                     scale_idx += 1
             px_idx += 1
-        
+
         # return x offset for drawing next char
         return width * scale
 
 
     @micropython.viper
     def _utf8_text(self, text, x:int, y:int, color:int):
-        """Draw text, including utf8 characters"""
+        """Draw text, including utf8 characters."""
         str_len = int(len(text))
-        
+
         idx = 0
         while idx < str_len:
             char = text[idx]
             ch_ord = int(ord(char))
             if ch_ord >= 128:
-                x += int(self.utf8_putc(ch_ord, x, y, color, 1))
+                x += int(self._utf8_putc(ch_ord, x, y, color, 1))
             else:
                 self.fbuf.text(char, x, y, color)
                 x += 8
             idx += 1
-        
 
-    def text(self, text, x, y, color, font=None):
-        """
-        Draw text to the framebuffer.
-        
+
+    def text(self, text: str, x: int, y: int, color: int, font=None):
+        """Draw text to the framebuffer.
+
         Text is drawn with no background.
-        If 'font' is None, uses the builtin framebuffer font.
-        
+        If 'font' is None, uses the built-in font.
+
         Args:
             text (str): text to write
             x (int): column to start drawing at
@@ -430,7 +418,6 @@ class DisplayCore:
             font (optional): bitmap font module to use
         """
         color = self._format_color(color)
-
 
         if font:
             self._set_show_min(y, y + font.HEIGHT)
@@ -442,7 +429,7 @@ class DisplayCore:
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~ Text Stuff:
     @staticmethod
-    def get_total_width(text: str, scale: int = 8) -> int:
+    def get_total_width(text: str, *, scale: int = 8) -> int:
         """Get the total width of a line (with UTF8 chars).
 
         Args:
@@ -450,6 +437,7 @@ class DisplayCore:
             scale (int): Optional width of each (single-width) character.
         """
         return DisplayCore._get_total_width(text, len(bytes(text, "utf-8")), scale)
+
 
     @staticmethod
     @micropython.viper
@@ -487,9 +475,14 @@ class DisplayCore:
         return total_width * scale
 
 
-    def bitmap(self, bitmap, x, y, index=0, key=-1, palette=None):
-        """
-        Draw a bitmap on display at the specified column and row
+    def bitmap(
+            self,bitmap, x: int,
+            y: int,
+            *,
+            index: int = 0,
+            key: int = -1,
+            palette: list[int]|None = None):
+        """Draw a bitmap on display at the specified column and row.
 
         Args:
             bitmap (bitmap_module): The module containing the bitmap to draw
@@ -501,31 +494,30 @@ class DisplayCore:
         """
         if self.width <= x or self.height <= y:
             return
-        
+
         if palette is None:
             palette = bitmap.PALETTE
-        
+
         self._bitmap(bitmap, x, y, index, key, palette)
 
 
     @micropython.viper
     def _bitmap(self, bitmap, x:int, y:int, index:int, key:int, palette):
-        
+
         width = int(bitmap.WIDTH)
         height = int(bitmap.HEIGHT)
         self_width = int(self.width)
         self_height = int(self.height)
-        
+
         palette_len = int(len(palette))
         bpp = int(bitmap.BPP)
         bitmap_pixels = height * width
         starting_bit = bpp * bitmap_pixels * index  # if index > 0 else 0
-        
+
         use_tiny_buf = bool(self.use_tiny_buf)
-        
+
         self._set_show_min(y, y + height)
-        
-        
+
         # format color palette into a pointer
         palette_buf = bytearray(palette_len * 2)
         palette_ptr = ptr16(palette_buf)
@@ -534,35 +526,35 @@ class DisplayCore:
                 self._format_color(palette[i])
                 )
         key = int(self._format_color(key))
-        
-        bitmap_ptr = ptr8(bitmap._bitmap)
+
+        bitmap_ptr = ptr8(bitmap.BITMAP)
         fbuf8 = ptr8(self.fbuf)
         fbuf16 = ptr16(self.fbuf)
-        
+
         bitmask = 0xffff >> (16 - bpp)
-        
+
         # iterate over pixels
         px_idx = 0
         while px_idx < bitmap_pixels:
             source_bit = (px_idx * bpp) + starting_bit
             source_idx = source_bit // 8 
             source_shift = 7 - (source_bit % 8)
-            
+
             # bitmap value is an index in the color palette
             source = (bitmap_ptr[source_idx] >> source_shift) & bitmask
             clr = palette_ptr[source]
-            
+
             target_x = x + px_idx % width
             target_y = y + px_idx // width
-            
+
             # dont draw pixels off the screen (ptrs don't check your work!)
             if clr != key \
             and 0 <= target_x < self_width \
             and 0 <= target_y < self_height:
-                
+
                 # convert px coordinate to an index
                 target_px = (target_y * self_width) + target_x
-                
+
                 if use_tiny_buf:
                     # writing 4-bit pixels
                     target_idx = target_px // 2
@@ -570,17 +562,15 @@ class DisplayCore:
                     dest_mask = 0xf0 >> dest_shift
                     fbuf8[target_idx] = (fbuf8[target_idx] & dest_mask) | (clr << dest_shift)
                 else:
-                    # TODO: TEST THIS! (has only been tested for tiny fbuf)
                     # writing 16-bit pixels
                     target_idx = target_px
                     fbuf16[target_idx] = clr
-            
+
             px_idx += 1
 
 
-    def polygon(self, coords, x, y, color, fill=False):
-        """
-        Draw a polygon from an array of coordinates
+    def polygon(self, coords, x: int, y: int, color: int, *, fill: bool = False):
+        """Draw a polygon from an array of coordinates.
 
         Args:
             coords (array('h')): An array of x/y coordinates defining the shape
@@ -595,13 +585,21 @@ class DisplayCore:
         color = self._format_color(color)
         self.fbuf.poly(x, y, coords, color, fill)
 
-        
-    def blit_buffer(self, buffer, x, y, width, height, key=-1, palette=None):
-        """
-        Copy buffer to display framebuf at the given location.
+
+    def blit_buffer(
+            self,
+            buffer: bytearray|framebuf.FrameBuffer,
+            x: int,
+            y: int,
+            width: int,
+            height: int,
+            *,
+            key: int = -1,
+            palette: framebuf.FrameBuffer|None = None):
+        """Copy buffer to display framebuf at the given location.
 
         Args:
-            buffer (bytes): Data to copy to display
+            buffer (bytearray): Data to copy to display
             x (int): Top left corner x coordinate
             Y (int): Top left corner y coordinate
             width (int): Width
@@ -615,6 +613,5 @@ class DisplayCore:
                 buffer, width, height,
                 framebuf.GS4_HMSB if self.use_tiny_buf else framebuf.RGB565,
                 )
-        
-        self.fbuf.blit(buffer, x, y, key, palette)
 
+        self.fbuf.blit(buffer, x, y, key, palette)

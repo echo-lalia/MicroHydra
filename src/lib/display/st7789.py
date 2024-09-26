@@ -202,81 +202,42 @@ _ST7789_INIT_CMDS = const((
 
 
 class ST7789(DisplayCore):
-    """ST7789 driver class.
-
-    Args:
-        spi (spi): spi object **Required**
-        width (int): display width **Required**
-        height (int): display height **Required**
-        reset (pin): reset pin
-        dc (pin): dc pin **Required**
-        cs (pin): cs pin
-        backlight(pin): backlight pin
-        reserved_bytearray (bytearray): pre-allocated bytearray to use for framebuffer
-        use_tiny_buf (bool):
-
-            Whether to use:
-             - A compact framebuffer (uses ~width * height / 2 bytes memory)
-               "GS4_HMSB" mode
-               Requires additional processing to write to display
-               Allows limited colors
-
-             - A normal framebuffer (uses ~width * height * 2 bytes memory)
-               "RGB565" mode
-               Can be written directly to display
-               Allows any color the display can show
-
-        rotation (int):
-
-          - 0-Portrait
-          - 1-Landscape
-          - 2-Inverted Portrait
-          - 3-Inverted Landscape
-
-        color_order (int):
-
-          - RGB: Red, Green Blue, default
-          - BGR: Blue, Green, Red
-
-        custom_init (tuple): custom initialization commands
-
-          - ((b'command', b'data', delay_ms), ...)
-
-        custom_rotations (tuple): custom rotation definitions
-
-          - ((width, height, xstart, ystart, madctl, needs_swap), ...)
-    """
+    """ST7789 driver class."""
 
     def __init__(
-        self,
-        spi,
-        width,
-        height,
-        *,
-        reset=None,
-        dc=None,
-        cs=None,
-        backlight=None,
-        rotation=0,
-        color_order='BGR',
-        custom_init=None,
-        custom_rotations=None,
-        **kwargs,
-    ):
-        """Initialize display."""
-        self.rotations = custom_rotations or self._find_rotations(width, height)
-        if not self.rotations:
-            supported_displays = ", ".join(
-                [f"{display[0]}x{display[1]}" for display in _SUPPORTED_DISPLAYS]
-            )
-            msg = f"Unsupported {width}x{height} display. Supported displays: {supported_displays}"
-            raise ValueError(msg)
+            self,
+            spi,
+            width,
+            height,
+            *,
+            reset=None,
+            dc=None,
+            cs=None,
+            backlight=None,
+            rotation=0,
+            color_order='BGR',
+            **kwargs):
+        """Initialize display.
 
-        if dc is None:
-            msg = "dc pin is required."
-            raise ValueError(msg)
+        Args:
+            spi (spi): spi object **Required**
+            width (int): display width **Required**
+            height (int): display height **Required**
+            reset (pin): reset pin
+            dc (pin): dc pin **Required**
+            cs (pin): cs pin
 
-        super().__init__(width, height, rotation, **kwargs)
+            rotation (int):
+            - 0-Portrait
+            - 1-Landscape
+            - 2-Inverted Portrait
+            - 3-Inverted Landscape
+
+            color_order (literal['RGB'|'BGR']):
+        """
+        self.rotations = self._find_rotations(width, height)
+
+        super().__init__(width, height, rotation=rotation, **kwargs)
 
         self.xstart = 0
         self.ystart = 0
@@ -287,11 +248,10 @@ class ST7789(DisplayCore):
         self.backlight = backlight
         self._rotation = rotation % 4
         self.color_order = _RGB if color_order == "RGB" else _BGR
-        init_cmds = custom_init or _ST7789_INIT_CMDS
         self.hard_reset()
         # yes, twice, once is not always enough
-        self.init(init_cmds)
-        self.init(init_cmds)
+        self.init(_ST7789_INIT_CMDS)
+        self.init(_ST7789_INIT_CMDS)
         self.rotation(self._rotation)
         self.fill(0x0)
         self.show()
@@ -306,23 +266,20 @@ class ST7789(DisplayCore):
 
 
     @staticmethod
-    def _find_rotations(width, height):
+    def _find_rotations(width: int, height: int) -> tuple:
         for display in _SUPPORTED_DISPLAYS:
             if display[0] == width and display[1] == height:
                 return display[2]
-        return None
+        msg = f"{width}x{height} display. Not in `_SUPPORTED_DISPLAYS`"
+        raise ValueError(msg)
 
 
-    def init(self, commands):
-        """
-        Initialize display.
-        """
+
+    def init(self, commands: tuple):
+        """Initialize display."""
         for command, data, delay in commands:
             self._write(command, data)
             sleep_ms(delay)
-
-
-
 
 
     def _write(self, command=None, data=None):
@@ -337,23 +294,20 @@ class ST7789(DisplayCore):
             self.spi.write(data)
         if self.cs:
             self.cs.on()
-    
-    
+
+
     @micropython.viper
     def _write_tiny_buf(self, y_min: int, y_max: int):
-        """Convert tiny_buf data to RGB565 and write to SPI"""
+        """Convert tiny_buf data to RGB565 and write to SPI."""
         if self.cs:
             self.cs.off()
         self.dc.on()
 
-        landscape_rotation = int(self._rotation) % 2 == 1
-        
-        height = int(self.height)
         width = int(self.width)
-        
+
         start_y = int(y_min)
         end_y = int(y_max)
-        
+
         # swap colors if needed
         if self.needs_swap:
             palette_buf = bytearray(32)
@@ -363,58 +317,52 @@ class ST7789(DisplayCore):
                 target_palette_ptr[i] = ((source_palette_ptr[i] & 255) << 8) | (source_palette_ptr[i] >> 8)
         else:
             palette_buf = self.palette.buf
-        
+
         #for y in range(start_y, end_y):
         while start_y < end_y:
             self.spi.write(
                 self._convert_tiny_line(palette_buf, start_y, width)
                 )
             start_y += 1
-        
+
         if self.cs:
             self.cs.on()
 
 
     @micropython.viper
-    def _convert_tiny_line(self, palette_buf, y:int, width:int):
-        """
-        For "_write_tiny_buf"
-        this method outputs a single converted line of the requested size.
-        """
+    def _convert_tiny_line(self, palette_buf, y:int, width:int):  # noqa: ANN202
+        """Convert a single line of the requested size (For `_write_tiny_buf)."""
         source_ptr = ptr8(self.fbuf)
         palette = ptr16(palette_buf)
         output_buf = bytearray(width * 2)
         output = ptr16(output_buf)
-        
-        
+
         source_width = width // 2 if (width % 8 == 0) else ((width + 1) // 2)
         source_start_idx = source_width * y
         output_idx = 0
-        
+
         while output_idx < width:
             source_idx = source_start_idx + (output_idx // 2)
             sample = source_ptr[source_idx] >> 4 if (output_idx % 2 == 0) else source_ptr[source_idx] & 0xf
 
             output[output_idx] = palette[sample]
-            
+
             output_idx += 1
-        
+
         return output_buf
 
 
-    def _write_normal_buf(self, y_min, y_max):
+    def _write_normal_buf(self, y_min: int, y_max: int):
         """Write normal framebuf data, respecting show_y_min/max values."""
         source_start_idx = y_min * self.width * 2
         source_end_idx = y_max * self.width * 2
-        
+
         if source_start_idx < source_end_idx:
             self._write(None, memoryview(self.fbuf)[source_start_idx:source_end_idx])
 
 
     def hard_reset(self):
-        """
-        Hard reset display.
-        """
+        """Hard reset display."""
         if self.cs:
             self.cs.off()
         if self.reset:
@@ -431,14 +379,12 @@ class ST7789(DisplayCore):
 
 
     def soft_reset(self):
-        """
-        Soft reset display.
-        """
+        """Soft reset display."""
         self._write(_ST7789_SWRESET)
         sleep_ms(150)
 
 
-    def sleep_mode(self, value):
+    def sleep_mode(self, value: bool):
         """
         Enable or disable display sleep mode.
 
@@ -534,15 +480,13 @@ class ST7789(DisplayCore):
 
 
     def show(self):
-        """
-        Write the current framebuf to the display
-        """
+        """Write the current framebuf to the display."""
         # mh_if TDECK:
         # # TDeck shares SPI with SDCard
         # self.spi.init()
         # mh_end_if
 
-        # clamp min and max
+        # Reset and clamp min/max vals
         y_min, y_max = self._reset_show_min()
 
         if y_min >= y_max:
@@ -555,13 +499,11 @@ class ST7789(DisplayCore):
             self.width - 1,
             y_max - 1,
             )
-        
+
         if self.use_tiny_buf:
             self._write_tiny_buf(y_min, y_max)
         else:
             self._write_normal_buf(y_min, y_max)
-
-        
 
         # mh_if TDECK:
         # # TDeck shares SPI with SDCard
