@@ -63,6 +63,7 @@ ignore = [
   "INP001",   # File is part of an implicit namespace package. (Just a bit unnecessary)
   "RUF012",   # Mutable class attributes should be annotated with `typing.ClassVar`
   "RUF005",   # collection-literal-concatenation
+  "FBT001",   # A function taking a sinlge bool value is very common.
 
   # MH uses commented out code in the build process:
   "ERA",   # Found commented-out code
