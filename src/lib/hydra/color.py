@@ -5,7 +5,7 @@ Previously these functions lived in lib/mhconfig, and lib/microhydra before that
 Several of these functions could almost certainly be significantly sped up by
 converting the float math to integer math, and using Viper.
 """
-
+from lib.easing.circ import ease_in_out_circ
 
 
 @micropython.viper
@@ -211,40 +211,25 @@ def lighter_color565(color: int, mix_factor: float = 0.2) -> int:
     return combine_color565(r, g, b)
 
 
-def color565_shiftred(color, mix_factor=0.4, hue_mix_fac=0.8, sat_mix_fac=0.8) -> int:
-    """Shift a color towards red.
-
-    This was made for displaying 'negative' ui elements, while sticking to the central color theme.
-    """
-    _RED = const(63488)
-    return mix_color565(color, _RED, mix_factor, hue_mix_fac, sat_mix_fac)
-
-
-def color565_shiftgreen(color, mix_factor=0.1, hue_mix_fac=0.4, sat_mix_fac=0.1) -> int:
-    """Shift a color towards green.
-
-    This was made for displaying 'positive' ui elements, while sticking to the central color theme.
-    """
-    _GREEN = const(2016)
-    return mix_color565(color, _GREEN, mix_factor, hue_mix_fac, sat_mix_fac)
-
-
-def color565_shiftblue(color, mix_factor=0.1, hue_mix_fac=0.4, sat_mix_fac=0.2) -> int:
-    """Shifts a color toward blue."""
-    _BLUE = const(31)
-    return mix_color565(color, _BLUE, mix_factor, hue_mix_fac, sat_mix_fac)
-
-
-def compliment_color565(color: int) -> int:
-    """Generate a complimentary color from given RGB565 color."""
+def color565_shift_to_hue(color: int, h_mid: float, h_radius: float, min_sat=0.33) -> int:
+    """Shift the given RGB565 into the specified hue range."""
     r,g,b = separate_color565(color)
-    r /= 31; g /= 63; b /= 31
-
+    r /= 31
+    g /= 63
+    b /= 31
     h,s,v = rgb_to_hsv(r,g,b)
 
-    # opposite hue
-    h += 0.5
-    r,g,b = hsv_to_rgb(h,s,v)
-    r *= 31; g *= 63; b *= 31
+    h_min = h_mid - h_radius
 
-    return combine_color565(int(r), int(g), int(b))
+    # distance factor is between 0 and 1 (where 0.5 means both hues are the same)
+    angular_distance_fac = (h - h_mid + 0.5) % 1
+    # apply easing, and rescale so that fac is between h_min and h_max
+    angular_distance_fac = ease_in_out_circ(angular_distance_fac)*h_radius*2 + h_min
+    # apply distance factor to hue
+
+    h = angular_distance_fac % 1
+    if s < min_sat:
+        s = min_sat
+
+    r,g,b = hsv_to_rgb(angular_distance_fac%1,s,v)
+    return combine_color565(int(r*31), int(g*63), int(b*31))
