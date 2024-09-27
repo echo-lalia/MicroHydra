@@ -12,7 +12,10 @@ _PRINT_LINE_START = const(_MH_DISPLAY_HEIGHT - 12 - (_NUM_PRINT_LINES * 10))
 _MAX_TEXT_WIDTH = const(_MH_DISPLAY_WIDTH // 8)
 
 class Terminal:
+    """Graphical terminal, for printing to."""
+
     def __init__(self):
+        """Create the terminal."""
         self.lines = [TermLine('')] * _NUM_PRINT_LINES
         self.display = get_instance(Display)
 
@@ -27,7 +30,7 @@ class Terminal:
             while len(word) >= max_length:
                 lines.append(current_line)
                 current_line = word[:max_length]
-                word = word[max_length:]                  
+                word = word[max_length:]
             if len(word) + len(current_line) >= max_length:
                 lines.append(current_line)
                 current_line = word
@@ -40,14 +43,19 @@ class Terminal:
 
         return lines
 
-    def print(self, *args, **kwargs):
+    def print(self, *args, **kwargs):  # noqa: ARG002
+        """Print to the terminal. Intended to be compatible with the `print` built-in.
+
+        Currently does not support `print` kwargs.
+        """
         text = ' '.join(args)
         lines = self.split_lines(text)
         for line in lines:
             self.lines.append(TermLine(line))
             self.lines.pop(0)
-    
+
     def draw(self):
+        """Draw all  the terminal lines."""
         y = _PRINT_LINE_START
         for line in self.lines:
             line.draw(0, y, self.display)
@@ -55,18 +63,18 @@ class Terminal:
 
 
 if __name__ == '__main__':
+    # JUST FOR TESTING
     from lib.hydra.config import Config
     config = Config()
     display = Display()
-    
+
     term = Terminal()
-    
+
     term.print('HELLO, WORLD!!!')
     term.print('\x1b[6;30;42m' + 'Success!' + '\x1b[0m')
     term.print('The quick brown fox jumped over the lazy dog. Also this is some additional text! ertyuhlgfhdseryu5thlkjvmgcfdhrtutiylhkb,vmcngfdtyuiçjl,hvg')
     term.print('!@#$%*() ´`~^°w?ç§ºª')
     term.draw()
     display.show()
-    
-    
+
 

@@ -31,6 +31,7 @@ class _StyleStr:
     bg_color = None
     bold = False
     underline = False
+
     def __init__(self, text):
         if text.startswith('\033[') and 'm' in text:
             # Get style attributes
@@ -55,7 +56,7 @@ class _StyleStr:
                     _StyleStr.bold = True
                 elif styl == '22':  # Normal intensity
                     _StyleStr.bold = False
-                
+
                 elif styl == '4':  # Underline
                     _StyleStr.underline = True
                 elif styl == '24':  # Underline off
@@ -76,7 +77,7 @@ class _StyleStr:
         self.undrln = _StyleStr.underline
         self.width = Display.get_total_width(text)
 
-    
+
     def draw(self, x, y, display):
         txt_clr = display.palette[8] if self.txt_clr is None else self.txt_clr
         bg_clr = display.palette[2] if self.bg_clr is None else self.bg_clr
@@ -109,8 +110,9 @@ class TermLine:
             string = string[1:]
         strings.append(_StyleStr(current_str))
         return strings
-    
-    def draw(self, x, y, display):
+
+    def draw(self, x: int, y: int, display: Display):
+        """Draw the line."""
         for string in self.strings:
             string.draw(x, y, display)
             x += string.width
