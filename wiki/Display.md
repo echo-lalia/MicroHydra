@@ -194,13 +194,13 @@ display.show()
 >>  <br />
 
 > ```Py
-> Display.get_total_width(text: str, *, width: int = 8) -> int
+> Display.get_total_width(text: str, *, font=None) -> int
 > ```
 >> Get the total pixel width of a line (with UTF8 chars).
 >> 
 >> Args:
 >> * `text`: A string of text, to calculate the width of  
->> * `width`: The width of a single (alphanumeric) char  
+>> * `font`: The font you are using to draw this text  
 >>  <br />
 
 <br />
