@@ -4,21 +4,21 @@ from lib.display import Display
 
 txt_clrs = {
     '30': 0,
-    '31': 55749,
-    '32': 15785,
-    '33': 65057,
-    '34': 886,
-    '35': 28974,
-    '36': 11772,
-    '37': 52825,
-    '90': 33808,
-    '91': 63488,
-    '92': 2016,
-    '93': 65504,
-    '94': 31,
-    '95': 63519,
-    '96': 2047,
-    '97': 65535,
+    '31': 11,
+    '32': 12,
+    '33': 15,
+    '34': 13,
+    '35': 4,
+    '36': 5,
+    '37': 9,
+    '90': 3,
+    '91': 11,
+    '92': 12,
+    '93': 8,
+    '94': 13,
+    '95': 16,
+    '96': 6,
+    '97': 10,
 }
 # bg colors are txt colors + 10
 
@@ -79,14 +79,14 @@ class _StyleStr:
 
 
     def draw(self, x, y, display):
-        txt_clr = display.palette[8] if self.txt_clr is None else self.txt_clr
-        bg_clr = display.palette[2] if self.bg_clr is None else self.bg_clr
-        display.rect(x, y-1, self.width, 10, bg_clr, fill=True)
+        txt_clr = 7 if self.txt_clr is None else self.txt_clr
+        bg_clr = 2 if self.bg_clr is None else self.bg_clr
+        display.rect(x, y-1, self.width, 10, display.palette[bg_clr], fill=True)
         if self.bld:
-            display.text(self.text, x+1, y, txt_clr)
+            display.text(self.text, x+1, y, display.palette[txt_clr])
         if self.undrln:
-            display.hline(x, y+9, self.width, txt_clr)
-        display.text(self.text, x, y, txt_clr)
+            display.hline(x, y+9, self.width, display.palette[txt_clr])
+        display.text(self.text, x, y, display.palette[txt_clr])
 
 
 class TermLine:
