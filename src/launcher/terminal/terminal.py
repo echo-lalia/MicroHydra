@@ -8,11 +8,11 @@ import os
 _MH_DISPLAY_WIDTH = const(240)
 _MH_DISPLAY_HEIGHT = const(135)
 
-_NUM_PRINT_LINES = const(_MH_DISPLAY_HEIGHT // 10)
-_PRINT_LINE_START = const(_MH_DISPLAY_HEIGHT - 12 - (_NUM_PRINT_LINES * 10))
+_NUM_PRINT_LINES = const(_MH_DISPLAY_HEIGHT // 11)
+_PRINT_LINE_START = const(_MH_DISPLAY_HEIGHT - 12 - (_NUM_PRINT_LINES * 11))
 _USER_LINE_HEIGHT = const(12)
 _USER_LINE_Y_FILL = const(_MH_DISPLAY_HEIGHT - _USER_LINE_HEIGHT)
-_USER_LINE_Y = const(_MH_DISPLAY_HEIGHT - 10)
+_USER_LINE_Y = const(_MH_DISPLAY_HEIGHT - 11)
 _MAX_TEXT_WIDTH = const(_MH_DISPLAY_WIDTH // 8)
 
 _CURSOR_BLINK_MS = const(500)
@@ -77,7 +77,7 @@ class Terminal:
             y = _PRINT_LINE_START
             for line in self.lines:
                 line.draw(0, y, self.display)
-                y += 10
+                y += 11
 
         # blackout user line
         self.display.rect(
@@ -101,13 +101,13 @@ if __name__ == '__main__':
 
     term = Terminal()
 
-    term.print("\x1b[34mTESTING some text in the terminal! WOWIE!\x1b[0m")
+    term.print("\x1b[34mTESTING some text in the terminal! \x1b[4mWOWIE!\x1b[0m")
     term.print('HELLO, WORLD!!!')
     term.print('\x1b[96mこんにちは世界！\x1b[0m')
     term.print('\x1b[95m你好世界！\x1b[0m')
     term.print('\x1b[31m' + 'FAILURE' + '\x1b[0m')
     term.print('\x1b[6;30;42m' + 'Success!' + '\x1b[0m')
-    term.print('The quick brown fox jumped over the lazy dog. Also this is some additional text! ertyuhlgfhdseryu5thlkjvmgcfdhrtutiylhkb,vmcngfdtyuiçjl,hvg')
+    term.print('The quick brown fox jumped over the lazy dog. Also this is some additional text!')
     term.print('!@#$%*() ´`~^°w?ç§ºª')
 
     while True:
