@@ -64,7 +64,7 @@ class Terminal:
             self.lines.append(TermLine(line))
             self.lines.pop(0)
         self.lines_changed = True
-        
+
     @staticmethod
     def _blink_state() -> bool:
         return (time.ticks_ms() % _CURSOR_BLINK_MOD) < _CURSOR_BLINK_MS
@@ -79,8 +79,11 @@ class Terminal:
                 line.draw(0, y, self.display)
                 y += 10
 
+        # blackout user line
+        self.display.rect(
+            0, _USER_LINE_Y_FILL, _MH_DISPLAY_WIDTH, _USER_LINE_HEIGHT, self.display.palette[1], fill=True,
+        )
         # Draw current user line
-        self.display.rect(0, _USER_LINE_Y_FILL, _MH_DISPLAY_WIDTH, _USER_LINE_HEIGHT, self.display.palette[1], fill=True)
         x = 0
         cwd_line = f'{os.getcwd()}$'
         self.display.text(cwd_line, x, _USER_LINE_Y, self.display.palette[5])
@@ -106,7 +109,7 @@ if __name__ == '__main__':
     term.print('\x1b[6;30;42m' + 'Success!' + '\x1b[0m')
     term.print('The quick brown fox jumped over the lazy dog. Also this is some additional text! ertyuhlgfhdseryu5thlkjvmgcfdhrtutiylhkb,vmcngfdtyuiçjl,hvg')
     term.print('!@#$%*() ´`~^°w?ç§ºª')
-    
+
     while True:
         term.draw()
         display.show()
