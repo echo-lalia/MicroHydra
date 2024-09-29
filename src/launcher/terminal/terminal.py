@@ -103,7 +103,7 @@ class Terminal:
     def submit_line(self) -> str:
         """Print and return the current user line."""
         ln = self.current_line
-        self.print(f"\x1b[36m{os.getcwd()}$\x1b[96m{ln}\x1b[0m")
+        self.print(f"\x1b[36m{os.getcwd()}$ \x1b[96m{ln}\x1b[0m")
         self.current_line = ""
         self.draw()
         self.display.show()
@@ -128,7 +128,7 @@ class Terminal:
             0, _USER_LINE_Y_FILL, _MH_DISPLAY_WIDTH, _USER_LINE_HEIGHT, self.display.palette[1], fill=True,
         )
         # Draw current user line
-        cwd_line = f'{os.getcwd()}$'
+        cwd_line = f'{os.getcwd()}$ '
         if len(self.current_line) + len(cwd_line) >= _MAX_TEXT_WIDTH:
             # text too long
             x = _MH_DISPLAY_WIDTH - (len(self.current_line) + len(cwd_line) + 1)*8
@@ -175,4 +175,5 @@ if __name__ == '__main__':
             counter = 0
         counter += 1
         time.sleep_ms(10)
+
 

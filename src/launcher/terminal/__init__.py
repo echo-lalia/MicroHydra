@@ -202,7 +202,9 @@ on \x1b[96m{os.uname().sysname}\x1b[36m.\x1b[0m\
                     cmd, *args = inpt
                     if cmd in commands:
                         try:
-                            commands[cmd](args)
+                            result = commands[cmd](*args)
+                            if result is not None:
+                                term.print(result)
                         except Exception as e:
                             term.print(f"\033[91m{e}\033[0m")
                     else:
