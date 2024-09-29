@@ -107,8 +107,9 @@ if __name__ == '__main__':
     term.print('\x1b[95m你好世界！\x1b[0m')
     term.print('\x1b[31m' + 'FAILURE' + '\x1b[0m')
     term.print('\x1b[6;30;42m' + 'Success!' + '\x1b[0m')
-    term.print('The quick brown fox jumped over the lazy dog. Also this is some additional text!')
-    term.print('!@#$%*() ´`~^°w?ç§ºª')
+    term.print("｡◕‿◕｡ ⬒ ⮣ ⛄ ✋ ❓ ❤ ⌨ ☎ ☑ ☐ ☒")
+    term.print('\x1b[95mtesting testing 123...\x1b[0m')
+    term.print('(☞ﾟヮﾟ)☞ (⊙︿⊙✿)  ಠ_ಠ ¯\_(ツ)_/¯')
 
     while True:
         term.draw()
