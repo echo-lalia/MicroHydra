@@ -19,6 +19,20 @@ _CURSOR_BLINK_MS = const(500)
 _CURSOR_BLINK_MOD = const(_CURSOR_BLINK_MS * 2)
 
 
+def disp_len(text: str) -> int:
+    """Calculate the real length of text with only displayable characters."""
+    # strip style escape codes from text
+    while "\033[" in text and "m" in text:
+        esc_start = text.index("\033[")
+        post_esc_text = text[esc_start:]
+        if "m" in post_esc_text:
+            text = text[:esc_start] + text[text.index("m", esc_start) + 1:]
+        else:
+            # "m" could be before the escape character and not after.
+            text = text.replace("\033[", "", 1)
+    return len(text)
+
+
 class Terminal:
     """Graphical terminal, for printing to."""
 
@@ -30,40 +44,52 @@ class Terminal:
         self.lines_changed = False
 
     @staticmethod
-    def split_lines(text:str, max_length:int=_MAX_TEXT_WIDTH) -> list[str]:
+    def split_lines(text:str) -> list[str]:
         """Split a string into multiple lines, based on max line-length."""
-        lines = []
-        current_line = ''
-        words = text.split()
+        # First split on newlines
+        inpt_lns = text.split("\n")
+        outpt_lns = []
+        for inpt_ln in inpt_lns:
+            # Split each line by length
+            lines = []
+            current_line = ''
+            words = inpt_ln.split()
 
-        for word in words:
-            while len(word) >= max_length:
-                lines.append(current_line)
-                current_line = word[:max_length]
-                word = word[max_length:]
-            if len(word) + len(current_line) >= max_length:
-                lines.append(current_line)
-                current_line = word
-            elif len(current_line) == 0:
-                current_line += word
-            else:
-                current_line += ' ' + word
+            for word in words:
+                # Single word too long for display (split mid-word)
+                while disp_len(word) >= _MAX_TEXT_WIDTH:
+                    lines.append(current_line)
+                    current_line = word[:_MAX_TEXT_WIDTH]
+                    word = word[_MAX_TEXT_WIDTH:]
+                # Word + line too long for display (split on whitespace)
+                if disp_len(word) + disp_len(current_line) >= _MAX_TEXT_WIDTH:
+                    lines.append(current_line)
+                    current_line = word
+                # add first word with no leading space
+                elif disp_len(current_line) == 0:
+                    current_line += word
+                # add a space and the current word
+                else:
+                    current_line += ' ' + word
 
-        lines.append(current_line) # add final line
-
-        return lines
+            lines.append(current_line) # add final line
+            outpt_lns += lines
+        return outpt_lns
 
     def print(self, *args, **kwargs):  # noqa: ARG002
         """Print to the terminal. Intended to be compatible with the `print` built-in.
 
         Currently does not support `print` kwargs.
         """
+        print(*args)
         text = ' '.join(args)
         lines = self.split_lines(text)
         for line in lines:
             self.lines.append(TermLine(line))
             self.lines.pop(0)
         self.lines_changed = True
+        self.draw()
+        self.display.show()
 
     def type_key(self, key):
         """Type the given key into the current user line."""
@@ -79,6 +105,8 @@ class Terminal:
         ln = self.current_line
         self.print(f"\x1b[36m{os.getcwd()}$\x1b[96m{ln}\x1b[0m")
         self.current_line = ""
+        self.draw()
+        self.display.show()
         return ln
 
     @staticmethod
@@ -86,7 +114,7 @@ class Terminal:
         return (time.ticks_ms() % _CURSOR_BLINK_MOD) < _CURSOR_BLINK_MS
 
     def draw(self):
-        """Draw all  the terminal lines."""
+        """Draw all the terminal lines."""
         # Only draw all lines if we have to
         if self.lines_changed:
             self.display.fill(self.display.palette[2])
