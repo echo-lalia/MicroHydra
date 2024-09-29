@@ -9,6 +9,7 @@ KFC V me 50
 
 import os
 import time
+import sys
 
 import machine
 
@@ -21,8 +22,8 @@ machine.freq(240_000_000)
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-_MH_DISPLAY_HEIGHT = const(240)
-_MH_DISPLAY_WIDTH = const(320)
+_MH_DISPLAY_HEIGHT = const(135)
+_MH_DISPLAY_WIDTH = const(240)
 _DISPLAY_WIDTH_HALF = const(_MH_DISPLAY_WIDTH // 2)
 
 _CHAR_WIDTH = const(8)
@@ -123,6 +124,14 @@ def custom_input(prmpt: str) -> str:
 
 input = custom_input  # noqa: A001
 
+def set_argv(argv):
+    """Change the value of sys.argv.
+
+    sys.argv can't be assigned, (no `=`) but it can be modified.
+    """
+    sys.argv.clear()
+    sys.argv.extend(argv)
+
 
 # --------------------------------------------------------------------------------------------------
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -212,9 +221,14 @@ def main_loop():
                                 if not '.py' in args[0]:
                                     args[0] = args[0] + '.py'
                                 if args[0] in os.listdir():
-                                    exec(open(args[0]).read(), {'__name__': '__main__', 'argv':args},globals())
+                                    glbls = globals()
+                                    glbls.update({'__name__':'__main__', 'print':custom_print, 'input':custom_input})
+                                    exec(open(args[0]).read(), glbls,glbls)
                                 elif args[0] in os.listdir('/apps'):
-                                    exec(open('/apps/' + args[0]).read(), {'__name__': '__main__', 'argv':args},globals())
+                                    glbls = globals()
+                                    sys.argv = args
+                                    glbls.update({'__name__': '__main__', 'print':custom_print, 'input':custom_input})
+                                    exec(open('/apps/' + args[0]).read(), glbls)
                                 else:
                                     print("Bad Command.")
                             except Exception as e:
