@@ -43,6 +43,9 @@ class Terminal:
         self.display = get_instance(Display, allow_init=False)
         self.lines_changed = False
 
+    def clear(self):
+        self.lines = [TermLine('')] * _NUM_PRINT_LINES
+
     @staticmethod
     def split_lines(text:str) -> list[str]:
         """Split a string into multiple lines, based on max line-length."""
