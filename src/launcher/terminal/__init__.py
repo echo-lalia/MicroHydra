@@ -193,7 +193,8 @@ def main_loop():
 with MicroHydra v{'.'.join(str(x) for x in Device.mh_version)} \
 and MicroPython v{os.uname().release}, \
 on {os.uname().sysname}.
-\x1b[35mPress \x1b[1mopt\x1b[22m+\x1b[1mq\x1b[22m to quit.\x1b[0m
+\x1b[35mPress \x1b[1mopt\x1b[22m+\x1b[1mq\x1b[22m to quit.
+Type \x1b[1mhelp\x1b[22m to print a help message.\x1b[0m
 """)
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ INITIALIZATION: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -249,7 +250,7 @@ on {os.uname().sysname}.
 try:
     main_loop()
 except Exception as e:
-    tft.text(text=f"{e}", x=0, y=0, color=config['ui_color'])
+    tft.text(text=f"{e}", x=0, y=0, color=config.palette[11])
     tft.show()
 
     time.sleep(1)
