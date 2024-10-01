@@ -19,6 +19,8 @@ _MAX_TEXT_WIDTH = const(_MH_DISPLAY_WIDTH // 8)
 _CURSOR_BLINK_MS = const(500)
 _CURSOR_BLINK_MOD = const(_CURSOR_BLINK_MS * 2)
 
+_MAX_STORED_LINES = const(5)
+
 
 def disp_len(text: str) -> int:
     """Calculate the real length of text with only displayable characters."""
@@ -40,6 +42,7 @@ class Terminal:
     def __init__(self):
         """Create the terminal."""
         self.lines = [TermLine('')] * _NUM_PRINT_LINES
+        self.prev_lines = []
         self.current_line = ''
         self.display = get_instance(Display, allow_init=False)
         self.user_input = get_instance(UserInput, allow_init=False)
@@ -88,7 +91,7 @@ class Terminal:
     def print(self, *args, skip_none=False, **kwargs):  # noqa: ARG002
         """Print to the terminal. Intended to be compatible with the `print` built-in.
 
-        Currently does not support `print` kwargs.
+        Currently does not support `print`s kwargs.
         """
         text = ' '.join(str(arg) for arg in args)
         if skip_none and text == "None":
@@ -134,6 +137,12 @@ class Terminal:
             self.current_line = self.current_line[:-1]
         elif key == "SPC":
             self.current_line += " "
+        elif key == "UP" and self.prev_lines:
+            self.prev_lines = [self.current_line] + self.prev_lines
+            self.current_line = self.prev_lines.pop(-1)
+        elif key == "DOWN" and self.prev_lines:
+            self.prev_lines.append(self.current_line)
+            self.current_line = self.prev_lines.pop(0)
         elif len(key) == 1:
             self.current_line += key
 
@@ -141,6 +150,9 @@ class Terminal:
     def submit_line(self) -> str:
         """Print and return the current user line."""
         ln = self.current_line
+        self.prev_lines.append(ln)
+        if len(self.prev_lines) > _MAX_STORED_LINES:
+            self.prev_lines.pop(0)
         self.print(f"\x1b[36m{os.getcwd()}$ \x1b[96m{ln}\x1b[0m")
         self.current_line = ""
         self.draw()
