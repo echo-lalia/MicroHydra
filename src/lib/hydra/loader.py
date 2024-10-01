@@ -6,7 +6,7 @@ from machine import RTC, reset
 
 _PATH_SEP = const("|//|")
 
-def launch_app(*args):
+def launch_app(*args: str):
     """Set args and reboot."""
     set_args(*args)
     reset()

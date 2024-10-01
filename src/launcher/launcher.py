@@ -44,7 +44,7 @@ import ntptime
 from font import vga2_16x32 as font
 from launcher.icons import appicons, battery
 from lib import battlevel, display, sdcard, userinput
-from lib.hydra import beeper
+from lib.hydra import beeper, loader
 from lib.hydra.config import Config
 from lib.hydra.i18n import I18n
 
@@ -284,12 +284,10 @@ def get_app_paths(ientry: tuple, current_dir: str) -> tuple[str|None, str|None]:
 
 def launch_app(app_path):
     """Reboot into given app."""
-    RTC.memory(app_path)
     print(f"Launching '{app_path}'...")
-    # reset clock speed to default.
-    machine.freq(160_000_000)
-    time.sleep_ms(10)
-    machine.reset()
+    if app_path.endswith(".cli.py"):
+        loader.launch_app(APP_PATHS['Terminal'], f"${app_path}")
+    loader.launch_app(app_path)
 
 
 def center_text_x(text: str) -> int:
