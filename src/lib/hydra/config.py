@@ -94,7 +94,7 @@ class Config:
         self.palette[10] = 65535 # white
 
         # Generate a further expanded palette, based on UI colors, shifted towards primary display colors.
-        self.palette[11] = color565_shift_to_hue(mid_color, 0.0, 0.1)
+        self.palette[11] = color565_shift_to_hue(mid_color, 0.0, 0.1, min_sat=0.9)
         self.palette[12] = color565_shift_to_hue(mid_color, 0.34, 0.08)
         self.palette[13] = color565_shift_to_hue(mid_color, 0.63, 0.12)
         # Finally, generate swapped bg/ui colors as compliments to the main palette.
