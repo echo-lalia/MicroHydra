@@ -223,7 +223,7 @@ class DisplayCore:
         self.fbuf.line(x0, y0, x1, y1, color)
 
 
-    def rect(self, x: int, y: int, w: int, h: int, color: int, *, fill: bool = False):
+    def rect(self, x: int, y: int, w: int, h: int, color: int, fill: bool = False):  # noqa: FBT002
         """Draw a rectangle at the given location, size and color.
 
         Args:
@@ -247,7 +247,7 @@ class DisplayCore:
         self.rect(x, y, width, height, color, fill=True)
 
 
-    def ellipse(self, x:int, y:int, xr:int, yr:int, color:int, *, fill:bool=False, m:int=0xf):
+    def ellipse(self, x:int, y:int, xr:int, yr:int, color:int, fill:bool=False, m:int=0xf):  # noqa: FBT002
         """Draw an ellipse at the given location, radius and color.
 
         Args:
@@ -263,7 +263,7 @@ class DisplayCore:
         self.fbuf.ellipse(x,y,xr,yr,color,fill,m)
 
 
-    def polygon(self, coords, x: int, y: int, color: int, *, fill: bool = False):
+    def polygon(self, coords, x: int, y: int, color: int, fill: bool = False):  # noqa: FBT002
         """Draw a polygon from an array of coordinates.
 
         Args:
@@ -486,7 +486,7 @@ class DisplayCore:
 
 
     @staticmethod
-    def get_total_width(text: str, *, font=None) -> int:
+    def get_total_width(text: str, font=None) -> int:
         """Get the total width of a line (with UTF8 chars).
 
         Args:
