@@ -1,10 +1,9 @@
 """MicroHydra SHELL & Terminal.
 
-A simple Terminal that can run console-based Apps.
-Have fun!
+A simple Terminal that can run console-based apps,
+execute some commands, and function as a basic REPL.
 
-TODO:
-KFC V me 50
+Have fun!
 """
 
 import os
@@ -20,12 +19,16 @@ from lib.device import Device
 from launcher.terminal.terminal import Terminal
 from launcher.terminal.commands import get_commands, ctext
 
+
+
 machine.freq(240_000_000)
 
 
-_TERMINAL_VERSION = const("2.0")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+_TERMINAL_VERSION = const("2.0")
+
 _MH_DISPLAY_HEIGHT = const(135)
 _MH_DISPLAY_WIDTH = const(240)
 _DISPLAY_WIDTH_HALF = const(_MH_DISPLAY_WIDTH // 2)
@@ -37,6 +40,8 @@ _MAX_CHARS = const(_MH_DISPLAY_WIDTH // _CHAR_WIDTH)
 _LINE_HEIGHT = const(10)
 _LINE_COUNT = const(_MH_DISPLAY_HEIGHT // _LINE_HEIGHT)
 
+
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GLOBAL OBJECTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # init object for accessing display
@@ -47,6 +52,7 @@ kb = UserInput()
 term = Terminal()
 
 RTC = machine.RTC()
+
 
 
 # --------------------------------------------------------------------------------------------------
@@ -82,7 +88,6 @@ def strip_extension(path_str: str) -> str:
         else path_str[:-4] if path_str.endswith('.mpy')
         else path_str
     )
-    
 
 
 def find_py_path(name: str) -> str|None:
@@ -90,17 +95,16 @@ def find_py_path(name: str) -> str|None:
     # look in current dir, then apps.
     for search_dir in (os.getcwd(), "/apps"):
         full_path = path_join(search_dir, name)
-        
+
         if name in os.listdir(search_dir):
             if os.stat(full_path)[0] == 0x4000:  # is dir
                 dir_files = os.listdir(full_path)
                 if "__init__.py" in dir_files or "__init__.mpy" in dir_files:
                     # this is a module that can be imported!
                     return full_path
-            elif name.endswith(".py" or name.endswith(".mpy")):
+            elif name.endswith(".py") or name.endswith(".mpy"):
                 return full_path
     return None
-    
 
 
 def execute_script(path, argv):
@@ -108,33 +112,78 @@ def execute_script(path, argv):
     # sys.argv can't be assigned, (no `=`) but it can be modified.
     sys.argv.clear()
     sys.argv.extend(argv)
-    print(path)
     # Override some globals so given script works with this terminal.
-    glbls = globals().copy()
-    glbls.update({'__name__': '__main__', 'print':term.print, 'input':term.input})
+    glbls = {'__name__': '__main__', 'print':term.print, 'input':term.input}
 
     # clear module so it can be re-imported
     mod_name = strip_extension(path_split(path)[1])
     if mod_name in sys.modules:
         sys.modules.pop(mod_name)
     with open(path) as f:
-        exec(f.read(), glbls, glbls)
+        exec(f.read(), glbls, glbls)  # noqa: S102
 
-def exec_line(inpt, user_globals, term):
-    # IDK why this dont work
+
+def _is_printable(inpt:str) -> bool:
+    """Check if given code is a simple/printable statement.
+
+    A printabe statement shouldn't have any operators or newlines,
+    like '=', ';' ':', or '/n', outside of quotes or brackets.
+    """
+    banned_chars = {"=", ":", ";", "\n"}
+
+    # early return if none of the offending symbols are in the code
+    if not any(ch in inpt for ch in banned_chars):
+        return True
+    # Iterate through inpt, tracking quotes and brackets,
+    # to determine whether or not the banned chars are outside strings/brackets.
+    quotes = None    # Current string quote character.
+    bracket_lvl = 0  # Depth of bracket nesting.
+    while inpt:
+        ch = inpt[0]
+        # NOT a printable string
+        if ch in banned_chars \
+        and quotes is None \
+        and bracket_lvl == 0:
+            return False
+
+        # track brackets
+        if ch in {"{", "[", "("}:
+            bracket_lvl += 1
+        elif ch in {")", "]", "}"}:
+            bracket_lvl -= 1
+
+        # track quotes
+        elif ch in {'"', "'"}:
+            frst3 = inpt[:3]
+            if quotes is None and frst3 in {'"""', "'''"}:
+                quotes = frst3
+            elif quotes in {frst3, ch}:
+                quotes = None
+
+        inpt = inpt[1:]
+    return True
+
+
+def exec_line(inpt: str, user_globals: dict, term: Terminal):
+    """Try interactively executing the given code."""
     user_globals.update({'input':term.input, 'print':term.print})
     try:
         # so that output can be easily seen
-        exec(f"print({inpt})", user_globals)
+        exec(  # noqa: S102
+            f"print(repr({inpt}),skip_none=True)" if _is_printable(inpt) else inpt,
+            user_globals,
+            user_globals,
+        )
     except:
-        exec(inpt, user_globals)
+        exec(inpt, user_globals, user_globals)  # noqa: S102
+
 
 # --------------------------------------------------------------------------------------------------
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Main Loop: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main_loop():
-    """Run the main loop for the Terminal"""
+    """Run the main loop for the Terminal."""
 
     app_path = RTC.memory().decode()
     if len(app_path) > 0 and app_path[0] == '$':
@@ -161,28 +210,27 @@ on {os.uname().sysname}.
         for key in keys:
             if key == "ENT":
                 inpt = term.submit_line()
-                if inpt:
+                if inpt and not inpt.isspace():
                     cmd, *args = inpt.split()
                     if cmd in commands:
                         try:
                             result = commands[cmd](*args)
                             if result is not None:
                                 term.print(result)
-                        except Exception as e:
+                        except Exception as e:  # noqa: BLE001
                             term.print(ctext(repr(e), "RED"))
                     else:
                         py_path = find_py_path(cmd)
                         if py_path is not None:
                             try:
                                 execute_script(py_path, args)
-                            except Exception as e:
+                            except Exception as e:  # noqa: BLE001
                                 term.print(ctext(repr(e), "RED"))
                         else:
                             try:
                                 exec_line(inpt, user_globals, term)
-                            except ZeroDivisionError as e:
+                            except Exception as e:  # noqa: BLE001
                                 term.print(ctext(repr(e), "RED"))
-                
             else:
                 term.type_key(key)
 

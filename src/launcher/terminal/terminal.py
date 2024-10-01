@@ -85,13 +85,15 @@ class Terminal:
         return outpt_lns
 
 
-    def print(self, *args, **kwargs):  # noqa: ARG002
+    def print(self, *args, skip_none=False, **kwargs):  # noqa: ARG002
         """Print to the terminal. Intended to be compatible with the `print` built-in.
 
         Currently does not support `print` kwargs.
         """
+        text = ' '.join(str(arg) for arg in args)
+        if skip_none and text == "None":
+            return
         print(*args)
-        text = ' '.join(args)
         lines = self.split_lines(text)
         for line in lines:
             self.lines.append(TermLine(line))
