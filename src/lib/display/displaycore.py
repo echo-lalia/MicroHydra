@@ -199,7 +199,7 @@ class DisplayCore:
             length (int): length of line
             color (int): 565 encoded color
         """
-        self._set_show_y(y, y)
+        self._set_show_y(y, y+1)
         color = self._format_color(color)
         self.fbuf.hline(x, y, length, color)
 
@@ -223,7 +223,7 @@ class DisplayCore:
         self.fbuf.line(x0, y0, x1, y1, color)
 
 
-    def rect(self, x: int, y: int, w: int, h: int, color: int, *, fill: bool = False):
+    def rect(self, x: int, y: int, w: int, h: int, color: int, fill: bool = False):  # noqa: FBT002
         """Draw a rectangle at the given location, size and color.
 
         Args:
@@ -247,7 +247,7 @@ class DisplayCore:
         self.rect(x, y, width, height, color, fill=True)
 
 
-    def ellipse(self, x:int, y:int, xr:int, yr:int, color:int, *, fill:bool=False, m:int=0xf):
+    def ellipse(self, x:int, y:int, xr:int, yr:int, color:int, fill:bool=False, m:int=0xf):  # noqa: FBT002
         """Draw an ellipse at the given location, radius and color.
 
         Args:
@@ -263,7 +263,7 @@ class DisplayCore:
         self.fbuf.ellipse(x,y,xr,yr,color,fill,m)
 
 
-    def polygon(self, coords, x: int, y: int, color: int, *, fill: bool = False):
+    def polygon(self, coords, x: int, y: int, color: int, fill: bool = False):  # noqa: FBT002
         """Draw a polygon from an array of coordinates.
 
         Args:
@@ -486,52 +486,39 @@ class DisplayCore:
 
 
     @staticmethod
-    def get_total_width(text: str, *, width: int = 8) -> int:
+    def get_total_width(text: str, font=None) -> int:
         """Get the total width of a line (with UTF8 chars).
 
         Args:
             text (str): The text string to measure.
             width (int): Optional width of each (single-width) character.
         """
-        return DisplayCore._get_total_width(text, len(bytes(text, "utf-8")), width)
+        if font is None:
+            return len(text) * 8
+        return DisplayCore._get_total_width(text, font)
 
 
     @staticmethod
     @micropython.viper
-    def _get_total_width(text_ptr: ptr8, text_len: int, width: int) -> int:
-        """Fast viper component of get_total_width.
+    def _get_total_width(text, font) -> int:
+        """Viper component of get_total_width."""
+        font_width = int(font.WIDTH)
+        utf8_width = (int(font.HEIGHT) // 8) * 8
+        font_start = int(font.FIRST)
+        font_end = int(font.LAST)
+        text_len = int(len(text))
 
-        Scans over raw string bytes to count number of single-byte or multi-byte characters.
-        Saves a lot of time by not fully decoding any code-points,
-        and by skipping function call overhead from `ord`.
-        """
         total_width = 0
         idx = 0
         while idx < text_len:
-            # count leading 1's to determine byte type
-            # 0 = Single Byte, 1 = continuation byte
-            # 2-4 = Start byte (stop testing after 2)
-            leading_bytes = 0
-            byte_shift = 7
-            while leading_bytes < 2:
-                if text_ptr[idx] >> byte_shift & 1:
-                    leading_bytes += 1
-                    byte_shift -= 1
-                else:
-                    break
-
-            # single byte chars have width 8, others have width 16
-            # ignore continuation bytes.
-            if leading_bytes == 0:  # single byte char
-                total_width += 1
-            elif leading_bytes > 1:  # multi byte char
-                total_width += 2
-
+            char = int(ord(text[idx]))
+            if font_start <= char < font_end:
+                total_width += font_width
+            else:
+                total_width += utf8_width
             idx += 1
 
-        return total_width * width
-
-
+        return total_width
 
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Bitmap Drawing: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

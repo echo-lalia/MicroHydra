@@ -1,8 +1,6 @@
-"""
-MicroHydra file parser is a script inspired by PlatformIO,
-designed to enable multiplatform development for MicroHydra.
+"""MicroHydra file parser is a script designed to enable multiplatform development for MicroHydra.
 
-This script pulls source code from /src and turns it into 
+This script pulls source code from /src and turns it into
 device-specific MicroHydra code for the each defined device.
 
 Device definitions are stored in /devices, in yaml format.
@@ -26,7 +24,7 @@ Hydra Conditionals:
 - Are closed with this phrase: `# mh_end_if`
 - If the conditional passes and is commented out, uncomments it.
 - If the conditional fails and is not commented out, it comments it out.
-- Can be nested, but this is discouraged 
+- Can be nested, but this is discouraged
   (It's hard to read because Python indentation must be maintained)
 Example:
 ```
@@ -121,6 +119,10 @@ NON_DEVICE_FILES = ['default.yml', 'esp32_mpy_build', 'README.md']
 # 1-byte noncharacters = U+FDD0..U+FDEF, choosing from these arbitrarily.
 CONDITIONAL_PARSED_FLAG = chr(0xFDD1)
 CONDITIONAL_PARSED_ORIGINAL_DELIMITER = chr(0xFDD2)
+
+# TODO: This information, along with much of the information listed above,
+# should probably be moved into a separate config file.
+MICROHYDRA_VERSION = (2, 2, 0)
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -230,7 +232,7 @@ class Device:
     def create_device_module(self, dest_path):
         """Create lib.device.py file containing device-specific values."""
         # reformat device constants into plain 'snake case'
-        new_dict = {'name': self.name}
+        new_dict = {'name': self.name, 'mh_version': MICROHYDRA_VERSION}
         for key, val in self.constants.items():
             key = key.removeprefix('_MH_').lower()
 
@@ -253,8 +255,8 @@ class Device:
         destination = os.path.join(dest_path, self.name, 'lib', 'device.py')
 
         file_str = f'''\
-"""
-This is an automatically generated module that contains the MH configuration for this specific device.
+"""This is an automatically generated module that contains the MH config for this specific device.
+
 `Device.vals` contains a dictionary of constants for this device.
 `Device.feats` contains a tuple of features that this device has, with the final value being the device name.
 

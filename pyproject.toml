@@ -16,6 +16,18 @@ skip = """
 ./src/font,\
 """
 
+[tool.pyright]
+# Ruff is handling most of this stuff, so we'll supress some of pyrights warnings.
+include = [
+  "./src",
+  "./devices",
+  "./tools",
+]
+exclude = [
+  "./src/font",
+]
+ignore = ["*"]
+
 
 [tool.ruff]
 # Exclude third-party code from linting and formatting
