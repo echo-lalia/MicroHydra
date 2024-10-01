@@ -10,18 +10,13 @@ import os
 import time
 import sys
 
-import machine
-
 from lib.display import Display
 from lib.hydra.config import Config
+from lib.hydra import loader
 from lib.userinput import UserInput
 from lib.device import Device
 from launcher.terminal.terminal import Terminal
 from launcher.terminal.commands import get_commands, ctext
-
-
-
-machine.freq(240_000_000)
 
 
 
@@ -50,8 +45,6 @@ config = Config()
 kb = UserInput()
 
 term = Terminal()
-
-RTC = machine.RTC()
 
 
 
@@ -185,10 +178,11 @@ def exec_line(inpt: str, user_globals: dict, term: Terminal):
 def main_loop():
     """Run the main loop for the Terminal."""
 
-    app_path = RTC.memory().decode()
-    if len(app_path) > 0 and app_path[0] == '$':
-        execute_script(app_path[1:], [])
-    term.print(f"""\
+    launch_args = loader.get_args()
+    if launch_args and launch_args[0].startswith('$'):
+        execute_script(launch_args[0][1:], [])
+    else:
+        term.print(f"""\
 \x1b[96;1mTerminal\x1b[22m v{_TERMINAL_VERSION}\x1b[36m,
 with MicroHydra v{'.'.join(str(x) for x in Device.mh_version)} \
 and MicroPython v{os.uname().release}, \
