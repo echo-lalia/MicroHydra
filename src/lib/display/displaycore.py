@@ -80,14 +80,14 @@ class DisplayCore:
         self.width = width
         self.height = height
         self.needs_swap = needs_swap
-        self.backlight = PWM(backlight, freq=500, duty_u16=0) if backlight is not None else None
+        self.backlight = PWM(backlight, freq=1000, duty_u16=0) if backlight is not None else None
 
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DisplayCore utils: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     def set_brightness(self, brightness: int):
         """Set backlight PWM using value 0-10."""
         _MAX_BRIGHT = const(65535)
-        _MIN_BRIGHT = const(10000)
+        _MIN_BRIGHT = const(20000)
         _BRIGHT_STEP = const((_MAX_BRIGHT - _MIN_BRIGHT) // 10)
         brightness = _MAX_BRIGHT if brightness == 10 else _MIN_BRIGHT + _BRIGHT_STEP * brightness
         self.backlight.duty_u16(brightness)
