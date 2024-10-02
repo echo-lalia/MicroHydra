@@ -23,7 +23,8 @@ DEFAULT_CONFIG = const(
 "ui_sound": true,
 "timezone": 0,
 "sync_clock": true,
-"language": "en"
+"language": "en",
+"brightness": 8
 }""")
 
 

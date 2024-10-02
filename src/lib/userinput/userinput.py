@@ -230,27 +230,29 @@ class UserInput(_keys.Keys):
                     tracker.pop(key)
 
 
-    def system_commands(self, keylist):
+    def system_commands(self, keylist: list):
         """Check for system commands in the keylist and apply to config."""
         if 'OPT' in self.key_state:
+            self.ext_dir_keys(keylist)
+
             # system commands are bound to 'OPT': remove OPT and apply commands
             if 'OPT' in keylist:
                 keylist.remove('OPT')
 
-            # mute/unmute
-            if 'm' in keylist:
-                self.config['ui_sound'] = not self.config['ui_sound']
-                keylist.remove('m')
-
-            # vol up
-            if 'UP' in keylist:
-                self.config['volume'] = (self.config['volume'] + 1) % 11
-                keylist.remove('UP')
-
-            # vol down
-            elif 'DOWN' in keylist:
-                self.config['volume'] = (self.config['volume'] - 1) % 11
-                keylist.remove('DOWN')
+            for key, setting, val in (
+                ('m', 'ui_sound', bool),
+                ('UP', 'volume', 1),
+                ('DOWN', 'volume', -1),
+                ('LEFT', 'brightness', -1),
+                ('RIGHT', 'brightness', 1)):
+                if key in keylist:
+                    keylist.remove(key)
+                    if val is bool:
+                        self.config[setting] = not self.config[setting]
+                    else:
+                        self.config[setting] = (self.config[setting] + val) % 11
+                    if setting == 'brightness':
+                        Display.instance.set_brightness(self.config['brightness'])
 
             if "q" in keylist:
                 machine.RTC().memory("")

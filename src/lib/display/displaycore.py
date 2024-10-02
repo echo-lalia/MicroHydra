@@ -3,7 +3,9 @@
 
 import framebuf
 from .palette import Palette
+import lib.hydra.config
 from lib.hydra.utils import get_instance
+from machine import PWM
 
 # mh_if frozen:
 # # frozen firmware must access the font as a module,
@@ -22,6 +24,7 @@ class DisplayCore:
             height: int,
             *,
             rotation: int = 0,
+            backlight = None,
             use_tiny_buf: bool = False,
             reserved_bytearray: bytearray|None = None,
             needs_swap: bool = True,
@@ -63,7 +66,7 @@ class DisplayCore:
             # use_tiny_fbuf uses GS4 format for less memory usage
             framebuf.GS4_HMSB if use_tiny_buf else framebuf.RGB565,
             )
-
+        self.config = get_instance(lib.hydra.config.Config)
         self.palette = get_instance(Palette)
         self.palette.use_tiny_buf = self.use_tiny_buf = use_tiny_buf
 
@@ -77,11 +80,19 @@ class DisplayCore:
         self.width = width
         self.height = height
         self.needs_swap = needs_swap
-
-
+        self.backlight = PWM(backlight, freq=500, duty_u16=0) if backlight is not None else None
 
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DisplayCore utils: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    def set_brightness(self, brightness: int):
+        """Set backlight PWM using value 0-10."""
+        _MAX_BRIGHT = const(65535)
+        _MIN_BRIGHT = const(10000)
+        _BRIGHT_STEP = const((_MAX_BRIGHT - _MIN_BRIGHT) // 10)
+        brightness = _MAX_BRIGHT if brightness == 10 else _MIN_BRIGHT + _BRIGHT_STEP * brightness
+        self.backlight.duty_u16(brightness)
+
+
     def reset_show_y(self) -> tuple[int, int]:
         """Return and reset y boundaries."""
         # clamp min and max
