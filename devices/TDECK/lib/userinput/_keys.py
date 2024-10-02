@@ -197,9 +197,9 @@ class Keys:
     def _special_mod_keys(self, keylist: list):
         """Convert device-specific key combos into general keys."""
         # shortcut for "OPT" key
-        if "G0" in keylist \
-        and "FN" in keylist:
-            keylist.remove("G0")
+        if "FN" in keylist \
+        and "SHIFT" in keylist:
+            keylist.remove("SHIFT")
             keylist.remove("FN")
             keylist.append("OPT")
         # shortcut for "ESC"
@@ -238,7 +238,7 @@ class Keys:
         return keys
 
 
-    def set_backlight(self, value:bool):  # noqa: FBT001
+    def set_backlight(self, value:bool):
         """Turn keyboard backlight on or off."""
         if value:
             self._send_code(_BACKLIGHT_ON)
