@@ -191,7 +191,6 @@ class ST7789(DisplayCore):
             reset=None,
             dc=None,
             cs=None,
-            backlight=None,
             rotation=0,
             color_order='BGR',
             **kwargs):
@@ -223,7 +222,6 @@ class ST7789(DisplayCore):
         self.reset = reset
         self.dc = dc
         self.cs = cs
-        self.backlight = backlight
         self._rotation = rotation % 4
         self.color_order = _RGB if color_order == "RGB" else _BGR
         self.hard_reset()
@@ -233,9 +231,8 @@ class ST7789(DisplayCore):
         self.rotation(self._rotation)
         self.fill(0x0)
         self.show()
-
-        if backlight is not None:
-            backlight.value(1)
+        if self.backlight:
+            self.set_brightness(self.config['brightness'])
 
         # mh_if not frozen:
         # when not frozen, the utf8 font is read as needed from a binary.
