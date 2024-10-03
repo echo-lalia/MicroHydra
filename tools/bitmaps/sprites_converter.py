@@ -1,53 +1,13 @@
-#!/usr/bin/env python3
+"""Convert a sprite sheet into a module compatible with MicroHydra.
 
-"""
 Convert a sprite sheet image to python a module for use with indexed bitmap method. The Sprite sheet
 width and height should be a multiple of sprite width and height. There should be no extra pixels
 between sprites. All sprites will share the same palette.
 
-.. seealso::
-    - :ref:`tiny_toasters.py<tiny_toasters>`.
-
-Example
-^^^^^^^
-
-.. code-block:: console
-
-    # create a sprite sheet with 7 colored sprites 32x32 pixels each
-    ./make_colorbars_bitmap.py 227 32 3 --png sprites.png
-
-    # convert the sprite sheet to a python module with 7 sprites
-    ./sprites_converter.py sprites.png 32 32 4 > sprites.py
-
-.. code-block:: python
-
-    import tft_config
-    import sprites
-    tft = tft_config.config(1)
-    for i in range(sprites.BITMAPS):
-        tft.bitmap(sprites, 0, 0, i)
-
-Usage
-^^^^^
-
-.. code-block:: console
-
-    usage: sprites_converter.py [-h] image_file sprite_width sprite_height bits_per_pixel
-
-    Convert image file to python module for use with bitmap method.
-
-    positional arguments:
-    image_file      Name of file containing image to convert
-    sprite_width    Width of sprites in pixels
-    sprite_height   Height of sprites in pixels
-    bits_per_pixel  The number of bits to use per pixel (1..8)
-
-    optional arguments:
-    -h, --help      show this help message and exit
-
 
 
 This script was originally written by Russ Hughes as part of the 'st7789py_mpy' repo.
+
 
 
 MIT License
@@ -78,22 +38,25 @@ import argparse
 from PIL import Image
 
 
-def convert_image_to_bitmap(image_file, bits, sprite_width, sprite_height):
-    """
-    Convert image to bitmap representation.
+def rgb_to_color565(r: int, g: int, b: int) -> int:
+    """Convert RGB color to the 16-bit color format (565).
 
     Args:
-        img (PIL.Image.Image): Image object to convert.
-        bits (int): The number of bits to use per pixel (1..8).
-        sprite_width (int): Width of sprites in pixels.
-        sprite_height (int): Height of sprites in pixels.
+        r (int): Red component of the RGB color (0-255).
+        g (int): Green component of the RGB color (0-255).
+        b (int): Blue component of the RGB color (0-255).
 
     Returns:
-        tuple: Tuple containing the bitmap parameters and the bitmap data.
-
-    Raises:
-        None
+        int: Converted color value in the 16-bit color format (565).
     """
+    r = ((r * 31) // (255))
+    g = ((g * 63) // (255))
+    b = ((b * 31) // (255))
+    return (r << 11) | (g << 5) | b
+
+
+def convert_image_to_bitmap(image_file: str, bits: int, sprite_width: int, sprite_height: int):
+    """Convert image to bitmap representation."""
     colors_requested = 1 << bits
     img = Image.open(image_file).convert("RGB")
     img = img.convert(mode="P", palette=Image.Palette.ADAPTIVE, colors=colors_requested)
@@ -147,34 +110,33 @@ def convert_image_to_bitmap(image_file, bits, sprite_width, sprite_height):
     print(f"COLORS = {actual_colors}")
     print(f"BITS = {bitmap_bits}")
     print(f"BPP = {bits}")
-    print("PALETTE = [", sep="", end="")
+    print("PALETTE = [", end="")
 
     for color, rgb in enumerate(colors):
         if color:
-            print(",", sep="", end="")
-        print(f"0x{rgb}", sep="", end="")
+            print(",", end="")
+        print(f"0x{rgb}", end="")
     print("]")
 
     # Run though image bit string 8 bits at a time
     # and create python array source for memoryview
 
-    print("_bitmap =\\", sep="")
-    print("b'", sep="", end="")
+    print("_bitmap =\\")
+    print("b'", end="")
 
     for i in range(0, bitmap_bits, 8):
         if i and i % (16 * 8) == 0:
-            print("'\\\nb'", end="", sep="")
+            print("'\\\nb'", end="")
 
         value = image_bitstring[i : i + 8]
         color = int(value, 2)
-        print(f"\\x{color:02x}", sep="", end="")
+        print(f"\\x{color:02x}", end="")
 
     print("'\nBITMAP = memoryview(_bitmap)")
 
 
 def main():
-    """
-    Convert images to python modules for use with indexed bitmap method.
+    """Convert images to python modules for use with indexed bitmap method.
 
     Args:
         input (str): image file to convert.

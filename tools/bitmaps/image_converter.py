@@ -1,45 +1,13 @@
-#!/usr/bin/env python3
-"""
+"""Convert a single image to a module compatible with MicroHydra.
+
 Convert an image file to a python module for use with the bitmap method. Use redirection to save the
 output to a file. The image is converted to a bitmap using the number of bits per pixel you specify.
 The bitmap is saved as a python module that can be imported and used with the bitmap method.
 
-.. seealso::
-    - :ref:`alien.py<alien>`.
-
-Example
-^^^^^^^
-
-.. code-block:: console
-
-    ./create_png_examples.py cat.png 4 > cat_bitmap.py
-
-The python file can be imported and displayed with the bitmap method. For example:
-
-.. code-block:: python
-
-    import tft_config
-    import cat_bitmap
-    tft = tft_config.config(1)
-    tft.bitmap(cat_bitmap, 0, 0)
-
-Usage
-^^^^^
-
-.. code-block:: console
-
-    usage: image_converter.py [-h] image_file bits_per_pixel
-
-    Convert image file to python module for use with bitmap method.
-
-    positional arguments: image_file      Name of file containing image to convert bits_per_pixel
-    The number of bits to use per pixel (1..8)
-
-    optional arguments: -h, --help      show this help message and exit
-
 
 
 This script was originally written by Russ Hughes as part of the 'st7789py_mpy' repo.
+
 
 
 MIT License
@@ -70,9 +38,8 @@ import argparse
 from PIL import Image
 
 
-def rgb_to_color565(r, g, b):
-    """
-    Convert RGB color to the 16-bit color format (565).
+def rgb_to_color565(r: int, g: int, b: int) -> int:
+    """Convert RGB color to the 16-bit color format (565).
 
     Args:
         r (int): Red component of the RGB color (0-255).
@@ -88,13 +55,12 @@ def rgb_to_color565(r, g, b):
     return (r << 11) | (g << 5) | b
 
 
-def convert_to_bitmap(image_file, bits_requested):
-    """
-    Convert image file to python module for use with bitmap method.
+def convert_to_bitmap(image_file: str, bits_requested: int):
+    """Convert image file to python module for use with bitmap method.
 
     Args:
         image_file (str): Name of file containing image to convert.
-        bits (int): The number of bits to use per pixel (1..8).
+        bits_requested (int): The number of bits to use per pixel (1..8).
     """
 
     colors_requested = 1 << bits_requested
@@ -154,13 +120,7 @@ def convert_to_bitmap(image_file, bits_requested):
 
 
 def main():
-    """
-    Convert image file to python module for use with bitmap method.
-
-    Args:
-        image_file (str): Name of file containing image to convert.
-        bits_per_pixel (int): The number of bits to use per pixel (1..8).
-    """
+    """Convert image file to python module for use with bitmap method."""
 
     parser = argparse.ArgumentParser(
         description="Convert image file to python module for use with bitmap method.",
