@@ -204,7 +204,7 @@ class Keys:
             keylist.append("OPT")
         # shortcut for "ESC"
         if "ALT" in keylist \
-        and "q" in keylist:
+        and "e" in keylist:
             keylist.remove("ALT")
             keylist.remove("q")
             keylist.append("ESC")
