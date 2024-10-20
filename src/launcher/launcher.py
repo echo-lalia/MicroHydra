@@ -491,8 +491,7 @@ class IconWidget:
         self.x = _DISPLAY_WIDTH_HALF
         self.prev_x = 0
         self.scroll_start_ms = time.ticks_ms()
-        self.anim = _SCROLL_ANIMATION_TIME
-        self.force_update()
+        self.anim_time = _SCROLL_ANIMATION_TIME
 
         # buffer for storing one custom icon
         self.buf = bytearray(32*32//8)
@@ -515,6 +514,9 @@ class IconWidget:
         self.icon_palette = framebuf.FrameBuffer(bytearray([40]), 2, 1, framebuf.GS4_HMSB)
         # mh_end_if
 
+        self.force_update()
+
+
     def force_update(self):
         """Force an update to the next icon."""
         draw_scrollbar()
@@ -522,6 +524,10 @@ class IconWidget:
         self.next_icon = self._choose_icon()
         self.drawn_icon = self.next_icon
         self.prev_x = 0
+        # if this is a custom icon, it needs to be loaded
+        if isinstance(self.drawn_icon, str) and self.drawn_icon.endswith(".raw"):
+            with open(self.drawn_icon, 'rb') as f:
+                f.readinto(self.buf)
 
 
     def _animate_scroll(self) -> int:
@@ -590,7 +596,6 @@ class IconWidget:
             32,
             palette=self.icon_palette,
             )
-
 
 
     def draw(self):
