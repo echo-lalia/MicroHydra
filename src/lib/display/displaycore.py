@@ -539,6 +539,8 @@ class DisplayCore:
             x: int,
             y: int,
             *,
+            draw_width: int|None = None,
+            draw_height: int|None = None,
             index: int = 0,
             key: int = -1,
             palette: list[int]|None = None):
@@ -558,72 +560,106 @@ class DisplayCore:
         if palette is None:
             palette = bitmap.PALETTE
 
-        self._bitmap(bitmap, x, y, index, key, palette)
+        self._bitmap(
+            bitmap,
+            x, y,
+            bitmap.WIDTH if draw_width is None else draw_width,
+            bitmap.HEIGHT if draw_height is None else draw_height,
+            index,
+            key,
+            palette,
+        )
 
 
     @micropython.viper
-    def _bitmap(self, bitmap, x:int, y:int, index:int, key:int, palette):
+    def _bitmap(self, bitmap, x:int, y:int, draw_width:int, draw_height:int, index:int, key:int, palette):
+        # Update drawn pixel area:
+        self._set_show_y(y, y + draw_height)
 
-        width = int(bitmap.WIDTH)
-        height = int(bitmap.HEIGHT)
-        self_width = int(self.width)
-        self_height = int(self.height)
-
-        palette_len = int(len(palette))
-        bpp = int(bitmap.BPP)
-        bitmap_pixels = height * width
-        starting_bit = bpp * bitmap_pixels * index  # if index > 0 else 0
-
+        # Get values for our display:
+        display_width = int(self.width)
+        display_height = int(self.height)
         use_tiny_buf = bool(self.use_tiny_buf)
 
-        self._set_show_y(y, y + height)
+        # Get values for our bitmap:
+        btmp_width = int(bitmap.WIDTH)
+        btmp_height = int(bitmap.HEIGHT)
+        bpp = int(bitmap.BPP)
+        starting_bit = btmp_width * btmp_height * index * bpp
 
-        # format color palette into a pointer
-        palette_buf = bytearray(palette_len * 2)
-        palette_ptr = ptr16(palette_buf)
+        # Convert palette colors into expected value,
+        # and convert palette into a pointer (for speed!)
+        palette_len = int(len(palette))
+        palette_ptr = ptr16(bytearray(palette_len * 2))
         for i in range(palette_len):
             palette_ptr[i] = int(
                 self._format_color(palette[i])
                 )
+        # also format the key color
         key = int(self._format_color(key))
 
+        # Pointers for the bitmap, and destination buffers
         bitmap_ptr = ptr8(bitmap.BITMAP)
+        # We can't assign different types to the same variable name,
+        # so we assign two here (even though we will only use one)
         fbuf8 = ptr8(self.fbuf)
         fbuf16 = ptr16(self.fbuf)
 
+        # The mask needed to select the requested number of bits:
         bitmask = 0xffff >> (16 - bpp)
 
-        # iterate over pixels
-        px_idx = 0
-        while px_idx < bitmap_pixels:
-            source_bit = (px_idx * bpp) + starting_bit
-            source_idx = source_bit // 8
-            source_shift = 7 - (source_bit % 8)
+        # Find starting x/y indices to draw, clamping to display bounds
+        x_idx_start = 0 if x < 0 else display_width-1 if x >= display_width else x
+        y_idx = 0 if y < 0 else display_height-1 if y >= display_height else y
 
-            # bitmap value is an index in the color palette
-            source = (bitmap_ptr[source_idx] >> source_shift) & bitmask
-            clr = palette_ptr[source]
+        # Find ending x/y indices, clamped to display bounds
+        x_idx_end = x + draw_width
+        x_idx_end = 0 if x_idx_end < 0 else display_width if x_idx_end > display_width else x_idx_end
+        y_idx_end = y + draw_height
+        y_idx_end = 0 if y_idx_end < 0 else display_height if y_idx_end > display_height else y_idx_end
 
-            target_x = x + px_idx % width
-            target_y = y + px_idx // width
+        # Iterate vertically over each row:
+        # (Using a while loop like this is faster than using range)
+        while y_idx < y_idx_end:
+            # Calculate source bitmap pixel coordinate
+            btmp_y = (y_idx - y)*btmp_height // draw_height
 
-            # dont draw pixels off the screen (ptrs don't check your work!)
-            if clr != key \
-            and 0 <= target_x < self_width \
-            and 0 <= target_y < self_height:
+            # Iterate over horizontal pixels:
+            x_idx = x_idx_start
+            while x_idx < x_idx_end:
+                # calculate source bitmap pixel coordinate
+                btmp_x = (x_idx - x)*btmp_width // draw_width
 
-                # convert px coordinate to an index
-                target_px = (target_y * self_width) + target_x
+                # Find the start bit for the pixel we want
+                btmp_bit_idx = starting_bit + (btmp_y*btmp_width + btmp_x) * bpp
+                # calculate the byte, and byte shift needed to read that bit
+                btmp_byte_idx = btmp_bit_idx // 8
+                byte_shift = 7 - (btmp_bit_idx % 8)
 
-                if use_tiny_buf:
-                    # writing 4-bit pixels
-                    target_idx = target_px // 2
-                    dest_shift = ((target_px + 1) % 2) * 4
-                    dest_mask = 0xf0 >> dest_shift
-                    fbuf8[target_idx] = (fbuf8[target_idx] & dest_mask) | (clr << dest_shift)
-                else:
-                    # writing 16-bit pixels
-                    target_idx = target_px
-                    fbuf16[target_idx] = clr
+                # Find pixel color from bitmap value
+                clr = palette_ptr[
+                    # Read bitmap value
+                    (bitmap_ptr[btmp_byte_idx] >> byte_shift) & bitmask
+                ]
 
-            px_idx += 1
+                # Don't draw the keyed-out value
+                if clr != key:
+                    # convert pixel coordinate into a single target index
+                    target_px = (y_idx * display_width) + x_idx
+
+                    # We have to write the value differently depending on the framebuf type
+                    if use_tiny_buf:
+                        # writing 4-bit pixels
+                        target_idx = target_px // 2
+                        # We need these values to "erase" the old 4 bits
+                        dest_shift = ((target_px + 1) % 2) * 4
+                        dest_mask = 0xf0 >> dest_shift
+                        # bitwise OR the new 4 bits into the target byte
+                        fbuf8[target_idx] = (fbuf8[target_idx] & dest_mask) | (clr << dest_shift)
+
+                    else:
+                        # writing 16-bit pixels is easy with a 16-bit pointer.
+                        fbuf16[target_px] = clr
+
+                x_idx += 1
+            y_idx+=1
