@@ -492,6 +492,7 @@ class IconWidget:
         self.prev_x = 0
         self.scroll_start_ms = time.ticks_ms()
         self.anim_time = _SCROLL_ANIMATION_TIME
+        self.anim_fac = 0.0
 
         # buffer for storing one custom icon
         self.buf = bytearray(32*32//8)
@@ -541,9 +542,11 @@ class IconWidget:
 
         if fac >= 1:
             self.direction = 0
+            self.anim_fac = 0.0
             return 0
 
         fac = ease_out_cubic(fac)
+        self.anim_fac = fac
 
         return math.floor(
             fac * _MH_DISPLAY_WIDTH if self.direction < 0 else fac * -_MH_DISPLAY_WIDTH,
@@ -566,11 +569,16 @@ class IconWidget:
 
 
     def _draw_bitmap_icon(self):
+        ext_width = _ICON_WIDTH - int(self.anim_fac * _ICON_WIDTH) if 0.1 < self.anim_fac < 0.9 else 0
+        extwdth_half = ext_width >> 1
+        print(ext_width, self.anim_fac)
         DISPLAY.bitmap(
             appicons,
-            self.x - _ICON_WIDTH_HALF,
-            _ICON_Y,
+            self.x - _ICON_WIDTH_HALF - extwdth_half,
+            _ICON_Y + extwdth_half,
             index=self.drawn_icon,
+            draw_width=_ICON_WIDTH + ext_width,
+            draw_height=_ICON_HEIGHT - ext_width,
             palette=(CONFIG.palette[2], CONFIG.palette[8]),
             )
 
