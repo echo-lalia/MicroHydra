@@ -44,6 +44,7 @@ import ntptime
 from font import vga2_16x32 as font
 from launcher.icons import appicons, battery
 from lib import battlevel, display, sdcard, userinput
+from lib.display.rawbitmap import RawBitmap
 from lib.hydra import beeper, loader
 from lib.hydra.config import Config
 from lib.hydra.i18n import I18n
@@ -86,8 +87,8 @@ _ICON_Y = const(_MH_DISPLAY_HEIGHT * 27 // 100)
 _APPNAME_Y = const(_ICON_Y + _ICON_HEIGHT + _Y_PADDING)
 
 
-_SCROLL_ANIMATION_TIME = const(400)
-_SCROLL_ANIMATION_QUICK = const(250)
+_SCROLL_ANIMATION_TIME = const(350)
+_SCROLL_ANIMATION_QUICK = const(150)
 
 
 _ASCII_MAX = const(128)
@@ -491,29 +492,11 @@ class IconWidget:
         self.x = _DISPLAY_WIDTH_HALF
         self.prev_x = 0
         self.scroll_start_ms = time.ticks_ms()
-        self.anim = _SCROLL_ANIMATION_TIME
+        self.anim_time = _SCROLL_ANIMATION_TIME
+        self.anim_fac = 0.0
+
         self.force_update()
 
-        # buffer for storing one custom icon
-        self.buf = bytearray(32*32//8)
-        self.fbuf = framebuf.FrameBuffer(self.buf, 32, 32, framebuf.MONO_HLSB)
-
-        # mh_if spi_ram:
-        # # Construct a framebuffer palette by manually setting the 4 color bytes
-        # self.icon_palette = framebuf.FrameBuffer(
-        #     bytearray([
-        #         CONFIG.palette[2] >> 8,
-        #         CONFIG.palette[2] & 0xff,
-        #         CONFIG.palette[8] >> 8,
-        #         CONFIG.palette[8] & 0xff,
-        #     ]),
-        #     2, 1,
-        #     framebuf.RGB565,
-        # )
-        # mh_else:
-        # 40 == bg color and ui color as one byte (2, 8)
-        self.icon_palette = framebuf.FrameBuffer(bytearray([40]), 2, 1, framebuf.GS4_HMSB)
-        # mh_end_if
 
     def force_update(self):
         """Force an update to the next icon."""
@@ -535,9 +518,11 @@ class IconWidget:
 
         if fac >= 1:
             self.direction = 0
+            self.anim_fac = 0.0
             return 0
 
         fac = ease_out_cubic(fac)
+        self.anim_fac = fac
 
         return math.floor(
             fac * _MH_DISPLAY_WIDTH if self.direction < 0 else fac * -_MH_DISPLAY_WIDTH,
@@ -559,12 +544,23 @@ class IconWidget:
         self.next_icon = self._choose_icon()
 
 
-    def _draw_bitmap_icon(self):
+    def _draw_bitmap_icon(self, custom_bmp=None):
+        _MAX_EXT_WIDTH = const((_ICON_WIDTH*3) // 2)
+
+        if 0.01 < self.anim_fac < 0.99 and self.x != _DISPLAY_WIDTH_HALF:
+            # squish in and out of frame
+            fac = self.anim_fac*2.0 if self.anim_fac<0.5 else 1.0 - (self.anim_fac - 0.5)*2
+            ext_width = int(fac * _MAX_EXT_WIDTH)
+        else:
+            ext_width = 0
+
         DISPLAY.bitmap(
-            appicons,
-            self.x - _ICON_WIDTH_HALF,
-            _ICON_Y,
-            index=self.drawn_icon,
+            appicons if custom_bmp is None else custom_bmp,
+            self.x - _ICON_WIDTH_HALF - (ext_width >> 1),
+            _ICON_Y + (ext_width>>2),
+            index=0 if custom_bmp else self.drawn_icon,
+            draw_width=_ICON_WIDTH + ext_width,
+            draw_height=_ICON_HEIGHT - (ext_width>>1),
             palette=(CONFIG.palette[2], CONFIG.palette[8]),
             )
 
@@ -579,18 +575,6 @@ class IconWidget:
             CONFIG.palette[clr_idx],
             font=font,
             )
-
-
-    def _draw_custom_icon(self):
-        DISPLAY.blit_buffer(
-            self.fbuf,
-            self.x - _ICON_WIDTH_HALF,
-            _ICON_Y,
-            32,
-            32,
-            palette=self.icon_palette,
-            )
-
 
 
     def draw(self):
@@ -612,16 +596,17 @@ class IconWidget:
                 with open(self.drawn_icon, 'rb') as f:
                     f.readinto(self.buf)
 
+        if isinstance(self.drawn_icon, RawBitmap):
+            self._draw_bitmap_icon(self.drawn_icon)
+
         if isinstance(self.drawn_icon, int):
             self._draw_bitmap_icon()
-        elif isinstance(self.drawn_icon, str):
-            if len(self.drawn_icon) <= 3:
-                self._draw_str_icon()
-            else:
-                self._draw_custom_icon()
 
-    @staticmethod
-    def _choose_icon() -> int|str:
+        elif isinstance(self.drawn_icon, str):
+            self._draw_str_icon()
+
+
+    def _choose_icon(self) -> int|str:
         current_app_text = APP_NAMES[APP_SELECTOR_INDEX]
 
         # special menu options for settings
@@ -647,7 +632,7 @@ class IconWidget:
             # too many ways for `os.listdir` to fail here, so just capture the error:
             try:
                 if 'icon.raw' in os.listdir(current_app_path):
-                    return f"{current_app_path}/icon.raw"
+                    return RawBitmap(f"{current_app_path}/icon.raw", 32, 32, (CONFIG.palette[2], CONFIG.palette[8]))
             except OSError:
                 pass
 
