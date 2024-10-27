@@ -65,7 +65,7 @@ _EMPTY_BYTES = b'\x00' * _NUM_READ_KEYS
 _KB_FIRMWARE_WARNING = const("""\
 WARNING:
 The T-Deck keyboard sent an invalid code to the _keys module.
-This is probably because the wrong firmware is installed on the keyboard.\
+This is probably because the wrong firmware is installed on the keyboard. \
 It is reccomended that you flash the Hydra KB firmware to the keyboard to get full functionality.
 
 Compatibility mode will now be enabled...""")
@@ -212,7 +212,11 @@ class Keys:
 
     def _alt_get_pressed_keys(self, **kwargs) -> list:  # noqa: ARG002
         """Alternate version of get_pressed_keys (for compatibility)."""
-        read_key = self.i2c.readfrom(_I2C_ADDR, 1).decode()
+        try:
+            read_key = self.i2c.readfrom(_I2C_ADDR, 1).decode()
+        except UnicodeError:
+            read_key = ""
+
         tb_val = self.tb_click.value()
         keys = []
 
@@ -230,6 +234,10 @@ class Keys:
         if read_key != "\x00":
             if read_key == "\x08":
                 keys.append("BSPC")
+            elif read_key == '\r':
+                keys.append("ENT")
+            elif read_key == ' ':
+                keys.append("SPC")
             else:
                 keys.append(read_key)
 
@@ -289,15 +297,17 @@ class Keys:
         for code in codes:
             if code != 0:
                 if code in keymap:
-                    keys.append(keymap[code])
+                    key = keymap[code]
+                    if key not in keys:
+                        keys.append(key)
 
-                elif code > 100:
+                elif code > 100 or code in {13, 32}:
                     # firmware should not be sending values like this
                     # enable compatibility mode for wrong kb firmware
                     print(_KB_FIRMWARE_WARNING)
                     self.firmware_compat_mode = True
                     self.get_pressed_keys = self._alt_get_pressed_keys
-                    return keys
+                    return [chr(code)]
 
         self._special_mod_keys(keys)
         self._add_tb_keys(keys)
