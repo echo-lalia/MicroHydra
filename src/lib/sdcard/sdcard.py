@@ -1,4 +1,4 @@
-# mh_include_if shared_spi:
+# mh_include_if shared_sdcard_spi:
 """MicroPython driver for SD cards using SPI bus.
 
 Sourced from:
@@ -64,7 +64,7 @@ _TOKEN_STOP_TRAN = const(0xFD)
 _TOKEN_DATA = const(0xFE)
 
 
-class SDCard:
+class _SDCard:
     def __init__(self, spi, cs, baudrate=1320000):
         self.spi = spi
         self.cs = cs
@@ -76,8 +76,10 @@ class SDCard:
             self.dummybuf[i] = 0xFF
         self.dummybuf_memoryview = memoryview(self.dummybuf)
 
+        self.baudrate = baudrate
+
         # initialise the card
-        self.init_card(baudrate)
+        self.init_card()
 
     def init_spi(self, baudrate):
         try:
@@ -89,7 +91,7 @@ class SDCard:
             # on pyboard
             self.spi.init(master, baudrate=baudrate, phase=0, polarity=0)
 
-    def init_card(self, baudrate):
+    def init_card(self):
         # init CS pin
         self.cs.init(self.cs.OUT, value=1)
 
@@ -139,7 +141,7 @@ class SDCard:
             raise OSError("can't set 512 block size")
 
         # set to high data rate now that it's initialised
-        self.init_spi(baudrate)
+        self.init_spi(self.baudrate)
 
     def init_card_v1(self):
         for i in range(_CMD_TIMEOUT):
@@ -171,6 +173,7 @@ class SDCard:
         raise OSError("timeout waiting for v2 card")
 
     def cmd(self, cmd, arg, crc, final=0, release=True, skip1=False):
+        self.spi.init(baudrate=self.baudrate)
         self.cs(0)
 
         # create and send the command
@@ -210,6 +213,7 @@ class SDCard:
 
     def readinto(self, buf):
         self.cs(0)
+        self.spi.init(baudrate=self.baudrate)
 
         # read until start byte (0xff)
         for i in range(_CMD_TIMEOUT):
@@ -236,6 +240,7 @@ class SDCard:
 
     def write(self, token, buf):
         self.cs(0)
+        self.spi.init(baudrate=self.baudrate)
 
         # send: start of block, data, checksum
         self.spi.read(1, token)
@@ -257,6 +262,7 @@ class SDCard:
         self.spi.write(b"\xff")
 
     def write_token(self, token):
+        self.spi.init(baudrate=self.baudrate)
         self.cs(0)
         self.spi.read(1, token)
         self.spi.write(b"\xff")
@@ -268,6 +274,7 @@ class SDCard:
         self.spi.write(b"\xff")
 
     def readblocks(self, block_num, buf):
+        self.spi.init(baudrate=self.baudrate)
         # workaround for shared bus, required for (at least) some Kingston
         # devices, ensure MOSI is high before starting transaction
         self.spi.write(b"\xff")
@@ -299,6 +306,7 @@ class SDCard:
                 raise OSError(5)  # EIO
 
     def writeblocks(self, block_num, buf):
+        self.spi.init(baudrate=self.baudrate)
         # workaround for shared bus, required for (at least) some Kingston
         # devices, ensure MOSI is high before starting transaction
         self.spi.write(b"\xff")
