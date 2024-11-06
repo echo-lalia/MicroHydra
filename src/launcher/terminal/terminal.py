@@ -105,7 +105,7 @@ class Terminal:
         self.draw()
         self.display.show()
 
-    def input(self, prmpt: str) -> str:
+    def input(self, prmpt: str = '') -> str:
         """Get user input (Override the `input` built-in)."""
 
         current_text = ''
