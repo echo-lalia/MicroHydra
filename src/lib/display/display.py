@@ -31,7 +31,7 @@ class Display(st7789.ST7789):
 
     def __new__(cls, **kwargs):  # noqa: ARG003, D102
         if not hasattr(cls, 'instance'):
-          cls.instance = super().__new__(cls)
+          Display.instance = super().__new__(cls)
         return cls.instance
 
 

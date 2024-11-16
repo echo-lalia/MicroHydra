@@ -91,7 +91,7 @@ class Keys:
     secondary_action = "ENT"
     aux_action = "SPC"
 
-    ext_dir_dict = {'i':'UP', 'j':'LEFT', 'k':'DOWN', 'l':'RIGHT', 'q':'ESC'}
+    ext_dir_dict = {'i':'UP', 'j':'LEFT', 'k':'DOWN', 'l':'RIGHT'}
 
     def __init__(self, tb_repeat_ms=60, **kwargs):  # noqa: ARG002
         # turn on keyboard
@@ -201,7 +201,6 @@ class Keys:
         and "SHIFT" in keylist:
             keylist.remove("SHIFT")
             keylist.remove("FN")
-            keylist.append("OPT")
         # shortcut for "ESC"
         if "ALT" in keylist \
         and "e" in keylist:
@@ -281,10 +280,13 @@ class Keys:
 
 
         # process special keys before converting to readable format
-        if (_KC_FN in codes and tb_val) \
+        if _KC_FN in codes and _KC_SHIFT in codes:
+            keymap = KEYMAP
+            keys.append('OPT')
+        elif (_KC_FN in codes) \
         or force_fn:
             keymap = KEYMAP_FN
-        elif _KC_SHIFT in codes or _KC_LEFT_SHIFT in codes \
+        elif (_KC_SHIFT in codes or _KC_LEFT_SHIFT in codes) \
         or force_shift:
             keymap = KEYMAP_SHIFT
         else:

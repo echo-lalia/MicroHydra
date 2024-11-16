@@ -255,6 +255,7 @@ class UserInput(_keys.Keys):
                         Display.instance.set_brightness(self.config['brightness'])
 
             if "q" in keylist:
+                self.config.save()
                 machine.RTC().memory("")
                 machine.reset()
 

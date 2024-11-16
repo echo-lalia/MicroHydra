@@ -45,6 +45,7 @@ features:
 - bluetooth
 - kb_light
 - keyboard
+- shared_sdcard_spi
 
 mpy_arch: xtensawin
 source_board: MICROHYDRA_GENERIC_S3

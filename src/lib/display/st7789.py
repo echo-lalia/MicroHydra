@@ -58,6 +58,8 @@ from .displaycore import DisplayCore
 # mh_end_if
 
 
+_MH_DISPLAY_BAUDRATE = const(40_000_000)
+
 
 # ST7789 commands
 _ST7789_SWRESET = b"\x01"
@@ -258,6 +260,10 @@ class ST7789(DisplayCore):
 
     def _write(self, command=None, data=None):
         """SPI write to the device: commands and data."""
+        # mh_if shared_sdcard_spi:
+        # # TDeck shares SPI with SDCard
+        # self.spi.init(baudrate=_MH_DISPLAY_BAUDRATE)
+        # mh_end_if
         if self.cs:
             self.cs.off()
         if command is not None:
@@ -278,6 +284,10 @@ class ST7789(DisplayCore):
         converts the 4bit data to 16bit RGB565 format,
         and sends the data over SPI.
         """
+        # mh_if shared_sdcard_spi:
+        # # TDeck shares SPI with SDCard
+        # self.spi.init(baudrate=_MH_DISPLAY_BAUDRATE)
+        # mh_end_if
         if self.cs:
             self.cs.off()
         self.dc.on()
@@ -365,17 +375,14 @@ class ST7789(DisplayCore):
             value (bool): if True enable sleep mode. if False disable sleep
             mode
         """
-        # mh_if TDECK:
+        # mh_if shared_sdcard_spi:
         # # TDeck shares SPI with SDCard
-        # self.spi.init()
+        # self.spi.init(baudrate=_MH_DISPLAY_BAUDRATE)
         # mh_end_if
         if value:
             self._write(_ST7789_SLPIN)
         else:
             self._write(_ST7789_SLPOUT)
-        # mh_if TDECK:
-        # self.spi.deinit()
-        # mh_end_if
 
 
     def inversion_mode(self, value: bool):
@@ -386,17 +393,14 @@ class ST7789(DisplayCore):
             value (bool): if True enable inversion mode. if False disable
             inversion mode
         """
-        # mh_if TDECK:
+        # mh_if shared_sdcard_spi:
         # # TDeck shares SPI with SDCard
-        # self.spi.init()
+        # self.spi.init(baudrate=_MH_DISPLAY_BAUDRATE)
         # mh_end_if
         if value:
             self._write(_ST7789_INVON)
         else:
             self._write(_ST7789_INVOFF)
-        # mh_if TDECK:
-        # self.spi.deinit()
-        # mh_end_if
 
 
     def rotation(self, rotation):
@@ -454,9 +458,9 @@ class ST7789(DisplayCore):
 
     def show(self):
         """Write the current framebuf to the display."""
-        # mh_if TDECK:
+        # mh_if shared_sdcard_spi:
         # # TDeck shares SPI with SDCard
-        # self.spi.init()
+        # self.spi.init(baudrate=_MH_DISPLAY_BAUDRATE)
         # mh_end_if
 
         # Reset and clamp min/max vals
@@ -477,8 +481,3 @@ class ST7789(DisplayCore):
             self._write_tiny_buf(y_min, y_max)
         else:
             self._write_normal_buf(y_min, y_max)
-
-        # mh_if TDECK:
-        # # TDeck shares SPI with SDCard
-        # self.spi.deinit()
-        # mh_end_if

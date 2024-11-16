@@ -23,7 +23,7 @@ constants:
   _MH_SDCARD_MISO: '38'
   _MH_SDCARD_MOSI: '41'
   _MH_SDCARD_SCK: '40'
-  _MH_SDCARD_SLOT: '2'
+  _MH_SDCARD_SLOT: '1'
 
 features:
 - keyboard
@@ -36,6 +36,7 @@ features:
 - bluetooth
 - kb_light
 - spi_ram
+- shared_sdcard_spi
 
 mpy_arch: xtensawin
 source_board: MICROHYDRA_GENERIC_S3
