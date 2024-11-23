@@ -9,12 +9,10 @@ import math
 import os
 import time
 
-import machine
-
 from font import vga2_16x32 as font
 from lib import sdcard, userinput
 from lib.display import Display
-from lib.hydra import beeper, popup
+from lib.hydra import beeper, popup, loader
 from lib.hydra.config import Config
 from lib.hydra.i18n import I18n
 
@@ -258,13 +256,13 @@ def ping_pong_ease(value: int, modulo: int) -> float:
     return (fac)
 
 
-
 def path_join(*args) -> str:
     """Join multiple paths together."""
     path = "/".join(args)
     # Remove any repeated slashes
     while "//" in path:
         path = path.replace("//", "/")
+    # Remove trailing slashes
     if path.endswith("/") and len(path) > 1:
         path = path[:-1]
     return path
@@ -377,9 +375,7 @@ def ext_options(overlay):
     elif option == "Exit to launcher":
         overlay.draw_textbox("Exiting...")
         tft.show()
-        rtc = machine.RTC()
-        rtc.memory('')
-        machine.reset()
+        loader.launch_app()
 
 
 def file_options(file, overlay):
@@ -416,6 +412,71 @@ def file_options(file, overlay):
             os.remove(file)
 
 
+def scan_tree(dirpath: str) -> tuple[list, list]:
+    """Recursively scan a file tree."""
+    files = []
+    dirs = []
+    for entry in os.ilistdir(dirpath):
+        if entry[1] == _DIR_MARKER:
+            # This is a directory; recursively scan it.
+            contents = scan_tree(path_join(dirpath, entry[0]))
+            files += contents[0]
+            dirs += contents[1]
+            dirs.append(path_join(dirpath, entry[0]))
+        else:
+            # A file, just add it to the list.
+            files.append(path_join(dirpath, entry[0]))
+    return files, dirs
+
+
+def remove_tree(dirpath, overlay):
+    """Scan for all files/directories in the tree, and (optionally) delete them all."""
+    all_files, all_dirs = scan_tree(dirpath)
+    # Confirm the delete with the user
+    conf_btn = f"Delete {len(all_files) + len(all_dirs) + 1} items"
+    confirm = overlay.popup_options(
+        ("cancel", conf_btn),
+        title='Directory not empty!',
+        depth=2,
+    )
+    if confirm == conf_btn:
+        for f in all_files:
+            os.remove(f)
+        for d in all_dirs:
+            os.rmdir(d)
+        os.rmdir(dirpath)
+
+
+def dir_options(dirpath, overlay):
+    """Create popup with options for given directory."""
+
+    options = ("open", "rename", "delete")
+    option = overlay.popup_options(options, title=f'"{dirpath}/":')
+
+    if option == "open":
+        beep.play(("G3"), 30)
+        os.chdir(dirpath)
+
+    elif option == "rename":
+        beep.play(("B3"), 30)
+        new_name = overlay.text_entry(start_value=dirpath, title=f"Rename '{dirpath}':")
+        os.rename(dirpath, new_name)
+
+    elif option == "delete":
+        beep.play(("D3"), 30)
+        confirm = overlay.popup_options(
+            (("cancel",), ("confirm",)),
+            title=f'Delete "{dirpath}"?',
+            depth=1,
+        )
+        if confirm == "confirm":
+            beep.play(("D3", "B3", "G3", "G3"), 30)
+            try:
+                os.rmdir(dirpath)
+            except OSError:
+                remove_tree(dirpath, overlay)
+
+
 def open_file(file):
     """Reboot/open a file with relevant file handler."""
     cwd = os.getcwd()
@@ -432,13 +493,7 @@ def open_file(file):
         filetype = ""
     handler = FILE_HANDLERS[filetype]
 
-    full_path = handler + _PATH_JOIN + filepath
-
-    # write path to RTC memory
-    rtc = machine.RTC()
-    rtc.memory(full_path)
-    time.sleep_ms(10)
-    machine.reset()
+    loader.launch_app(handler, filepath)
 
 
 def refresh_files(view: ListView) -> tuple[list, dict]:
@@ -475,8 +530,8 @@ def handle_input(key, view, file_list, dir_dict) -> tuple[list, dict]:
             file_list, dir_dict = refresh_files(view)
 
         elif dir_dict[selection_name]:
-            # this is a directory, open it
-            os.chdir(selection_name)
+            # this is a directory, give dir options
+            dir_options(selection_name, overlay)
             file_list, dir_dict = refresh_files(view)
         else:
             # this is a file, give file options
