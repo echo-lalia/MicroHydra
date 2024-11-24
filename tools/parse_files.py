@@ -122,7 +122,7 @@ CONDITIONAL_PARSED_ORIGINAL_DELIMITER = chr(0xFDD2)
 
 # TODO: This information, along with much of the information listed above,
 # should probably be moved into a separate config file.
-MICROHYDRA_VERSION = (2, 2, 0)
+MICROHYDRA_VERSION = (2, 3, 0)
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
