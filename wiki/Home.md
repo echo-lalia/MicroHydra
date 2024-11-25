@@ -8,17 +8,15 @@
 MicroHydra uses a few different ideas in order to output code for multiple devices. You can learn about this [here](https://github.com/echo-lalia/MicroHydra/wiki/multi-platform).  
 You can also learn more about the supported devices [here](https://github.com/echo-lalia/MicroHydra/wiki/Supported-Devices).
 
+<br/>
+
 ## Making Apps 
 For a basic overview of how MicroHydra apps work, see the [App Format](https://github.com/echo-lalia/MicroHydra/wiki/App-Format) section.
 
-<br/>
 
+### Lib:
 
-## Lib
-
-MicroHydra includes a built-in library, intended to help you easily make apps. Click on a module below to learn more about it.
-
-----
+MicroHydra includes a built-in library, intended to help you easily make apps, and integrate with core MicroHydra functionality. Click on a module below to learn more about it.
 
 
 *MicroHydra*  
@@ -53,3 +51,7 @@ MicroHydra includes a built-in library, intended to help you easily make apps. C
 │ &nbsp; &nbsp; &nbsp; └── zipextractor  
 │  
 └── main
+
+### Other Guides:
+- Connecting to the internet
+
