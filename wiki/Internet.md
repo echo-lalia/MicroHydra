@@ -29,40 +29,66 @@ if not nic.isconnected():
 The `nic.connect` command doesn't block while waiting for a connection. So, your script will need to wait until the connection is made.  
 There can also be some unpredictable errors raised when calling the connection method.
 
-I'm not completely certain of the most reliable way to work around these issues, but here's an example connection funciton that tries to do so:  
+Here's an example connection function that tries to handle these potential obsticals *(similar to the function used in `getapps.py`)*:  
 ```Py
+import time
+import network
+from lib.hydra.config import Config
+
+
+nic = network.WLAN(network.STA_IF)
+config = Config()
+
+
 def connect_wifi():
     """Connect to the configured WiFi network."""
-    TERM.print(I18N["Enabling wifi..."])
+    print("Enabling wifi...")
 
-    if not NIC.active():
-        NIC.active(True)
+    if not nic.active():
+        nic.active(True)
 
-    if not NIC.isconnected():
+    if not nic.isconnected():
         # tell wifi to connect (with FORCE)
         while True:
             try:  # keep trying until connect command works
-                NIC.connect(CONFIG['wifi_ssid'], CONFIG['wifi_pass'])
+                nic.connect(config['wifi_ssid'], config['wifi_pass'])
                 break
             except OSError as e:
-                TERM.print(f"Error: {e}")
+                print(f"Error: {e}")
                 time.sleep_ms(500)
 
         # now wait until connected
         attempts = 0
-        while not NIC.isconnected():
-            TERM.print(f"connecting... {attempts}")
+        while not nic.isconnected():
+            print(f"connecting... {attempts}")
             time.sleep_ms(500)
             attempts += 1
 
-    TERM.print(I18N["Connected!"])
+    print("Connected!")
+
+connect_wifi()
 ```
 
 
 
 ## Getting Data From the Internet
 
-MicroPython provides a lower-level [`socket`](https://docs.micropython.org/en/latest/library/socket.html#module-socket) module, but the easiest way to make internet requests in most cases is to use the [`requests`](https://github.com/micropython/micropython-lib/tree/e4cf09527bce7569f5db742cf6ae9db68d50c6a9/python-ecosys/requests) module.
+MicroPython provides a lower-level [`socket`](https://docs.micropython.org/en/latest/library/socket.html#module-socket) module, but the easiest way to make internet requests in most cases is to use the other built-in [`requests`](https://github.com/micropython/micropython-lib/tree/e4cf09527bce7569f5db742cf6ae9db68d50c6a9/python-ecosys/requests) module.
+
+Here's a super simple example that fetches a random cat fact from meowfacts.herokuapp.com:
 
 
+```Py
+import json
+import requests
 
+# Make a request to meowfacts
+response = requests.get("https://meowfacts.herokuapp.com/")
+# Verify that the request worked
+if response.status_code != 200:
+    raise ValueError(f"Server returned {response.status_code}.\n{response.reason}")
+
+# Decode the returned JSON data, and extract the random fact
+fact = json.loads(response.content)['data'][0]
+print(fact)
+```
