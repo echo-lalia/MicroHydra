@@ -88,6 +88,7 @@ class Display(st7789.ST7789):
 
     def show(self):
         """Write changes to display."""
-        if self.draw_overlays:
+        if Display.draw_overlays:
             self._draw_overlays()
+            Display.draw_overlays = False
         super().show()
