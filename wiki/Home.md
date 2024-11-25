@@ -53,5 +53,5 @@ MicroHydra includes a built-in library, intended to help you easily make apps, a
 └── main
 
 ### Other Guides:
-- Connecting to the internet
+- [Connecting to the internet](https://github.com/echo-lalia/MicroHydra/wiki/Internet)
 
