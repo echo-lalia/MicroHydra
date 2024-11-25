@@ -27,6 +27,9 @@ class Display(st7789.ST7789):
     Subclasses the device-specific display driver.
     """
 
+    # Set to True to redraw all overlays next time show is called
+    draw_overlays = False
+    # A public list of overlay functions, to be called in order.
     overlay_callbacks = []
 
     def __new__(cls, **kwargs):  # noqa: ARG003, D102
@@ -85,5 +88,6 @@ class Display(st7789.ST7789):
 
     def show(self):
         """Write changes to display."""
-        self._draw_overlays()
+        if self.draw_overlays:
+            self._draw_overlays()
         super().show()
