@@ -215,6 +215,8 @@ class UserInput(_keys.Keys):
                             # key already in locked keys, must have been pressed twice.
                             locked_keys.remove(key)
                             tracker[key] = False
+                            # Redraw the locked keys overlay
+                            Display.draw_overlays = True
 
                         elif len(self.key_state) > 1:
                             # multiple keys are being pressed together, dont lock this key
@@ -223,6 +225,8 @@ class UserInput(_keys.Keys):
                         # key has just been released and should be locked
                         locked_keys.append(key)
                         tracker.pop(key)
+                        # Redraw the locked keys overlay
+                        Display.draw_overlays = True
 
                 # tracker val is False
                 elif not is_being_pressed:

@@ -277,7 +277,10 @@ display.show()
 ## Overlay Callbacks:
 The Display also has an attribute for storing overlay drawing functions.
 
-`Display.overlay_callbacks` is a list of callbacks, to be called every time `Display.show()` is called (before writing the framebuffer).  
+`Display.draw_overlays` is a boolean flag that tells the display to redraw the overlays. *(Set this to `True` to flag that something on the display has changed, and so the overlays should be redrawn)*
+
+`Display.overlay_callbacks` is a public list of callback functions, to be called when `Display.show()` is called *(If `Display.draw_overlays` is `True`).*  
+
 The callbacks should accept the the `Display` object as a single positional argument.
 
 This is how the `userinput` module is able to draw 'locked' modifier keys over top of the other graphics on screen.  

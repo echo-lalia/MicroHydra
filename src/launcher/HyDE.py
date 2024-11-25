@@ -1153,9 +1153,12 @@ def main_loop():
         if prev_locked_keys != INPUT.locked_keys:
             prev_locked_keys = INPUT.locked_keys.copy()
             redraw_display = True
+            display.Display.draw_overlays = True
 
         if keys:
             redraw_display = True
+            display.Display.draw_overlays = True
+
 
         for key in keys:
             if "CTL" in mod_keys:
