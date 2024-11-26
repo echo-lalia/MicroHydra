@@ -28,7 +28,7 @@ class Display(st7789.ST7789):
     """
 
     # Set to True to redraw all overlays next time show is called
-    draw_overlays = False
+    draw_overlays = True
     # A public list of overlay functions, to be called in order.
     overlay_callbacks = []
 
