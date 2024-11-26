@@ -742,6 +742,7 @@ def main_loop():
                 if APP_NAMES[APP_SELECTOR_INDEX] == "UI Sound":
                     CONFIG['ui_sound'] = not CONFIG['ui_sound']
                     icon.force_update()
+                    icon.draw()
 
                     if CONFIG['ui_sound'] == 0:  # currently muted, then unmute
                         BEEP.play(
