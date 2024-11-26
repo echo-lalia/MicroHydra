@@ -28,7 +28,7 @@ class Display(st7789.ST7789):
     """
 
     # Set to True to redraw all overlays next time show is called
-    draw_overlays = True
+    draw_overlays = False
     # A public list of overlay functions, to be called in order.
     overlay_callbacks = []
 
@@ -70,6 +70,7 @@ class Display(st7789.ST7789):
             use_tiny_buf=use_tiny_buf,
             **kwargs,
             )
+        Display.draw_overlays = True  # Draw all overlays once on the first show()
 
 
     @staticmethod
