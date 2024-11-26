@@ -16,7 +16,13 @@ from machine import PWM
 
 
 class DisplayCore:
-    """The core graphical functionality for the Display module."""
+    """The core graphical functionality for the Display module.
+
+    The goal of this class is to provide reusable code for any display drivers MicroHydra may support.
+    As more display drivers are added, the responsibilities of this class may change.
+    For now, this class is mainly responsible for drawing various graphics to a framebuffer,
+    and the display drivers are responsible for writing that framebuffer to the display.
+    """
 
     def __init__(
             self,
