@@ -70,6 +70,7 @@ class Display(st7789.ST7789):
             use_tiny_buf=use_tiny_buf,
             **kwargs,
             )
+        Display.draw_overlays = True  # Draw all overlays once on the first show()
 
 
     @staticmethod
