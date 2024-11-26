@@ -48,14 +48,16 @@ And for a repository of community-made MicroHydra apps, see [here](https://githu
 
 # how it works:
 
-This program can be thought of as two main components; the launcher and the apploader.   
-The apploader is the "main.py" file in the root directory, and it's the first thing to run when the device is powered on.   
-The apploader reads the RTC memory to determine if it should load an app, otherwise, it loads the launcher.
+MicroHydra runs only a single "app" at a time, and switches between them by storing data in the RTC memory, and resetting MicroPython.
 
-The launcher is the main UI for the app switching functionality. Its primary responsibility is choosing an app, then storing its path in the RTC.memory. 
-Once the app path is in the memory, it calls machine.reset() to refresh the system and return to the apploader, after which the apploader loads the target app. 
+The launcher, `main.py`, and other built-in apps, import a `hydra.loader` module, to store or load strings in the RTC memory.  
+MicroPython automatically runs `main.py` when it starts, and `main.py` looks for a stored app path, and imports it if it exists. Otherwise, it starts the launcher app.
 
-This approach was chosen to help to prevent issues with memory managment or import conflicts between apps. Resetting the entire device means that the only thing thing loaded before the custom app, is the lightweight apploader.
+This approach was chosen to help to prevent issues with memory managment or import conflicts between apps. Resetting the entire device means that the only thing thing loaded before the app, is the lightweight `hydra.loader` and `main.py` modules.  
+When MicroHydra is pre-compiled into .mpy files (and therefore doesn't need to compile anything before starting), this reset is fairly quick. And, when it's frozen into a MicroPython firmware, the reset is almost instantaneous.
+
+Apps that need to pass information to eachother can use the same `hydra.loader` module to read/store additional arguments in the RTC.  
+For example, when you use the Files app to open a file in the text editor, the Files app adds both the path to the text editor, and the path to the text file into the RTC memory.
 
 <br /><br /><br />
 
@@ -65,10 +67,9 @@ This approach was chosen to help to prevent issues with memory managment or impo
 # Installing Apps:
 Apps are designed to work very simply in this launcher. Any Python file placed in the "apps" folder on the flash, or the SD card, will be found and can be launched as an app. This works with .mpy files too, meaning machine code written in other languages can also be linked and run as an app (though I have not tested this yet)
 
-This means that a simple app can be contained as one script, which will be executed when the app is selected from the launcher.   
-It also means more complicated apps can place a startup file in the apps directory, which imports anything it needs from another folder in the filesystem. 
+MicroHydra apps can be simple single-file scripts, or be contained in a folder with an `__init__.py`, just like a standard Python module. You can learn more about these specifics on the [app format](https://github.com/echo-lalia/MicroHydra/wiki/App-Format) section of the wiki.
 
-Some apps for MH can be found [here](https://github.com/echo-lalia/MicroHydra-Apps), but there are other apps (especially work-in-progress apps) living in other locations, as well. 
+Some community-made apps for MH can be found [here](https://github.com/echo-lalia/MicroHydra-Apps) (and this is where the "GetApps" built-in app find apps to download).
 
 <br /><br /><br />
 
