@@ -14,13 +14,13 @@ from lib.hydra import loader
 
 
 class Editor:
-    
-    
+    """Main editor class."""
+
     def __init__(self):
         self.display = Display()
         self.config = Config()
-        self.inpt = UserInput(allow_locking_keys=True)
         self.statusbar = StatusBar()
+        self.inpt = UserInput(allow_locking_keys=True)
 
         self.cursor = Cursor()
         self.select_cursor = None
@@ -34,15 +34,33 @@ class Editor:
             self.lines = FileLines(f.readlines())
 
 
+    def handle_input(self, keys):
+        """Respond to user input."""
+        for key in keys:
+            if key == "RIGHT":
+                self.cursor.move(self.lines, x=1)
+            elif key == "LEFT":
+                self.cursor.move(self.lines, x=-1)
+            elif key == "UP":
+                self.cursor.move(self.lines, y=-1)
+            elif key == "DOWN":
+                self.cursor.move(self.lines, y=1)
+
+
+
     def main(self):
         """Run the text editor."""
-        
+
         self.display.fill(self.display.palette[2])
+        self.lines.draw(self.display, self.cursor)
 
         while True:
             keys = self.inpt.get_new_keys()
+            if keys:
+                self.handle_input(keys)
+                self.lines.draw(self.display, self.cursor)
 
-            self.lines.draw(self.display, self.cursor)
+            self.cursor.draw(self.display, self.lines)
             self.display.show()
 
             time.sleep_ms(50)

@@ -44,8 +44,12 @@ class FileLines:
 
 
     @staticmethod
-    def _clean_line(line):
+    def _clean_line(line) -> str:
         return line.replace("\r", "").replace("\n", "")
+
+
+    def __len__(self):
+        return len(self.lines)
 
 
     def __getitem__(self, idx: int) -> str:
@@ -65,7 +69,7 @@ class FileLines:
         if cursor.y < start_y:
             start_y = cursor.y
             view_moved = True
-        
+
         end_y = start_y + _NUM_DISPLAY_LINES
         if cursor.y + _NUM_DISPLAY_LINES > end_y:
             end_y = cursor.y + _NUM_DISPLAY_LINES
@@ -82,22 +86,22 @@ class FileLines:
             for i in range(_NUM_DISPLAY_LINES):
                 line_y = start_y + i
 
-                # Set display line 
+                # Set display line
                 self.display_lines[line_y] = (
                     # use old line if it exists
                     old_lines[line_y] if line_y in old_lines
                     # Make a new line, and use the file line if it exists
-                    else DisplayLine(self.lines[line_y] if 0 < line_y < len(self.lines) else "")
+                    else DisplayLine(self.lines[line_y] if 0 <= line_y < len(self.lines) else "")
                 )
 
 
     def draw(self, display, cursor):
         """Update display lines and draw them to the display."""
         self.update_display_lines(cursor)
-        
+
         y = _LINE_DRAW_START
         for i in range(self.display_y, self.display_y + _NUM_DISPLAY_LINES):
             line = self.display_lines[i]
             line.draw(display, 0, y)
             y += _FULL_LINE_HEIGHT
-    
+

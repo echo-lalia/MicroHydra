@@ -13,6 +13,10 @@ _FULL_LINE_HEIGHT = const(_LINE_PADDING + _FONT_HEIGHT)
 _LINE_BG_HEIGHT = const(_FULL_LINE_HEIGHT - 1)
 
 
+_UNDERLINE_PADDING_L = const(2)
+_UNDERLINE_PADDING_R = const(8)
+_UNDERLINE_WIDTH = const(_MH_DISPLAY_WIDTH - _UNDERLINE_PADDING_L - _UNDERLINE_PADDING_R)
+
 class DisplayLine:
     """Holds tokenized lines for display."""
 
@@ -23,13 +27,16 @@ class DisplayLine:
         self.tokens = DisplayLine.tokenizer.tokenize(text)
 
 
-    def draw(self, display, x, y):
+    def draw(self, display, x, y, selected=False):
         """Draw all the tokens in this line."""
         # Blackout line
-        display.rect(0, y, _MH_DISPLAY_WIDTH, _LINE_BG_HEIGHT, display.palette[2], fill=True)
-
+        if selected:
+            display.rect(0, y, _MH_DISPLAY_WIDTH, _FULL_LINE_HEIGHT, display.palette[1], fill=True)
+        else:
+            display.rect(0, y, _MH_DISPLAY_WIDTH, _FULL_LINE_HEIGHT, display.palette[2], fill=True)
+            display.hline(_UNDERLINE_PADDING_L, y+_LINE_BG_HEIGHT, _UNDERLINE_WIDTH, display.palette[1])
+        y += _LINE_PADDING
         # Draw each token
         for token in self.tokens:
-            print(repr(token.text))
             display.text(token.text, x, y, display.palette[token.color])
             x += len(token.text) * _FONT_WIDTH
