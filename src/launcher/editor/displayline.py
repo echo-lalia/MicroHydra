@@ -31,7 +31,7 @@ class DisplayLine:
         self.tokens = DisplayLine.tokenizer.tokenize(text)
 
 
-    def draw(self, display, x, y, selected=False):
+    def draw(self, display, x, y, *, selected=False):
         """Draw all the tokens in this line."""
         # Blackout line
         if selected:

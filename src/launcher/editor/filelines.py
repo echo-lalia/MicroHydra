@@ -61,7 +61,7 @@ class FileLines:
         self.lines[idx] = val
 
 
-    def update_display_lines(self, cursor, force_update=False):
+    def update_display_lines(self, cursor, *, force_update=False):
         """Update display lines to reflect current y viewport."""
 
         # Clamp display y to cursor (Make display follow cursor)

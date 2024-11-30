@@ -17,6 +17,7 @@ class Editor:
     """Main editor class."""
 
     def __init__(self):
+        """Initialize HyDE."""
         self.display = Display()
         self.config = Config()
         self.statusbar = StatusBar()

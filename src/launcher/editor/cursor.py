@@ -13,7 +13,7 @@ _LINE_PADDING = const(2)
 _FULL_LINE_HEIGHT = const(_LINE_PADDING + _FONT_HEIGHT)
 _LINE_BG_HEIGHT = const(_FULL_LINE_HEIGHT - 1)
 
-_LEFT_PADDING = const(4 - 1)
+_LEFT_PADDING = const(4)
 
 _STATUSBAR_HEIGHT = const(18)
 _LINE_DRAW_START = const(_STATUSBAR_HEIGHT + _LINE_PADDING)
@@ -70,9 +70,9 @@ class Cursor:
 
     def draw(self, display, filelines):
         """Draw the cursor."""
-        display.rect(
+        display.vline(
             (self.x - filelines.display_x) * _FONT_WIDTH + _LEFT_PADDING,
             (self.y - filelines.display_y) * _FULL_LINE_HEIGHT + _LINE_DRAW_START,
-            2, _FULL_LINE_HEIGHT,
+            _FULL_LINE_HEIGHT,
             display.palette[4 if time.ticks_ms() % _CURSOR_BLINK_MS < _CURSOR_BLINK_HALF else 7],
         )
