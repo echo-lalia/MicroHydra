@@ -13,6 +13,7 @@ _LINE_PADDING = const(2)
 _FULL_LINE_HEIGHT = const(_LINE_PADDING + _FONT_HEIGHT)
 _LINE_BG_HEIGHT = const(_FULL_LINE_HEIGHT - 1)
 
+_LEFT_PADDING = const(4 - 1)
 
 _STATUSBAR_HEIGHT = const(18)
 _LINE_DRAW_START = const(_STATUSBAR_HEIGHT + _LINE_PADDING)
@@ -32,8 +33,8 @@ class Cursor:
 
 
     def clamped(self, filelines, *, clamp_x=True) -> tuple[int, int]:
-        """Return the cursor's x/y but clampped."""
-        if 0 <= self.y < len(filelines):
+        """Return the cursor's x/y clamped to the filelines."""
+        if not 0 <= self.y < len(filelines):
             y = (
                 0 if self.y < 0
                 else len(filelines) - 1 if self.y >= len(filelines)
@@ -44,7 +45,7 @@ class Cursor:
         if clamp_x and not (0 <= self.x < len(filelines[y])):
             x = (
                 0 if self.x < 0
-                else len(filelines[y]) - 1 if self.x >= len(filelines[y])
+                else len(filelines[y]) if self.x > len(filelines[y])
                 else self.x
             )
         else:
@@ -70,7 +71,7 @@ class Cursor:
     def draw(self, display, filelines):
         """Draw the cursor."""
         display.rect(
-            (self.x - filelines.display_x) * _FONT_WIDTH - 1,
+            (self.x - filelines.display_x) * _FONT_WIDTH + _LEFT_PADDING,
             (self.y - filelines.display_y) * _FULL_LINE_HEIGHT + _LINE_DRAW_START,
             2, _FULL_LINE_HEIGHT,
             display.palette[4 if time.ticks_ms() % _CURSOR_BLINK_MS < _CURSOR_BLINK_HALF else 7],

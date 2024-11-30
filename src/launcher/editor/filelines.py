@@ -20,6 +20,7 @@ _NUM_DISPLAY_LINES = const(
     (_MH_DISPLAY_HEIGHT - _LINE_DRAW_START - _SCROLLBAR_HEIGHT)
     // _FULL_LINE_HEIGHT
 )
+_OVERDRAW_DISPLAY_LINES = const(_NUM_DISPLAY_LINES + 1)
 _HORIZONTAL_CHARACTERS = const((_MH_DISPLAY_WIDTH // _FONT_WIDTH) - 1)
 
 
@@ -39,7 +40,7 @@ class FileLines:
 
         self.lines = lines
         self.display_lines = {}
-        self.display_y = 10000
+        self.display_y = -2
         self.display_x = 0
 
 
@@ -56,34 +57,37 @@ class FileLines:
         return self.lines[idx]
 
 
-    def __setitem(self, idx: int, val: str):
+    def __setitem__(self, idx: int, val: str):
         self.lines[idx] = val
 
 
-    def update_display_lines(self, cursor):
+    def update_display_lines(self, cursor, force_update=False):
         """Update display lines to reflect current y viewport."""
 
         # Clamp display y to cursor (Make display follow cursor)
         view_moved = False
         start_y = self.display_y
+        # if cursor is above display, move display up
         if cursor.y < start_y:
             start_y = cursor.y
             view_moved = True
 
-        end_y = start_y + _NUM_DISPLAY_LINES
-        if cursor.y + _NUM_DISPLAY_LINES > end_y:
-            end_y = cursor.y + _NUM_DISPLAY_LINES
+        # If cursor is below display, move display down
+        if cursor.y >= start_y + _NUM_DISPLAY_LINES:
+            start_y = cursor.y - _NUM_DISPLAY_LINES + 1
             view_moved = True
 
         self.display_y = start_y
 
-        # Remove display lines outside of our view
-        if view_moved:
-            # Remake list of display lines,
-            # reusing display lines we already have
+
+        if view_moved or force_update:
+            # Remake self.display_lines to reflect current view
+            # (reusing display lines we already have)
             old_lines = self.display_lines
             self.display_lines = {}
-            for i in range(_NUM_DISPLAY_LINES):
+            # _OVERDRAW_DISPLAY_LINES is _NUM_DISPLAY_LINES + 1
+            # This adds an extra display line to fill out the bottom of the screen
+            for i in range(_OVERDRAW_DISPLAY_LINES):
                 line_y = start_y + i
 
                 # Set display line
@@ -100,8 +104,12 @@ class FileLines:
         self.update_display_lines(cursor)
 
         y = _LINE_DRAW_START
-        for i in range(self.display_y, self.display_y + _NUM_DISPLAY_LINES):
+        for i in range(self.display_y, self.display_y + _OVERDRAW_DISPLAY_LINES):
             line = self.display_lines[i]
-            line.draw(display, 0, y)
+            line.draw(
+                display,
+                0, y,
+                selected=(i == cursor.y),
+            )
             y += _FULL_LINE_HEIGHT
 

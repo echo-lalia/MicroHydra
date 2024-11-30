@@ -9,4 +9,4 @@ _FONT_WIDTH = const(8)
 
 def tokenize(line: str) -> tuple[int, str]:
     """Split/style text into a list of styled tokens."""
-    return [token(line, 8, None)]
+    return [token(line, 7, None)]

@@ -52,18 +52,22 @@ class Editor:
         """Run the text editor."""
 
         self.display.fill(self.display.palette[2])
+        self.lines.update_display_lines(self.cursor, force_update=True)
         self.lines.draw(self.display, self.cursor)
 
         while True:
             keys = self.inpt.get_new_keys()
+
             if keys:
                 self.handle_input(keys)
                 self.lines.draw(self.display, self.cursor)
+            else:
+                # To smooth things out, we'll only insert a delay if we aren't redrawing the lines
+                time.sleep_ms(50)
 
             self.cursor.draw(self.display, self.lines)
             self.display.show()
 
-            time.sleep_ms(50)
 
 
 
