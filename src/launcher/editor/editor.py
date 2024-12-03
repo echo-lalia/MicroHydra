@@ -1,4 +1,6 @@
 """HyDE v2.x editor class."""
+if __name__ == '__main__': from launcher import editor  # relative import for testing
+
 import time
 
 from .filelines import FileLines
@@ -37,15 +39,30 @@ class Editor:
 
     def handle_input(self, keys):
         """Respond to user input."""
+        mod_keys = self.inpt.get_mod_keys()
+
         for key in keys:
-            if key == "RIGHT":
-                self.cursor.move(self.lines, x=1)
-            elif key == "LEFT":
-                self.cursor.move(self.lines, x=-1)
-            elif key == "UP":
-                self.cursor.move(self.lines, y=-1)
-            elif key == "DOWN":
-                self.cursor.move(self.lines, y=1)
+            if "CTL" in mod_keys:
+                # CTRL kb commands
+                if key == "LEFT":
+                    self.cursor.jump(self.lines, x=-1)
+                elif key == "RIGHT":
+                    self.cursor.jump(self.lines, x=1)
+                elif key == "UP":
+                    self.cursor.move(self.lines, y=-5)
+                elif key == "DOWN":
+                    self.cursor.move(self.lines, y=5)
+
+            else:  # noqa: PLR5501
+                # Normal keypress
+                if key == "LEFT":
+                    self.cursor.move(self.lines, x=-1)
+                elif key == "RIGHT":
+                    self.cursor.move(self.lines, x=1)
+                elif key == "UP":
+                    self.cursor.move(self.lines, y=-1)
+                elif key == "DOWN":
+                    self.cursor.move(self.lines, y=1)
 
 
 

@@ -1,5 +1,6 @@
 """A container for lines from a text file."""
-from launcher.editor.displayline import DisplayLine
+if __name__ == '__main__': from launcher import editor  # relative import for testing
+from .displayline import DisplayLine
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constants: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -23,12 +24,15 @@ _NUM_DISPLAY_LINES = const(
 _OVERDRAW_DISPLAY_LINES = const(_NUM_DISPLAY_LINES + 1)
 _HORIZONTAL_CHARACTERS = const((_MH_DISPLAY_WIDTH // _FONT_WIDTH) - 1)
 
+# Chars between cursor and edge of screen
+_CURSOR_FOLLOW_PADDING = const(2)
+
 
 
 class FileLines:
     """A container class for lines of text.
 
-    This class is responsible for storing plain lines of text,
+    This class is responsible for storing/accessing plain lines of text,
     storing stylized display lines for text currently on-screen,
     and drawing/updating those display lines as the content changes.
     """
@@ -61,6 +65,14 @@ class FileLines:
         self.lines[idx] = val
 
 
+    def get_char_at_cursor(self, cursor) -> str:
+        """Get the char at the current cursor position."""
+        if 0 <= cursor.y < len(self.lines) \
+        and 0 <= cursor.x < len(self.lines[cursor.y]):
+            return self.lines[cursor.y][cursor.x]
+        return ""
+
+
     def update_display_lines(self, cursor, *, force_update=False):
         """Update display lines to reflect current y viewport."""
 
@@ -78,6 +90,13 @@ class FileLines:
             view_moved = True
 
         self.display_y = start_y
+
+
+        # Clamp display x to cursor (Make display follow cursor)
+        if cursor.x - _CURSOR_FOLLOW_PADDING < self.display_x:
+            self.display_x = max(cursor.x - _CURSOR_FOLLOW_PADDING, 0)
+        elif cursor.x - _HORIZONTAL_CHARACTERS + _CURSOR_FOLLOW_PADDING > self.display_x:
+            self.display_x = cursor.x - _HORIZONTAL_CHARACTERS + _CURSOR_FOLLOW_PADDING
 
 
         if view_moved or force_update:
@@ -108,7 +127,7 @@ class FileLines:
             line = self.display_lines[i]
             line.draw(
                 display,
-                0, y,
+                self.display_x * -_FONT_WIDTH, y,
                 selected=(i == cursor.y),
             )
             y += _FULL_LINE_HEIGHT

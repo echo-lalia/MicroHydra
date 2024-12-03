@@ -1,4 +1,6 @@
 """A simple contianer to hold the user's cursor."""
+if __name__ == '__main__': from launcher import editor  # relative import for testing
+
 import time
 
 
@@ -31,6 +33,48 @@ class Cursor:
         self.x = 0
         self.y = 0
 
+    @staticmethod
+    @micropython.viper
+    def _classify_char(char) -> int:
+        """Return an arbitrary integer classification for a given character."""
+        if not char:  # empty string
+            return 0
+
+        ch = int(ord(char))
+        if 9 <= ch <= 32:    # space
+            return 1
+        if 48 <= ch <= 57:   # numeric
+            return 2
+        if 65 <= ch <= 122:  # alphabet
+            return 3
+        if 33 <= ch <= 126:  # ansi symbols
+            return 4
+        return 5  # Other
+
+
+    def jump(self, filelines, x: int):
+        """Move left or right until we hit a new character type."""
+        # When moving left, we need the key to the left of the cursor
+        # We can basically get this by moving left now, and then moving back right at the end
+        if x == -1:
+            self.move(filelines, x=-1)
+
+        start_class = self._classify_char(filelines.get_char_at_cursor(self))
+        for _ in range(100):  # arbitrary limit
+            self.move(filelines, x=x)
+
+            if (# Exit when we hit a new character type
+                self._classify_char(filelines.get_char_at_cursor(self)) != start_class
+                # Exit if we hit the start of the file
+                or (self.y == 0 and self.x == 0)
+                # Exit if we hit the end of the file
+                or (self.y == len(filelines) - 1 and self.x == len(filelines[self.y]))
+            ):
+                # If we are moving left (and not at the start of file), then undo our extra left move.
+                if x == -1 and not (self.x == 0 and self.y == 0):
+                    self.move(filelines, x=1)
+                return
+
 
     def clamped(self, filelines, *, clamp_x=True) -> tuple[int, int]:
         """Return the cursor's x/y clamped to the filelines."""
@@ -61,10 +105,34 @@ class Cursor:
     def move(self, filelines, x=0, y=0):
         """Move the cursor."""
         if x:
-            self.x += x
+            # Handle line wrapping on start/ends of lines
+            if x > 0 and self.x >= len(filelines[self.y]) \
+            and self.y < len(filelines) - 1:
+                # When at the end of a line,
+                # moving right puts us at the start of the next line.
+                self.x = 0
+                self.y += 1
+            elif x < 0 and self.x <= 0 \
+            and self.y > 0:
+                # When at the start of a line,
+                # moving left will put us at the end of the previous line.
+                self.y -= 1
+                self.x = len(filelines[self.y])
+            else:
+                # When not at the start or end of line,
+                # we can just move x some distance.
+                self.x += x
+
             self.clamp_to_text(filelines)
+
         if y:
             self.y += y
+            # Handle jumping to start/end of line at the start/end of file
+            if self.y < 0:
+                self.x = 0
+            elif self.y >= len(filelines):
+                self.x = len(filelines[-1])
+
             self.clamp_to_text(filelines, clamp_x=False)
 
 
