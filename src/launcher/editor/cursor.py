@@ -127,11 +127,15 @@ class Cursor:
 
         if y:
             self.y += y
-            # Handle jumping to start/end of line at the start/end of file
+            # Handle jumping to start/end of line, and moving display at the start/end of file
             if self.y < 0:
                 self.x = 0
+                filelines.display_y -= 1
+                filelines.update_display_lines(self, force_update=True)
             elif self.y >= len(filelines):
                 self.x = len(filelines[-1])
+                filelines.display_y += 1
+                filelines.update_display_lines(self, force_update=True)
 
             self.clamp_to_text(filelines, clamp_x=False)
 

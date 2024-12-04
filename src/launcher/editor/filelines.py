@@ -28,6 +28,19 @@ _HORIZONTAL_CHARACTERS = const((_MH_DISPLAY_WIDTH // _FONT_WIDTH) - 1)
 _CURSOR_FOLLOW_PADDING = const(2)
 
 
+# Scrollbar
+_SCROLLBAR_WIDTH = const(3)
+_SCROLLBAR_TOTAL_HEIGHT = const(_MH_DISPLAY_HEIGHT - _LINE_DRAW_START)
+_SCROLLBAR_START_X = const(_MH_DISPLAY_WIDTH - _SCROLLBAR_WIDTH)
+_SCROLLBAR_VLINE_X = const(_SCROLLBAR_START_X - 1)
+
+
+# rare whitespace char is repurposed here to denote converted tab/space indents
+_INDENT_SYM = const(' ')  # noqa: RUF001
+_SPACE_INDENT = const('    ')
+_TAB_INDENT = const('	')
+
+
 
 class FileLines:
     """A container class for lines of text.
@@ -49,8 +62,35 @@ class FileLines:
 
 
     @staticmethod
-    def _clean_line(line) -> str:
-        return line.replace("\r", "").replace("\n", "")
+    def _replace_tabs(line: str) -> str:
+        """Replace tabs with fake tab."""
+        tab_syms = ''
+        while line.startswith(_TAB_INDENT):
+            line = line[1:]
+            tab_syms += _INDENT_SYM
+        return tab_syms + line
+
+
+    @staticmethod
+    def _replace_space_indents(line: str) -> str:
+        """Replace space indents with fake tab."""
+        space_syms = ''
+        while line.startswith(' '):
+            # we must handle cases where less than 4 spaces are used, but we expect 4.
+            for _ in range(4):
+                if line.startswith(' '):
+                    line = line[1:]
+            space_syms += _INDENT_SYM
+        return space_syms + line
+
+
+    def _clean_line(self, line) -> str:
+        """Remove line breaks and indentation."""
+        return self._replace_space_indents(
+            self._replace_tabs(
+                line.replace("\r", "").replace("\n", "")
+            )
+        )
 
 
     def __len__(self):
@@ -131,4 +171,25 @@ class FileLines:
                 selected=(i == cursor.y),
             )
             y += _FULL_LINE_HEIGHT
+
+        # Draw scrollbar
+        display.vline(_SCROLLBAR_VLINE_X, _LINE_DRAW_START, _SCROLLBAR_TOTAL_HEIGHT, display.palette[2])
+        display.rect(
+            _SCROLLBAR_START_X, _LINE_DRAW_START,
+            _SCROLLBAR_WIDTH, _SCROLLBAR_TOTAL_HEIGHT,
+            display.palette[1], fill=True,
+        )
+        scrollbar_start = max(
+            (self.display_y * _SCROLLBAR_TOTAL_HEIGHT) // len(self) + _LINE_DRAW_START,
+            _LINE_DRAW_START,
+        )
+        scrollbar_end = max(
+            ((self.display_y + _NUM_DISPLAY_LINES) * _SCROLLBAR_TOTAL_HEIGHT) // len(self) + _LINE_DRAW_START,
+            scrollbar_start,
+        ) + 1
+        display.rect(
+            _SCROLLBAR_START_X, scrollbar_start,
+            _SCROLLBAR_WIDTH, scrollbar_end - scrollbar_start,
+            display.palette[4], fill=True,
+        )
 
