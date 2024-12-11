@@ -15,6 +15,11 @@ from lib.hydra import loader
 
 
 
+_DELETE_FLAG = const(0)
+_INSERT_FLAG = const(1)
+
+
+
 class Editor:
     """Main editor class."""
 
@@ -53,6 +58,9 @@ class Editor:
                 elif key == "DOWN":
                     self.cursor.move(self.lines, y=5)
 
+                elif key == "BSPC":
+                    self.cursor.jump(self.lines, x=-1, delete=True)
+
             else:  # noqa: PLR5501
                 # Normal keypress
                 if key == "LEFT":
@@ -63,6 +71,13 @@ class Editor:
                     self.cursor.move(self.lines, y=-1)
                 elif key == "DOWN":
                     self.cursor.move(self.lines, y=1)
+                
+                elif key == "BSPC":
+                    self.lines.backspace(self.cursor)
+                
+                elif len(key) == 1:
+                    # Normal char input
+                    self.lines.insert(key, self.cursor)
 
 
 

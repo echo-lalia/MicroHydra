@@ -52,27 +52,27 @@ class Cursor:
         return 5  # Other
 
 
-    def jump(self, filelines, x: int):
+    def jump(self, filelines, x: int, *, delete: bool = False):
         """Move left or right until we hit a new character type."""
         # When moving left, we need the key to the left of the cursor
-        # We can basically get this by moving left now, and then moving back right at the end
-        if x == -1:
-            self.move(filelines, x=-1)
+        get_char = filelines.get_char_left_of_cursor if x == -1 else filelines.get_char_at_cursor
 
-        start_class = self._classify_char(filelines.get_char_at_cursor(self))
+        start_class = self._classify_char(get_char(self))
         for _ in range(100):  # arbitrary limit
-            self.move(filelines, x=x)
+            # If `delete`, then keep backspace until hitting a new char.
+            # Otherwise just move in the specified direction
+            if delete:
+                filelines.backspace(self)
+            else:
+                self.move(filelines, x=x)
 
             if (# Exit when we hit a new character type
-                self._classify_char(filelines.get_char_at_cursor(self)) != start_class
+                self._classify_char(get_char(self)) != start_class
                 # Exit if we hit the start of the file
                 or (self.y == 0 and self.x == 0)
                 # Exit if we hit the end of the file
                 or (self.y == len(filelines) - 1 and self.x == len(filelines[self.y]))
             ):
-                # If we are moving left (and not at the start of file), then undo our extra left move.
-                if x == -1 and not (self.x == 0 and self.y == 0):
-                    self.move(filelines, x=1)
                 return
 
 

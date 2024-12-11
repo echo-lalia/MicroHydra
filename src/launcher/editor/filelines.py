@@ -113,6 +113,49 @@ class FileLines:
         return ""
 
 
+    def get_char_left_of_cursor(self, cursor) -> str:
+        """Get the char to the left of the cursor."""
+        if cursor.x == 0 and cursor.y == 0:
+            return ""
+
+        cursor.move(self, x=-1)
+        out = self.get_char_at_cursor(cursor)
+        cursor.move(self, x=1)
+        return out
+
+
+    def insert(self, text: str, cursor):
+        """Insert text at the cursor."""
+        cursor.clamp_to_text(self)
+        self[cursor.y] = self[cursor.y][:cursor.x] + text + self[cursor.y][cursor.x:]
+        # Place cursor at right of inserted text
+        cursor.move(self, x=len(text))
+        # Update the display line
+        self.display_lines[cursor.y] = DisplayLine(self.lines[cursor.y])
+
+
+    def backspace(self, cursor):
+        """Backspace once."""
+        cursor.clamp_to_text(self)
+            
+        if cursor.x != 0:  # Delete normal text
+            self[cursor.y] = self[cursor.y][:cursor.x - 1] + self[cursor.y][cursor.x:]
+            # Move cursor to account for modified text
+            cursor.move(self, x=-1)
+            # Update the display line
+            self.display_lines[cursor.y] = DisplayLine(self.lines[cursor.y])
+        
+        elif cursor.y > 0:  # Delete line break
+            # Move cursor left, onto end of previous line
+            cursor.move(self, x=-1)
+            # Append current line onto previous line, and delete current line
+            self[cursor.y] += self.lines.pop(cursor.y + 1)
+            # Update the display for this index, and all indices after
+            for key, val in self.display_lines.items():
+                if key >= cursor.y:
+                    self.display_lines[key] = DisplayLine(self.lines[key])
+
+
     def update_display_lines(self, cursor, *, force_update=False):
         """Update display lines to reflect current y viewport."""
 
