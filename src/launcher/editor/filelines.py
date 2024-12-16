@@ -98,7 +98,8 @@ class FileLines:
 
 
     def __getitem__(self, idx: int) -> str:
-        return self.lines[idx]
+        """Get values from self.lines, defaulting to an empty string."""
+        return self.lines[idx] if (0 <= idx < len(self.lines)) else ""
 
 
     def __setitem__(self, idx: int, val: str):
@@ -124,14 +125,34 @@ class FileLines:
         return out
 
 
+    def _insert_line(self, cursor):
+        """Insert one line at the cursor."""
+        # Split current line at cursor
+        new_line = self[cursor.y][cursor.x:]
+        self[cursor.y] = self[cursor.y][:cursor.x]
+        # Insert second half of line after cursor
+        self.lines.insert(cursor.y + 1, new_line)
+        # Move cursor to the right, which should put us on the new line
+        cursor.move(self, x=1)
+        # Update the display for the previous index, and all indices after
+        for key, val in self.display_lines.items():
+            if key >= cursor.y - 1:
+                self.display_lines[key] = DisplayLine(self[key])
+                
+
+
     def insert(self, text: str, cursor):
         """Insert text at the cursor."""
         cursor.clamp_to_text(self)
-        self[cursor.y] = self[cursor.y][:cursor.x] + text + self[cursor.y][cursor.x:]
-        # Place cursor at right of inserted text
-        cursor.move(self, x=len(text))
-        # Update the display line
-        self.display_lines[cursor.y] = DisplayLine(self.lines[cursor.y])
+        # Insert a new line, or just insert text on this line
+        if text == "\n":
+            self._insert_line(cursor)
+        else:
+            self[cursor.y] = self[cursor.y][:cursor.x] + text + self[cursor.y][cursor.x:]
+            # Place cursor at right of inserted text
+            cursor.move(self, x=len(text))
+            # Update the display line
+            self.display_lines[cursor.y] = DisplayLine(self.lines[cursor.y])
 
 
     def backspace(self, cursor):
@@ -153,7 +174,7 @@ class FileLines:
             # Update the display for this index, and all indices after
             for key, val in self.display_lines.items():
                 if key >= cursor.y:
-                    self.display_lines[key] = DisplayLine(self.lines[key])
+                    self.display_lines[key] = DisplayLine(self[key])
 
 
     def update_display_lines(self, cursor, *, force_update=False):
@@ -197,7 +218,7 @@ class FileLines:
                     # use old line if it exists
                     old_lines[line_y] if line_y in old_lines
                     # Make a new line, and use the file line if it exists
-                    else DisplayLine(self.lines[line_y] if 0 <= line_y < len(self.lines) else "")
+                    else DisplayLine(self[line_y])
                 )
 
 

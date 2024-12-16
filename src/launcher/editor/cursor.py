@@ -71,7 +71,7 @@ class Cursor:
                 # Exit if we hit the start of the file
                 or (self.y == 0 and self.x == 0)
                 # Exit if we hit the end of the file
-                or (self.y == len(filelines) - 1 and self.x == len(filelines[self.y]))
+                or (x != -1 and self.y == len(filelines) - 1 and self.x == len(filelines[self.y]))
             ):
                 return
 
@@ -133,7 +133,7 @@ class Cursor:
                 filelines.display_y -= 1
                 filelines.update_display_lines(self, force_update=True)
             elif self.y >= len(filelines):
-                self.x = len(filelines[-1])
+                self.x = len(filelines[len(filelines) - 1])
                 filelines.display_y += 1
                 filelines.update_display_lines(self, force_update=True)
 

@@ -6,6 +6,7 @@ import time
 from .filelines import FileLines
 from .displayline import DisplayLine
 from .cursor import Cursor
+from .undomanager import UndoManager
 
 from lib.display import Display
 from lib.hydra.config import Config
@@ -32,6 +33,8 @@ class Editor:
 
         self.cursor = Cursor()
         self.select_cursor = None
+
+        self.undomanager = UndoManager(self, self.cursor)
 
         self.lines = None
 
@@ -74,6 +77,9 @@ class Editor:
                 
                 elif key == "BSPC":
                     self.lines.backspace(self.cursor)
+                
+                elif key == "ENT":
+                    self.lines.insert("\n", self.cursor)
                 
                 elif len(key) == 1:
                     # Normal char input
