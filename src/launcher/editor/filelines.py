@@ -135,10 +135,9 @@ class FileLines:
         # Move cursor to the right, which should put us on the new line
         cursor.move(self, x=1)
         # Update the display for the previous index, and all indices after
-        for key, val in self.display_lines.items():
+        for key in self.display_lines:
             if key >= cursor.y - 1:
                 self.display_lines[key] = DisplayLine(self[key])
-                
 
 
     def insert(self, text: str, cursor):
@@ -158,21 +157,21 @@ class FileLines:
     def backspace(self, cursor):
         """Backspace once."""
         cursor.clamp_to_text(self)
-            
+
         if cursor.x != 0:  # Delete normal text
             self[cursor.y] = self[cursor.y][:cursor.x - 1] + self[cursor.y][cursor.x:]
             # Move cursor to account for modified text
             cursor.move(self, x=-1)
             # Update the display line
             self.display_lines[cursor.y] = DisplayLine(self.lines[cursor.y])
-        
+
         elif cursor.y > 0:  # Delete line break
             # Move cursor left, onto end of previous line
             cursor.move(self, x=-1)
             # Append current line onto previous line, and delete current line
             self[cursor.y] += self.lines.pop(cursor.y + 1)
             # Update the display for this index, and all indices after
-            for key, val in self.display_lines.items():
+            for key in self.display_lines:
                 if key >= cursor.y:
                     self.display_lines[key] = DisplayLine(self[key])
 
@@ -256,4 +255,3 @@ class FileLines:
             _SCROLLBAR_WIDTH, scrollbar_end - scrollbar_start,
             display.palette[4], fill=True,
         )
-

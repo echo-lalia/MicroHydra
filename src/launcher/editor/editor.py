@@ -45,7 +45,7 @@ class Editor:
             self.lines = FileLines(f.readlines())
 
 
-    def handle_input(self, keys):
+    def handle_input(self, keys):  # noqa: PLR0912
         """Respond to user input."""
         mod_keys = self.inpt.get_mod_keys()
 
@@ -61,8 +61,14 @@ class Editor:
                 elif key == "DOWN":
                     self.cursor.move(self.lines, y=5)
 
+                # Undo/redo
+                elif key == "z":
+                    self.undomanager.undo()
+                elif key == "y":
+                    self.undomanager.redo()
+
                 elif key == "BSPC":
-                    self.cursor.jump(self.lines, x=-1, delete=True)
+                    self.cursor.jump(self.lines, x=-1, delete=True, undomanager=self.undomanager)
 
             else:  # noqa: PLR5501
                 # Normal keypress
@@ -74,16 +80,25 @@ class Editor:
                     self.cursor.move(self.lines, y=-1)
                 elif key == "DOWN":
                     self.cursor.move(self.lines, y=1)
-                
+
                 elif key == "BSPC":
+                    # If we are at the start of the line, we should record a deleted line,
+                    # otherwise just record the character before this one
+                    if self.cursor.x == 0 and self.cursor.y > 0:
+                        deleted_char = "\n"
+                    else:
+                        deleted_char = self.lines.get_char_left_of_cursor(self.cursor)
                     self.lines.backspace(self.cursor)
-                
+                    self.undomanager.record("insert", deleted_char)
+
                 elif key == "ENT":
                     self.lines.insert("\n", self.cursor)
-                
+                    self.undomanager.record("backspace", "\n")
+
                 elif len(key) == 1:
                     # Normal char input
                     self.lines.insert(key, self.cursor)
+                    self.undomanager.record("backspace", key)
 
 
 

@@ -52,17 +52,25 @@ class Cursor:
         return 5  # Other
 
 
-    def jump(self, filelines, x: int, *, delete: bool = False):
+    def jump(self, filelines, x: int, *, delete: bool = False, undomanager = None):
         """Move left or right until we hit a new character type."""
         # When moving left, we need the key to the left of the cursor
         get_char = filelines.get_char_left_of_cursor if x == -1 else filelines.get_char_at_cursor
 
         start_class = self._classify_char(get_char(self))
         for _ in range(100):  # arbitrary limit
+
             # If `delete`, then keep backspace until hitting a new char.
             # Otherwise just move in the specified direction
             if delete:
+                # We have to note the char before deleting
+                if undomanager is not None:
+                    # Catch deleted line breaks too
+                    deleted_char = '\n' if self.x == 0 and self.y > 0 else get_char(self)
                 filelines.backspace(self)
+                # record the undo steps if undomanager is given:
+                if undomanager is not None:
+                    undomanager.record("insert", deleted_char)
             else:
                 self.move(filelines, x=x)
 
