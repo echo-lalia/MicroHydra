@@ -64,7 +64,7 @@ class Editor:
                 # Undo/redo
                 elif key == "z":
                     self.undomanager.undo()
-                elif key == "y":
+                elif key in {'y', 'Z'}: # Allow both ctrl+y and ctrl+shift+z
                     self.undomanager.redo()
 
                 elif key == "BSPC":
@@ -94,6 +94,10 @@ class Editor:
                 elif key == "ENT":
                     self.lines.insert("\n", self.cursor)
                     self.undomanager.record("backspace", "\n")
+
+                elif key == "SPC":
+                    self.lines.insert(" ", self.cursor)
+                    self.undomanager.record("backspace", " ")
 
                 elif len(key) == 1:
                     # Normal char input
