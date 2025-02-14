@@ -55,11 +55,6 @@ class UndoManager:
         if self.redo_steps:
             self.redo_steps = []
 
-        # TESSTING:
-        print('\nUndo Steps:')
-        for item in self.undo_steps:
-            print(item)
-
 
     def _undo_redo(self, source_record: list, dest_record: list):
         """Do both undo and redo actions.

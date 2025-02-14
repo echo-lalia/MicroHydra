@@ -20,6 +20,14 @@ _LEFT_PADDING = const(4)
 _STATUSBAR_HEIGHT = const(18)
 _LINE_DRAW_START = const(_STATUSBAR_HEIGHT + _LINE_PADDING)
 
+_SCROLLBAR_HEIGHT = const(3)
+_NUM_DISPLAY_LINES = const(
+    (_MH_DISPLAY_HEIGHT - _LINE_DRAW_START - _SCROLLBAR_HEIGHT)
+    // _FULL_LINE_HEIGHT
+)
+_OVERDRAW_DISPLAY_LINES = const(_NUM_DISPLAY_LINES + 1)
+_HORIZONTAL_CHARACTERS = const((_MH_DISPLAY_WIDTH // _FONT_WIDTH) - 1)
+
 
 _CURSOR_BLINK_MS = const(1000)
 _CURSOR_BLINK_HALF = const(_CURSOR_BLINK_MS // 2)
@@ -32,6 +40,11 @@ class Cursor:
         """Create a new cursor at 0,0."""
         self.x = 0
         self.y = 0
+
+
+    def __repr__(self):
+        return f"Cursor<{self.x}, {self.y}>"
+
 
     @staticmethod
     @micropython.viper
@@ -156,3 +169,78 @@ class Cursor:
             _FULL_LINE_HEIGHT,
             display.palette[4 if time.ticks_ms() % _CURSOR_BLINK_MS < _CURSOR_BLINK_HALF else 7],
         )
+
+
+    def draw_selection_cursor(self, selection_cursor, display, filelines):
+        """Draw a visual representation of the selection between each cursor."""
+        # Start by determining which cursor comes first
+        if selection_cursor.y < self.y or (selection_cursor.y == self.y and selection_cursor.x < self.x):
+            start_cursor = selection_cursor
+            end_cursor = self
+        else:
+            start_cursor = self
+            end_cursor = selection_cursor
+
+        for line_idx in range(_OVERDRAW_DISPLAY_LINES):
+            line_y = filelines.display_y + line_idx
+            draw_y = line_idx * _FULL_LINE_HEIGHT + _LINE_DRAW_START
+
+            if line_y == start_cursor.y:
+                # Draw line from start x to end x (or end of screen)
+                draw_x = (start_cursor.x - filelines.display_x) * _FONT_WIDTH + _LEFT_PADDING
+                if start_cursor.y == end_cursor.y:
+                    chars_to_draw = end_cursor.x - start_cursor.x
+                else:
+                    chars_to_draw = _HORIZONTAL_CHARACTERS - start_cursor.x
+
+                # Draw box around each char
+                for ch in range(chars_to_draw):
+                    display.rect(
+                        draw_x + ch * _FONT_WIDTH,
+                        draw_y,
+                        _FONT_WIDTH,
+                        _FULL_LINE_HEIGHT,
+                        display.palette[3],
+                    )
+                # Also underline text
+                display.hline(
+                    draw_x,
+                    draw_y + _FONT_HEIGHT,
+                    chars_to_draw * _FONT_WIDTH,
+                    display.palette[13],
+                )
+
+            elif line_y == end_cursor.y:
+                # Draw line from start of screen to cursor
+                chars_to_draw = end_cursor.x - filelines.display_x
+                for ch in range(chars_to_draw):
+                    display.rect(
+                        _LEFT_PADDING + ch * _FONT_WIDTH,
+                        draw_y,
+                        _FONT_WIDTH,
+                        _FULL_LINE_HEIGHT,
+                        display.palette[3],
+                    )
+                display.hline(
+                    _LEFT_PADDING,
+                    draw_y + _FONT_HEIGHT,
+                    chars_to_draw * _FONT_WIDTH,
+                    display.palette[13],
+                )
+
+            elif start_cursor.y < line_y < end_cursor.y:
+                # Highlight whole line:
+                for ch in range(_HORIZONTAL_CHARACTERS):
+                    display.rect(
+                        _LEFT_PADDING + ch*_FONT_WIDTH,
+                        draw_y,
+                        _FONT_WIDTH,
+                        _FULL_LINE_HEIGHT,
+                        display.palette[3],
+                    )
+                display.hline(
+                    _LEFT_PADDING,
+                    draw_y + _FONT_HEIGHT,
+                    _MH_DISPLAY_WIDTH,
+                    display.palette[13],
+                )

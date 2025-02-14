@@ -19,6 +19,8 @@ from lib.hydra import loader
 _DELETE_FLAG = const(0)
 _INSERT_FLAG = const(1)
 
+_ARROW_KEYS = {"LEFT", "RIGHT", "UP", "DOWN"}
+
 
 
 class Editor:
@@ -43,6 +45,25 @@ class Editor:
         """Open the given text file."""
         with open(filepath, "r") as f:
             self.lines = FileLines(f.readlines())
+
+    def handle_move_selection(self, key):
+        """Handle movement of selection cursor."""
+        # Make a new selection cursor if one doesn't exist
+        if self.select_cursor is None:
+            self.select_cursor = Cursor()
+            self.select_cursor.x = self.cursor.x
+            self.select_cursor.y = self.cursor.y
+
+        # Move the selection cursor
+        if key == "LEFT":
+            self.select_cursor.move(self.lines, x=-1)
+        elif key == "RIGHT":
+            self.select_cursor.move(self.lines, x=1)
+        elif key == "UP":
+            self.select_cursor.move(self.lines, y=-1)
+        else: # key == "DOWN":
+            self.select_cursor.move(self.lines, y=1)
+
 
 
     def handle_input(self, keys):  # noqa: PLR0912
@@ -72,14 +93,20 @@ class Editor:
 
             else:  # noqa: PLR5501
                 # Normal keypress
-                if key == "LEFT":
-                    self.cursor.move(self.lines, x=-1)
-                elif key == "RIGHT":
-                    self.cursor.move(self.lines, x=1)
-                elif key == "UP":
-                    self.cursor.move(self.lines, y=-1)
-                elif key == "DOWN":
-                    self.cursor.move(self.lines, y=1)
+                if key in _ARROW_KEYS:
+                    # Directional input moves main, or selection cursor
+                    if "SHIFT" in mod_keys:
+                        self.handle_move_selection(key)
+                    else:
+                        self.select_cursor = None
+                        if key == "LEFT":
+                            self.cursor.move(self.lines, x=-1)
+                        elif key == "RIGHT":
+                            self.cursor.move(self.lines, x=1)
+                        elif key == "UP":
+                            self.cursor.move(self.lines, y=-1)
+                        else: # key == "DOWN":
+                            self.cursor.move(self.lines, y=1)
 
                 elif key == "BSPC":
                     # If we are at the start of the line, we should record a deleted line,
@@ -118,11 +145,19 @@ class Editor:
 
             if keys:
                 self.handle_input(keys)
-                self.lines.draw(self.display, self.cursor)
+                self.lines.draw(
+                    self.display,
+                    self.select_cursor if self.select_cursor is not None else self.cursor,
+                )
+                # Draw selection if it exists:
+                if self.select_cursor is not None:
+                    self.cursor.draw_selection_cursor(self.select_cursor, self.display, self.lines)
             else:
                 # To smooth things out, we'll only insert a delay if we aren't redrawing the lines
                 time.sleep_ms(50)
 
+            if self.select_cursor is not None:
+                self.select_cursor.draw(self.display, self.lines)
             self.cursor.draw(self.display, self.lines)
             self.display.show()
 
