@@ -21,16 +21,18 @@ class UndoManager:
         self.redo_steps = []
 
 
-    def record(self, action: str, value: str):
+    def record(self, action: str, value: str, cursor=None):
         """Record an undo step."""
         last_undo_step = self.undo_steps[-1] if self.undo_steps else None
+        if cursor is None:
+            cursor = self.cursor
 
         # If this action is the same as the last action, we may be able to combine them.
         if (last_undo_step is not None and action == last_undo_step.action
             # But only if the cursor has not moved:
-            and last_undo_step.cursor_y == self.cursor.y
-            and ((action == "insert" and last_undo_step.cursor_x == self.cursor.x + 1)
-            or (action == "backspace" and last_undo_step.cursor_x == self.cursor.x - 1))
+            and last_undo_step.cursor_y == cursor.y
+            and ((action == "insert" and last_undo_step.cursor_x == cursor.x + 1)
+            or (action == "backspace" and last_undo_step.cursor_x == cursor.x - 1))
             # And only if there are no line breaks in either step:
             and "\n" not in value and "\n" not in last_undo_step.value):
 
@@ -38,14 +40,14 @@ class UndoManager:
                 action,
                 # append or prepend depending on the action we are doing:
                 last_undo_step.value + value if action == "backspace" else value + last_undo_step.value,
-                self.cursor.x,
-                self.cursor.y,
+                cursor.x,
+                cursor.y,
             )
 
         # Otherwise, just add a new undo step like normal:
         else:
             self.undo_steps.append(
-                Step(action, value, self.cursor.x, self.cursor.y),
+                Step(action, value, cursor.x, cursor.y),
             )
 
         # Maintain undo step max length

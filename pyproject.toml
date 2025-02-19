@@ -77,6 +77,7 @@ ignore = [
   "RUF005",   # collection-literal-concatenation
   "FBT001",   # A function taking a sinlge bool value is very common.
   "PYI",      # Mostly irrelivant for MicroPython
+  "FURB",     # Mostly irrelivant for MicroPython
 
   # MH uses commented out code in the build process:
   "ERA",   # Found commented-out code

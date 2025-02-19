@@ -35,6 +35,7 @@ class Editor:
 
         self.cursor = Cursor()
         self.select_cursor = None
+        self.clipboard = ""
 
         self.undomanager = UndoManager(self, self.cursor)
 
@@ -65,8 +66,18 @@ class Editor:
             self.select_cursor.move(self.lines, y=1)
 
 
+    def _delete_and_record_selection(self):
+        if self.select_cursor is not None:
+            self.undomanager.record(
+                "insert",
+                self.lines.get_selected_text(self.cursor, self.select_cursor),
+                cursor=min(self.cursor, self.select_cursor),
+            )
+            self.lines.delete_selected_text(self.cursor, self.select_cursor)
+        self.select_cursor = None
 
-    def handle_input(self, keys):  # noqa: PLR0912
+
+    def handle_input(self, keys):  # noqa: PLR0912, PLR0915
         """Respond to user input."""
         mod_keys = self.inpt.get_mod_keys()
 
@@ -82,14 +93,44 @@ class Editor:
                 elif key == "DOWN":
                     self.cursor.move(self.lines, y=5)
 
+
                 # Undo/redo
                 elif key == "z":
                     self.undomanager.undo()
                 elif key in {'y', 'Z'}: # Allow both ctrl+y and ctrl+shift+z
                     self.undomanager.redo()
 
+
+                # Clipboard
+                elif key == "c":
+                    if self.select_cursor is not None:
+                        self.clipboard = self.lines.get_selected_text(self.cursor, self.select_cursor)
+
+                elif key == "x":
+                    if self.select_cursor is not None:
+                        self.clipboard = self.lines.get_selected_text(self.cursor, self.select_cursor)
+                        self.undomanager.record(
+                            "insert",
+                            self.clipboard,
+                            cursor=min(self.cursor, self.select_cursor),
+                        )
+                        self.lines.delete_selected_text(self.cursor, self.select_cursor)
+
+                elif key == "v":
+                    self._delete_and_record_selection()
+                    # Chars have to be inserted individually so that line breaks work correctly.
+                    for char in self.clipboard:
+                        self.lines.insert(char, self.cursor)
+                    self.undomanager.record("backspace", self.clipboard)
+                    self.select_cursor = None
+
+
                 elif key == "BSPC":
-                    self.cursor.jump(self.lines, x=-1, delete=True, undomanager=self.undomanager)
+                    if self.select_cursor is not None:
+                        self._delete_and_record_selection()
+                    else:
+                        self.cursor.jump(self.lines, x=-1, delete=True, undomanager=self.undomanager)
+
 
             else:  # noqa: PLR5501
                 # Normal keypress
@@ -109,25 +150,31 @@ class Editor:
                             self.cursor.move(self.lines, y=1)
 
                 elif key == "BSPC":
-                    # If we are at the start of the line, we should record a deleted line,
-                    # otherwise just record the character before this one
-                    if self.cursor.x == 0 and self.cursor.y > 0:
-                        deleted_char = "\n"
+                    if self.select_cursor is not None:
+                        self._delete_and_record_selection()
                     else:
-                        deleted_char = self.lines.get_char_left_of_cursor(self.cursor)
-                    self.lines.backspace(self.cursor)
-                    self.undomanager.record("insert", deleted_char)
+                        # If we are at the start of the line, we should record a deleted line,
+                        # otherwise just record the character before this one
+                        if self.cursor.x == 0 and self.cursor.y > 0:
+                            deleted_char = "\n"
+                        else:
+                            deleted_char = self.lines.get_char_left_of_cursor(self.cursor)
+                        self.lines.backspace(self.cursor)
+                        self.undomanager.record("insert", deleted_char)
 
                 elif key == "ENT":
+                    self._delete_and_record_selection()
                     self.lines.insert("\n", self.cursor)
                     self.undomanager.record("backspace", "\n")
 
                 elif key == "SPC":
+                    self._delete_and_record_selection()
                     self.lines.insert(" ", self.cursor)
                     self.undomanager.record("backspace", " ")
 
                 elif len(key) == 1:
                     # Normal char input
+                    self._delete_and_record_selection()
                     self.lines.insert(key, self.cursor)
                     self.undomanager.record("backspace", key)
 

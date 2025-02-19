@@ -140,6 +140,40 @@ class FileLines:
                 self.display_lines[key] = DisplayLine(self[key])
 
 
+    def get_selected_text(self, cursor, select_cursor) -> str:
+        """Get the text between the cursor and select_cursor."""
+        # Start by determining which cursor comes first
+        start_cursor = min(cursor, select_cursor)
+        end_cursor = max(cursor, select_cursor)
+
+        selected_text = ""
+        # Iterate over each line between each cursor, adding the contents to the selected text.
+        for y in range(start_cursor.y, end_cursor.y + 1):
+            this_line = self[y]
+            start_x = start_cursor.x if start_cursor.y == y else 0
+            end_x = end_cursor.x if end_cursor.y == y else len(this_line)
+
+            # add the line to the selection, along with a line break
+            selected_text += this_line[start_x: end_x] + "\n"
+
+        # remove any final trailing linebreak
+        if selected_text.endswith("\n"):
+            selected_text = selected_text[:-1]
+
+        return selected_text
+
+
+    def delete_selected_text(self, cursor, select_cursor):
+        """Delete all text between cursor and select_cursor."""
+        # Start by determining which cursor comes first
+        start_cursor = min(cursor, select_cursor)
+        end_cursor = max(cursor, select_cursor)
+
+        # Delete text until end_cursor reaches start_cursor
+        while end_cursor > start_cursor:
+            self.backspace(end_cursor)
+
+
     def insert(self, text: str, cursor):
         """Insert text at the cursor."""
         cursor.clamp_to_text(self)

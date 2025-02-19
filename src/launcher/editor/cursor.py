@@ -65,6 +65,30 @@ class Cursor:
         return 5  # Other
 
 
+    # Comparison dunders so cursor works with `min` and `max`:
+    def __eq__(self, other):
+        if not isinstance(other, Cursor):
+            return NotImplemented
+
+        return self.y == other.y and self.x == other.x
+
+    def __lt__(self, other):
+        if not isinstance(other, Cursor):
+            return NotImplemented
+
+        if self.y == other.y:
+            return self.x < other.x
+        return self.y < other.y
+
+    def __gt__(self, other):
+        if not isinstance(other, Cursor):
+            return NotImplemented
+
+        if self.y == other.y:
+            return self.x > other.x
+        return self.y > other.y
+
+
     def jump(self, filelines, x: int, *, delete: bool = False, undomanager = None):
         """Move left or right until we hit a new character type."""
         # When moving left, we need the key to the left of the cursor
@@ -174,12 +198,8 @@ class Cursor:
     def draw_selection_cursor(self, selection_cursor, display, filelines):
         """Draw a visual representation of the selection between each cursor."""
         # Start by determining which cursor comes first
-        if selection_cursor.y < self.y or (selection_cursor.y == self.y and selection_cursor.x < self.x):
-            start_cursor = selection_cursor
-            end_cursor = self
-        else:
-            start_cursor = self
-            end_cursor = selection_cursor
+        start_cursor = min(self, selection_cursor)
+        end_cursor = max(self, selection_cursor)
 
         for line_idx in range(_OVERDRAW_DISPLAY_LINES):
             line_y = filelines.display_y + line_idx
