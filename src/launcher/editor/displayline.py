@@ -70,5 +70,5 @@ class DisplayLine:
 
         # Draw each token
         for token in self.tokens:
-            display.text(token.text, x, y, display.palette[token.color])
+            display.text(token.text, x, y, token.color)
             x += len(token.text) * _FONT_WIDTH

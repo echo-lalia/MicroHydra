@@ -30,6 +30,9 @@ class Editor:
         """Initialize HyDE."""
         self.display = Display()
         self.config = Config()
+
+        tokenizer.init(self.config)
+
         self.statusbar = StatusBar()
         self.inpt = UserInput(allow_locking_keys=True)
 
@@ -218,7 +221,8 @@ if not filepath:
 
 # Import a specific tokenizer depending on the file extension
 # TESTING: just use default for now
-from .tokenizers import plaintext as tokenizer
+# from .tokenizers import plaintext as tokenizer
+from .tokenizers import python as tokenizer
 DisplayLine.tokenizer = tokenizer
 
 editor = Editor()
