@@ -95,12 +95,12 @@ class Config:
         self.palette[10] = 65535 # white
 
         # Generate a further expanded palette, based on UI colors, shifted towards primary display colors.
-        self.palette[11] = color565_shift_to_hue(mid_color, 0.0, 0.1, min_sat=0.9)
-        self.palette[12] = color565_shift_to_hue(mid_color, 0.34, 0.08)
-        self.palette[13] = color565_shift_to_hue(mid_color, 0.63, 0.12)
+        self.palette[11] = color565_shift_to_hue(mid_color, 0.0, 0.15, min_sat=0.95)
+        self.palette[12] = color565_shift_to_hue(mid_color, 0.34, 0.15, min_sat=0.4)
+        self.palette[13] = color565_shift_to_hue(mid_color, 0.63, 0.1, min_sat=0.5, min_val=0.9)
         # Finally, generate swapped bg/ui colors as compliments to the main palette.
-        self.palette[14] = mix_color565(bg_color, ui_color, 0.0, 1.0, 1.0)
-        self.palette[15] = mix_color565(ui_color, bg_color, 0.0, 1.0, 1.0)
+        self.palette[14] = mix_color565(bg_color, ui_color, 0.95, 0.25, 0.9)
+        self.palette[15] = mix_color565(bg_color, ui_color, 0.95, 0.75, 0.8)
 
 
     def __getitem__(self, key):

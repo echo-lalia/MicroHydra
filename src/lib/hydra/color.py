@@ -211,7 +211,7 @@ def lighter_color565(color: int, mix_factor: float = 0.2) -> int:
     return combine_color565(r, g, b)
 
 
-def color565_shift_to_hue(color: int, h_mid: float, h_radius: float, min_sat=0.33) -> int:
+def color565_shift_to_hue(color: int, h_mid: float, h_radius: float, min_sat=0.33, min_val=0.8) -> int:
     """Shift the given RGB565 into the specified hue range."""
     r,g,b = separate_color565(color)
     r /= 31
@@ -231,5 +231,5 @@ def color565_shift_to_hue(color: int, h_mid: float, h_radius: float, min_sat=0.3
     if s < min_sat:
         s = min_sat
 
-    r,g,b = hsv_to_rgb(angular_distance_fac%1,s,v)
+    r,g,b = hsv_to_rgb(angular_distance_fac%1,s, max(v, min_val))
     return combine_color565(int(r*31), int(g*63), int(b*31))
