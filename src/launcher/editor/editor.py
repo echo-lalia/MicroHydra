@@ -15,9 +15,22 @@ from lib.hydra.statusbar import StatusBar
 from lib.hydra import loader
 
 
+# Statusbar stuff
+_MH_DISPLAY_WIDTH = const(240)
+_FONT_HEIGHT = const(8)
+_FONT_WIDTH = const(8)
+
+_STATUSBAR_HEIGHT = const(18)
+
+_STATUSBAR_TEXT_Y = const((_STATUSBAR_HEIGHT - _FONT_HEIGHT) // 2)
+_STATUSBAR_TEXT_X = const(4)
+_STATUSBAR_TEXT_WIDTH = const((_MH_DISPLAY_WIDTH - _STATUSBAR_TEXT_X)//3 * 2)
+_STATUSBAR_TEXT_CHARS = const(_STATUSBAR_TEXT_WIDTH // _FONT_WIDTH)
+
 
 _DELETE_FLAG = const(0)
 _INSERT_FLAG = const(1)
+
 
 _ARROW_KEYS = {"LEFT", "RIGHT", "UP", "DOWN"}
 
@@ -33,7 +46,7 @@ class Editor:
 
         tokenizer.init(self.config)
 
-        self.statusbar = StatusBar()
+        self.statusbar = StatusBar(register_overlay=False)
         self.inpt = UserInput(allow_locking_keys=True)
 
         self.cursor = Cursor()
@@ -44,11 +57,16 @@ class Editor:
 
         self.lines = None
 
+        self.filepath = None
+        self.modified = False
+
 
     def open_file(self, filepath: str):
         """Open the given text file."""
         with open(filepath, "r") as f:
             self.lines = FileLines(f.readlines())
+        self.filepath = filepath
+
 
     def handle_move_selection(self, key):
         """Handle movement of selection cursor."""
@@ -78,6 +96,7 @@ class Editor:
             )
             self.lines.delete_selected_text(self.cursor, self.select_cursor)
         self.select_cursor = None
+        self.modified = True
 
 
     def handle_input(self, keys):  # noqa: PLR0912, PLR0915
@@ -118,6 +137,7 @@ class Editor:
                             cursor=min(self.cursor, self.select_cursor),
                         )
                         self.lines.delete_selected_text(self.cursor, self.select_cursor)
+                        self.modified = True
 
                 elif key == "v":
                     self._delete_and_record_selection()
@@ -126,6 +146,7 @@ class Editor:
                         self.lines.insert(char, self.cursor)
                     self.undomanager.record("backspace", self.clipboard)
                     self.select_cursor = None
+                    self.modified = True
 
 
                 elif key == "BSPC":
@@ -133,6 +154,7 @@ class Editor:
                         self._delete_and_record_selection()
                     else:
                         self.cursor.jump(self.lines, x=-1, delete=True, undomanager=self.undomanager)
+                    self.modified = True
 
 
             else:  # noqa: PLR5501
@@ -164,6 +186,7 @@ class Editor:
                             deleted_char = self.lines.get_char_left_of_cursor(self.cursor)
                         self.lines.backspace(self.cursor)
                         self.undomanager.record("insert", deleted_char)
+                    self.modified = True
 
                 elif key == "ENT":
                     self._delete_and_record_selection()
@@ -182,6 +205,45 @@ class Editor:
                     self.undomanager.record("backspace", key)
 
 
+    def draw_statusbar(self):
+        """Draw the statusbar with filepath."""
+        # Draw statusbar base
+        self.statusbar.draw(self.display)
+        # blackout clock/text backing
+        self.display.rect(
+            _STATUSBAR_TEXT_X,
+            _STATUSBAR_TEXT_Y,
+            _STATUSBAR_TEXT_WIDTH,
+            _FONT_HEIGHT,
+            self.display.palette[4],
+            fill=True,
+        )
+
+        # slice filepath to fit, and indicate a modified file
+        filepath = self.filepath
+        if self.modified:
+            filepath += "*"
+
+        if len(filepath) > _STATUSBAR_TEXT_CHARS:
+            filepath = "..." + filepath[len(filepath) - (_STATUSBAR_TEXT_CHARS - 3):]
+
+        # Draw text
+        self.display.text(
+            filepath,
+            _STATUSBAR_TEXT_X,
+            _STATUSBAR_TEXT_Y+1,
+            self.display.palette[2]
+        )
+        self.display.text(
+            filepath,
+            _STATUSBAR_TEXT_X,
+            _STATUSBAR_TEXT_Y,
+            self.display.palette[7]
+        )
+
+        # Tell display to redraw keyboard overlays
+        Display.draw_overlays = True
+
 
     def main(self):
         """Run the text editor."""
@@ -189,6 +251,7 @@ class Editor:
         self.display.fill(self.display.palette[2])
         self.lines.update_display_lines(self.cursor, force_update=True)
         self.lines.draw(self.display, self.cursor)
+        self.draw_statusbar()
 
         while True:
             keys = self.inpt.get_new_keys()
@@ -202,6 +265,14 @@ class Editor:
                 # Draw selection if it exists:
                 if self.select_cursor is not None:
                     self.cursor.draw_selection_cursor(self.select_cursor, self.display, self.lines)
+                # Update statusbar
+                self.draw_statusbar()
+
+            elif Display.draw_overlays:
+                # If the keyboard overlay is being drawn, we should probably redraw our statusbar.
+                self.draw_statusbar()
+                time.sleep_ms(10)
+
             else:
                 # To smooth things out, we'll only insert a delay if we aren't redrawing the lines
                 time.sleep_ms(50)
@@ -217,12 +288,15 @@ class Editor:
 # Start editor:
 filepath = loader.get_args()[0]
 if not filepath:
-    filepath = "/teststatusbar.py" # JUSTFORTESTING
+    # filepath = "/teststatusbar.py" # JUSTFORTESTING
+    filepath = "/apps/gameoflifemodified.py" # JUSTFORTESTING
 
 # Import a specific tokenizer depending on the file extension
-# TESTING: just use default for now
-# from .tokenizers import plaintext as tokenizer
-from .tokenizers import python as tokenizer
+if filepath.endswith(".py"):
+    from .tokenizers import python as tokenizer
+else:
+    from .tokenizers import plaintext as tokenizer
+
 DisplayLine.tokenizer = tokenizer
 
 editor = Editor()
