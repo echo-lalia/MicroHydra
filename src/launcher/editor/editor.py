@@ -1,13 +1,17 @@
 """HyDE v2.x editor class."""
 if __name__ == '__main__': from launcher import editor  # relative import for testing
 
+import sys
 import time
+import machine
 
 from .filelines import FileLines
 from .displayline import DisplayLine
 from .cursor import Cursor
 from .undomanager import UndoManager
 
+from esp32 import NVS
+from lib.sdcard import SDCard
 from lib.display import Display
 from lib.hydra.config import Config
 from lib.userinput import UserInput
@@ -34,6 +38,24 @@ _INSERT_FLAG = const(1)
 
 
 _ARROW_KEYS = {"LEFT", "RIGHT", "UP", "DOWN"}
+
+# rare whitespace char is repurposed here to denote converted tab/space indents
+_INDENT_SYM = const(' ')  # noqa: RUF001
+
+
+# used for "exit to file browser" option:
+# mh_if frozen:
+# _FILE_BROWSER = const(".frozen/launcher/files")
+# mh_else:
+_FILE_BROWSER = const("/launcher/files")
+# mh_end_if
+
+
+
+# increased to full freq.
+machine.freq(240_000_000)
+# sd needs to be mounted for any files in /sd
+SDCard().mount()
 
 
 
@@ -87,6 +109,98 @@ class Editor:
             self.select_cursor.move(self.lines, y=-1)
         else: # key == "DOWN":
             self.select_cursor.move(self.lines, y=1)
+
+
+    def file_options(self):
+        """Give file options menu."""
+        _OPTIONS = const(("Back", "Save", "Tab...", "Run...", "Exit..."))
+
+        choice = self.overlay.popup_options(_OPTIONS, title="GO...")
+
+        if choice == "Save":
+            self.lines.save(self.filepath)
+            self.modified = False
+        elif choice == "Run...":
+            self.run_options()
+        elif choice == "Exit...":
+            self.exit_options()
+        elif choice == "Tab...":
+            self.tab_options()
+
+
+    def tab_options(self):
+        """Give tab options menu."""
+        title = "'tab' inserts tabs" if self.lines.use_tabs else "'tab' inserts spaces"
+        _TAB_OPTIONS = const(("Back", "Use tabs", "Use spaces"))
+
+        choice = self.overlay.popup_options(_TAB_OPTIONS, title=title, depth=1)
+        nvs = NVS("editor")
+
+        if choice == "Use tabs":
+            self.lines.use_tabs = True
+            nvs.set_i32("use_tabs", True)
+            nvs.commit()
+
+        elif choice == "Use spaces":
+            self.lines.use_tabs = False
+            nvs.set_i32("use_tabs", False)
+            nvs.commit()
+
+
+    def run_options(self):
+        """Give run options submenu."""
+        _RUN_OPTIONS = const(("Cancel", "Run here", "Restart and run"))
+        choice = self.overlay.popup_options(_RUN_OPTIONS, title="Run...", depth=1)
+
+        if choice == "Run here":
+            self.run_file_here()
+        elif choice == "Restart and run":
+            self.boot_into_file(self.filepath)
+
+
+    def exit_options(self):
+        """Give exit options submenu."""
+        _EXIT_OPTIONS = const(("Cancel", "Exit to Files", "Exit to Launcher"))
+
+        choice = self.overlay.popup_options(_EXIT_OPTIONS, title="Exit...", depth=1)
+
+        if choice == "Exit to Files":
+            if self.modified:
+                choice = self.overlay.popup_options(("Save", "Discard"), title="Save changes?")
+                if choice == "Save":
+                    self.lines.save(self.filepath)
+            self.boot_into_file(_FILE_BROWSER)
+
+        elif choice == "Exit to Launcher":
+            choice = self.overlay.popup_options(("Save", "Discard"), title="Save changes?")
+            if choice == "Save":
+                self.lines.save(self.filepath)
+            self.boot_into_file('')
+
+
+    def boot_into_file(self, target_file):
+        """Restart and load into target file."""
+        self.overlay.draw_textbox("Restarting...")
+        self.display.show()
+        loader.launch_app(target_file)
+
+
+    def run_file_here(self):
+        """Try running the target file here."""
+        self.lines.save(self.filepath)
+        self.overlay.draw_textbox("Running...")
+        self.display.show()
+        try:
+            # you have to slice off the ".py" to avoid importerror
+            mod = __import__(filepath[:-3])
+            # we need to unload the module to import it again later.
+            mod_name = mod.__name__
+            if mod_name in sys.modules:
+                del sys.modules[mod_name]
+
+        except Exception as e:  # noqa: BLE001
+            self.overlay.error(f"File closed with error: {e}")
+
 
 
     def _delete_and_record_selection(self):
@@ -196,21 +310,24 @@ class Editor:
                         self.undomanager.record("insert", deleted_char)
                     self.modified = True
 
-                elif key == "ENT":
-                    self._delete_and_record_selection()
-                    self.lines.insert("\n", self.cursor)
-                    self.undomanager.record("backspace", "\n")
+                elif key == self.inpt.aux_action:
+                    self.file_options()
 
-                elif key == "SPC":
-                    self._delete_and_record_selection()
-                    self.lines.insert(" ", self.cursor)
-                    self.undomanager.record("backspace", " ")
-
-                elif len(key) == 1:
+                else:
                     # Normal char input
-                    self._delete_and_record_selection()
-                    self.lines.insert(key, self.cursor)
-                    self.undomanager.record("backspace", key)
+                    # Replace named keys with their input char
+                    key = {
+                        "ENT":"\n",
+                        "SPC":" ",
+                        "TAB":_INDENT_SYM,
+                    }.get(key, key)
+
+                    # Only insert single characters (filter other named keys)
+                    if len(key) == 1:
+                        self._delete_and_record_selection()
+                        self.lines.insert(key, self.cursor)
+                        self.undomanager.record("backspace", key)
+
 
 
     def draw_statusbar(self):

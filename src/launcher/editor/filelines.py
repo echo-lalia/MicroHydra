@@ -104,7 +104,7 @@ class FileLines:
             return bool(nvs.get_i32("use_tabs"))
         except OSError:
             # (Otherwise, set to False as a default, and return
-            nvs.set_i32("use_tabs", 0)
+            nvs.set_i32("use_tabs", False)
             nvs.commit()
         return False
 
