@@ -204,6 +204,7 @@ class Editor:
 
 
     def _delete_and_record_selection(self):
+        """Delete (and record undo step for) any selected text."""
         if self.select_cursor is not None:
             self.undomanager.record(
                 "insert",
@@ -213,6 +214,12 @@ class Editor:
             self.lines.delete_selected_text(self.cursor, self.select_cursor)
         self.select_cursor = None
         self.modified = True
+
+
+    def _insert_and_record(self, text):
+        """Insert some text, and record an undo step for it."""
+        self.lines.insert(text, self.cursor)
+        self.undomanager.record("backspace", text)
 
 
     def handle_input(self, keys):  # noqa: PLR0912, PLR0915
@@ -264,6 +271,7 @@ class Editor:
                 elif key == "v":
                     self._delete_and_record_selection()
                     # Chars have to be inserted individually so that line breaks work correctly.
+                    # (in the future, it might be good to add a method for splitting text by newlines instead)
                     for char in self.clipboard:
                         self.lines.insert(char, self.cursor)
                     self.undomanager.record("backspace", self.clipboard)
@@ -296,6 +304,7 @@ class Editor:
                         else: # key == "DOWN":
                             self.cursor.move(self.lines, y=1)
 
+
                 elif key == "BSPC":
                     if self.select_cursor is not None:
                         self._delete_and_record_selection()
@@ -310,14 +319,28 @@ class Editor:
                         self.undomanager.record("insert", deleted_char)
                     self.modified = True
 
+
                 elif key == self.inpt.aux_action:
                     self.file_options()
+
+
+                elif key == "ENT":
+                    # Line-break-specific logic
+                    self._delete_and_record_selection()
+                    # Get the current indentation level to automatically add indents
+                    indentation = self.lines.get_indentation(self.cursor.y)
+                    # If there is a colon to the left of the cursor, we should probably start an indented block.
+                    if self.lines.get_char_left_of_cursor(self.cursor) == ":":
+                        indentation += _INDENT_SYM
+                    # Insert the line break, then any additional indentation
+                    self._insert_and_record("\n")
+                    self._insert_and_record(indentation)
+
 
                 else:
                     # Normal char input
                     # Replace named keys with their input char
                     key = {
-                        "ENT":"\n",
                         "SPC":" ",
                         "TAB":_INDENT_SYM,
                     }.get(key, key)
@@ -325,8 +348,7 @@ class Editor:
                     # Only insert single characters (filter other named keys)
                     if len(key) == 1:
                         self._delete_and_record_selection()
-                        self.lines.insert(key, self.cursor)
-                        self.undomanager.record("backspace", key)
+                        self._insert_and_record(key)
 
 
 
@@ -393,12 +415,10 @@ class Editor:
                 # Update statusbar
                 self.draw_statusbar()
 
-            elif Display.draw_overlays:
-                # If the keyboard overlay is being drawn, we should probably redraw our statusbar.
-                self.draw_statusbar()
-                time.sleep_ms(10)
-
             else:
+                if Display.draw_overlays:
+                    # If the keyboard overlay is being drawn, we should probably redraw our statusbar.
+                    self.draw_statusbar()
                 # To smooth things out, we'll only insert a delay if we aren't redrawing the lines
                 time.sleep_ms(50)
 

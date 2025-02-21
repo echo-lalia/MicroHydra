@@ -143,6 +143,16 @@ class FileLines:
                 )
 
 
+    def get_indentation(self, y: int) -> str:
+        """Return the indentation for the given line index."""
+        line = self[y]
+        indentation = ""
+        while line.startswith(_INDENT_SYM):
+            indentation += _INDENT_SYM
+            line = line[1:]
+        return indentation
+
+
     def get_char_at_cursor(self, cursor) -> str:
         """Get the char at the current cursor position."""
         if 0 <= cursor.y < len(self.lines) \
