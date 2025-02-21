@@ -16,4 +16,4 @@ def init(config):
 
 def tokenize(line: str) -> tuple[int, str]:
     """Split/style text into a list of styled tokens."""
-    return [token(line, COLORS['default'], None)]
+    return [token(line, COLORS['default'])]

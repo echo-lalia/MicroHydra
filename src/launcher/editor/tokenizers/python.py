@@ -244,45 +244,45 @@ def split_line_segments(line:str):  # noqa: PLR0912, PLR0915
 
 
 
-def style_token(segment: str):
+def style_token(segment: str) -> int:
     """Generate token color and BG color for a given segment."""
     if not segment:
-        return COLORS['default'], None
+        return COLORS['default']
 
     if segment.startswith("#"):
-        return COLORS['comment'], None
+        return COLORS['comment']
 
     start_class = classify_char(segment[0])
 
     if start_class == _QUOTE_CLASS:
-        return COLORS['string'], None
+        return COLORS['string']
 
     if start_class in {_UNDERSCORE_CLASS, _ALPHA_CLASS}:
         # Check for builtins/keywords
         if segment.strip() in _KEYWORDS:
-            return COLORS['keyword'], None
-        return COLORS['default'], None
+            return COLORS['keyword']
+        return COLORS['default']
 
     if segment == ".":
-        return COLORS['symbol'], None
+        return COLORS['symbol']
 
     if all(ch.isdigit() or ch in {" ", "_", "."} for ch in segment):
-        return COLORS['num'], None
+        return COLORS['num']
 
     if start_class == _OTHER_CLASS:
-        return COLORS['symbol'], None
+        return COLORS['symbol']
 
     # Default/unstyled
-    return COLORS['default'], None
+    return COLORS['default']
 
 
 
 
-def tokenize(line: str) -> tuple[int, str]:
+def tokenize(line: str) -> token[str, int]:
     """Split/style text into a list of styled tokens."""
     tokens = []
     for segment in split_line_segments(line):
-        clr, bg = style_token(segment)
-        tokens.append(token(segment, clr, bg))
+        clr = style_token(segment)
+        tokens.append(token(segment, clr))
 
     return tokens

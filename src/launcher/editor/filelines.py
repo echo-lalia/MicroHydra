@@ -2,6 +2,8 @@
 if __name__ == '__main__': from launcher import editor  # relative import for testing
 from .displayline import DisplayLine
 
+from esp32 import NVS
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constants: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 _MH_DISPLAY_HEIGHT = const(135)
@@ -60,6 +62,8 @@ class FileLines:
         self.display_y = -2
         self.display_x = 0
 
+        self.use_tabs = self._set_indentation_mode()
+
 
     @staticmethod
     def _replace_tabs(line: str) -> str:
@@ -84,6 +88,27 @@ class FileLines:
         return space_syms + line
 
 
+    def _set_indentation_mode(self) -> bool:
+        """Return True if file should use tabs (rather than spaces) based on file OR preference."""
+        # Check file for an existing indentation type
+        for line in self.lines:
+            if line.startswith(_SPACE_INDENT):
+                return False
+            if line.startswith(_TAB_INDENT):
+                return True
+
+        # If no indentation exists in the file, set based on user preference.
+        nvs = NVS("editor")
+        try:
+            # Use the set value if it exists
+            return bool(nvs.get_i32("use_tabs"))
+        except OSError:
+            # (Otherwise, set to False as a default, and return
+            nvs.set_i32("use_tabs", 0)
+            nvs.commit()
+        return False
+
+
     def _clean_line(self, line) -> str:
         """Remove line breaks and indentation."""
         return self._replace_space_indents(
@@ -104,6 +129,18 @@ class FileLines:
 
     def __setitem__(self, idx: int, val: str):
         self.lines[idx] = val
+
+
+    def save(self, filepath: str):
+        """Save the file lines to the given filepath."""
+        indent = _TAB_INDENT if self.use_tabs else _SPACE_INDENT
+
+        with open(filepath, "w") as f:
+            for line in self.lines:
+                # Replace the tab characters (based on preference) and add line breaks
+                f.write(
+                    line.replace(_INDENT_SYM, indent) + "\n",
+                )
 
 
     def get_char_at_cursor(self, cursor) -> str:

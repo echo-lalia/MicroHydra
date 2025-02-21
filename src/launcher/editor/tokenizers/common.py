@@ -3,4 +3,4 @@ from collections import namedtuple
 
 
 
-token = namedtuple('token', ('text', 'color', 'bg'))
+token = namedtuple('token', ('text', 'color'))

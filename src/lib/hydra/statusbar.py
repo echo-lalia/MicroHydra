@@ -31,7 +31,7 @@ _BATTERY_Y = const((_STATUSBAR_HEIGHT - 10) // 2)
 class StatusBar:
     """The MicroHydra statusbar."""
 
-    def __init__(self, *, enable_clock: bool = True, enable_battery: bool = True, register_overlay: bool = True):
+    def __init__(self, *, enable_battery: bool = True, register_overlay: bool = True):
         """Initialize the statusbar."""
         global battery  # noqa: PLW0603
 

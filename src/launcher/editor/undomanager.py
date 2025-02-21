@@ -95,7 +95,7 @@ class UndoManager:
 
         else:  # action == "backspace"
             # Backspace each character
-            for char in recorded_step.value:
+            for _ in recorded_step.value:
                 self.editor.lines.backspace(self.cursor)
             # Create a new redo action that reverses this change
             dest_record.append(

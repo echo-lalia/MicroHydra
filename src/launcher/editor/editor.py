@@ -12,6 +12,7 @@ from lib.display import Display
 from lib.hydra.config import Config
 from lib.userinput import UserInput
 from lib.hydra.statusbar import StatusBar
+from lib.hydra.popup import UIOverlay
 from lib.hydra import loader
 
 
@@ -43,6 +44,7 @@ class Editor:
         """Initialize HyDE."""
         self.display = Display()
         self.config = Config()
+        self.overlay = UIOverlay()
 
         tokenizer.init(self.config)
 
@@ -63,7 +65,7 @@ class Editor:
 
     def open_file(self, filepath: str):
         """Open the given text file."""
-        with open(filepath, "r") as f:
+        with open(filepath) as f:
             self.lines = FileLines(f.readlines())
         self.filepath = filepath
 
@@ -121,6 +123,12 @@ class Editor:
                     self.undomanager.undo()
                 elif key in {'y', 'Z'}: # Allow both ctrl+y and ctrl+shift+z
                     self.undomanager.redo()
+
+
+                # Save file
+                elif key == "s":
+                    self.lines.save(self.filepath)
+                    self.modified = False
 
 
                 # Clipboard
@@ -288,8 +296,9 @@ class Editor:
 # Start editor:
 filepath = loader.get_args()[0]
 if not filepath:
-    # filepath = "/teststatusbar.py" # JUSTFORTESTING
-    filepath = "/apps/gameoflifemodified.py" # JUSTFORTESTING
+    filepath = "/testeasing.py" # JUSTFORTESTING
+#     filepath = "/apps/gameoflifemodified.py" # JUSTFORTESTING
+#     filepath = "/testfile.py"
 
 # Import a specific tokenizer depending on the file extension
 if filepath.endswith(".py"):
@@ -297,8 +306,17 @@ if filepath.endswith(".py"):
 else:
     from .tokenizers import plaintext as tokenizer
 
+# Pass the tokenizer to the DisplayLine
 DisplayLine.tokenizer = tokenizer
 
+
+# Create the editor
 editor = Editor()
-editor.open_file(filepath)
-editor.main()
+
+# Load the file and start the editor, but catch any errors to show on display (before raising)
+try:
+    editor.open_file(filepath)
+    editor.main()
+except Exception as e:
+    editor.overlay.error(f"Editor encountered an error: {e}")
+    raise
