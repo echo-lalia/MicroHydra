@@ -2,7 +2,7 @@
 
 This file browser app for MicroHydra provides a simple way to view and manage files on the device.
 It is also able to launch specific file types
-using built-in file viewing/editing apps (such as HyDE.py)
+using built-in file viewing/editing apps (such as the text-editor)
 """
 
 import math
@@ -74,15 +74,15 @@ _DIR_MARKER = const(0x4000)
 
 # mh_if frozen:
 # FILE_HANDLERS = {
-#     "": ".frozen/launcher/HyDE.py", # default
-#     "py": ".frozen/launcher/HyDE.py",
-#     "txt": ".frozen/launcher/HyDE.py",
+#     "": ".frozen/launcher/editor", # default
+#     "py": ".frozen/launcher/editor",
+#     "txt": ".frozen/launcher/editor",
 #     }
 # mh_else:
 FILE_HANDLERS = {
-    "": "/launcher/HyDE.py",  # default
-    "py": "/launcher/HyDE.py",
-    "txt": "/launcher/HyDE.py",
+    "": "/launcher/editor",  # default
+    "py": "/launcher/editor",
+    "txt": "/launcher/editor",
     }
 # mh_end_if
 
