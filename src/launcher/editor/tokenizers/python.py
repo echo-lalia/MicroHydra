@@ -1,6 +1,6 @@
 """A code tokenizer that highlights Python syntax."""
 from .common import *
-from lib.hydra.color import mix_color565
+from lib.hydra import color
 
 
 
@@ -40,26 +40,67 @@ DOT_UNDERSCORE_SET = {".", "_"}
 QUOTE_SET = {"'", '"', '"""', "'''"}
 
 
+def shift_color565_hue(clr, shift) -> int:
+    """Shift the hue of a color565 to the right and left.
+
+    This is useful for generating complimentary colors.
+    """
+    r, g, b = color.separate_color565(clr)
+    r /= 31; g /= 63; b /= 31
+
+    h, s, v = color.rgb_to_hsv(r, g, b)
+    r, g, b = color.hsv_to_rgb(h+shift, s, v)
+
+    r = int(r*31); g = int(g*63); b = int(b*31)
+
+    return color.combine_color565(r, g, b)
+
+
 def init(config):
     """Initialize tokenizer."""
     COLORS["default"] = config.palette[8]
-    COLORS["comment"] = config.palette[5]
-    COLORS["num"] = config.palette[14]
-    COLORS["keyword"] = config.palette[15]
-
-    COLORS["symbol"] = mix_color565(
+    COLORS['string'] = color.mix_color565(
         config.palette[15],
         config.palette[8],
-        0.5,
-        sat_mix_fac=0.2,
-    )
+        mix_factor=1.0,
+        hue_mix_fac=0.0,
+        sat_mix_fac=0.5,
+        )
 
-    COLORS["string"] = mix_color565(
-        config.palette[14],
+    COLORS['num'] = shift_color565_hue(
+        color.mix_color565(
+            config.palette[2],
+            config.palette[8],
+            mix_factor=0.95,
+            hue_mix_fac=0,
+            sat_mix_fac=0.95,
+            ),
+        -0.15,
+        )
+
+    COLORS['symbol'] = color.mix_color565(
+        config.palette[2],
         config.palette[8],
-        0.3,
-        sat_mix_fac=0.2,
-    )
+        mix_factor=0.9,
+        hue_mix_fac=0.7,
+        sat_mix_fac=0.8,
+        )
+
+    COLORS['keyword'] = color.mix_color565(
+        config.palette[2],
+        config.palette[8],
+        mix_factor=1,
+        hue_mix_fac=0.3,
+        sat_mix_fac=0.7,
+        )
+
+    COLORS["comment"] = color.mix_color565(
+        config.palette[2],
+        config.palette[8],
+        mix_factor=0.5,
+        hue_mix_fac=0,
+        sat_mix_fac=0.1,
+        )
 
 
 @micropython.viper
