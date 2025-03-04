@@ -31,9 +31,9 @@ _BATTERY_Y = const((_STATUSBAR_HEIGHT - 10) // 2)
 class StatusBar:
     """The MicroHydra statusbar."""
 
-    def __init__(self, *, enable_clock: bool = True, enable_battery: bool = True):
+    def __init__(self, *, enable_battery: bool = True, register_overlay: bool = True):
         """Initialize the statusbar."""
-        global battery
+        global battery  # noqa: PLW0603
 
         if enable_battery:
             # If drawing battery status, import battlevel and icons
@@ -41,16 +41,14 @@ class StatusBar:
             from launcher.icons import battery
             self.batt = battlevel.Battery()
 
-        if enable_clock:
-            # If drawing the clock, set a timer to periodically redraw the overlay
-            self.timer = Timer(2, mode=Timer.PERIODIC, period=60_000, callback=self._update_overlay)
-
-        self.enable_clock = enable_clock
         self.enable_battery = enable_battery
 
         self.config = get_instance(Config)
 
-        Display.overlay_callbacks.append(self._overlay)
+        if register_overlay:
+            Display.overlay_callbacks.append(self.draw)
+            # Set a timer to periodically redraw the clock
+            self.timer = Timer(2, mode=Timer.PERIODIC, period=60_000, callback=self._update_overlay)
 
 
     @staticmethod
@@ -73,7 +71,7 @@ class StatusBar:
         return time_string, ampm
 
 
-    def _overlay(self, display: Display):
+    def draw(self, display: Display):
         """Draw the status bar."""
 
         # Draw statusbar base
@@ -89,40 +87,39 @@ class StatusBar:
         )
 
         # clock
-        if self.enable_clock:
-            _, _, _, hour_24, minute, _, _, _ = time.localtime()
+        _, _, _, hour_24, minute, _, _, _ = time.localtime()
 
-            if self.config['24h_clock']:
-                formatted_time = f"{hour_24}:{minute:02d}"
-            else:
-                formatted_time, ampm = self._time_24_to_12(hour_24, minute)
-                display.text(
-                    ampm,
-                    _CLOCK_AMPM_X_OFFSET
-                    + (len(formatted_time)
-                    * _SMALL_FONT_WIDTH),
-                    _CLOCK_AMPM_Y + 1,
-                    self.config.palette[5],
-                )
-                display.text(
-                    ampm,
-                    _CLOCK_AMPM_X_OFFSET
-                    + (len(formatted_time)
-                        * _SMALL_FONT_WIDTH),
-                    _CLOCK_AMPM_Y,
-                    self.config.palette[2],
-                )
-
+        if self.config['24h_clock']:
+            formatted_time = f"{hour_24}:{minute:02d}"
+        else:
+            formatted_time, ampm = self._time_24_to_12(hour_24, minute)
             display.text(
-                formatted_time,
-                _CLOCK_X, _CLOCK_Y+1,
+                ampm,
+                _CLOCK_AMPM_X_OFFSET
+                + (len(formatted_time)
+                * _SMALL_FONT_WIDTH),
+                _CLOCK_AMPM_Y + 1,
+                self.config.palette[5],
+            )
+            display.text(
+                ampm,
+                _CLOCK_AMPM_X_OFFSET
+                + (len(formatted_time)
+                    * _SMALL_FONT_WIDTH),
+                _CLOCK_AMPM_Y,
                 self.config.palette[2],
             )
-            display.text(
-                formatted_time,
-                _CLOCK_X, _CLOCK_Y,
-                self.config.palette[7],
-            )
+
+        display.text(
+            formatted_time,
+            _CLOCK_X, _CLOCK_Y+1,
+            self.config.palette[2],
+        )
+        display.text(
+            formatted_time,
+            _CLOCK_X, _CLOCK_Y,
+            self.config.palette[7],
+        )
 
         # battery
         if self.enable_battery:
