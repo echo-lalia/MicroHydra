@@ -15,6 +15,8 @@ _FONT_WIDTH = const(8)
 _LINE_PADDING = const(2)
 _FULL_LINE_HEIGHT = const(_LINE_PADDING + _FONT_HEIGHT)
 
+_LEFT_PADDING = const(4)
+
 _STATUSBAR_HEIGHT = const(18)
 _SCROLLBAR_HEIGHT = const(3)
 _LINE_DRAW_START = const(_STATUSBAR_HEIGHT + _LINE_PADDING)
@@ -302,19 +304,55 @@ class FileLines:
                 )
 
 
-    def draw(self, display, cursor):
+    def draw(self, display, cursor, select_cursor):
         """Update display lines and draw them to the display."""
-        self.update_display_lines(cursor)
+        self.update_display_lines(cursor if select_cursor is None else select_cursor)
 
+        # Draw each line
         y = _LINE_DRAW_START
-        for i in range(self.display_y, self.display_y + _OVERDRAW_DISPLAY_LINES):
-            line = self.display_lines[i]
+        for line_idx in range(self.display_y, self.display_y + _OVERDRAW_DISPLAY_LINES):
+            line = self.display_lines[line_idx]
+
+            # Determine if line has a highlighted selection
+            if select_cursor is None:
+                # No highlight if there is no selection
+                highlight = None
+            else:
+                # There is a selection to highlight. Start by finding which cursor comes first.
+                start_cursor = min(cursor, select_cursor)
+                end_cursor = max(cursor, select_cursor)
+
+                if line_idx == start_cursor.y:
+                    # Highlight from start cursor to end cursor (or end of line)
+                    highlight = (
+                        start_cursor.x,
+                        end_cursor.x if start_cursor.y == end_cursor.y else len(self[line_idx]),
+                    )
+
+                elif start_cursor.y < line_idx < end_cursor.y:
+                    # this line is between the cursors. Highlight the whole thing.
+                    highlight = (
+                        0,
+                        min(len(self[line_idx]), 1),
+                    )
+
+                elif line_idx == end_cursor.y:
+                    # This is the final line to highlight. Highlight from start of line to end_cursor
+                    highlight = (0, end_cursor.x)
+
+                else:
+                    # This line is not inside the selection.
+                    highlight = None
+
+            # Draw the line
             line.draw(
                 display,
                 self.display_x * -_FONT_WIDTH, y,
-                selected=(i == cursor.y),
+                selected=(line_idx == (cursor.y if select_cursor is None else select_cursor.y)),
+                highlight=highlight,
             )
             y += _FULL_LINE_HEIGHT
+
 
         # Draw scrollbar
         display.vline(_SCROLLBAR_VLINE_X, _LINE_DRAW_START, _SCROLLBAR_TOTAL_HEIGHT, display.palette[2])

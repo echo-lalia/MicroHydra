@@ -45,14 +45,39 @@ class DisplayLine:
         return [idx * _FONT_WIDTH + _LEFT_MARGIN for idx, char in enumerate(text) if char == _INDENT_SYM]
 
 
-    def draw(self, display, x:int, y:int, *, selected: bool = False):
-        """Draw all the tokens in this line."""
+    def draw(self, display, x:int, y:int, *, selected: bool = False, highlight: None|tuple = None):
+        """Draw all the tokens in this line.
+
+        Args:
+        - display (Display):
+            The display object to draw to.
+        - x (int):
+            The x position to start the line at.
+        - y (int):
+            The y position to start the line at.
+        - selected (bool):
+            Whether or not this is the currently active line.
+        - highlight (tuple[int, int] | None):
+            If provided, should be a 2-tuple of the start/end text indicies to highlight.
+        """
         # Blackout line
         if selected:
             display.rect(0, y, _MH_DISPLAY_WIDTH, _FULL_LINE_HEIGHT, display.palette[1], fill=True)
         else:
             display.rect(0, y, _MH_DISPLAY_WIDTH, _FULL_LINE_HEIGHT, display.palette[2], fill=True)
-#             display.hline(_UNDERLINE_PADDING_L, y+_LINE_BG_HEIGHT, _UNDERLINE_WIDTH, display.palette[1])
+
+        # Draw highlights
+        if highlight:
+            highlight_x = x + highlight[0] * _FONT_WIDTH
+            highlight_width = (x + highlight[1] * _FONT_WIDTH) - highlight_x
+            display.rect(
+                highlight_x + _LEFT_PADDING,
+                y,
+                highlight_width,
+                _FULL_LINE_HEIGHT,
+                display.palette[13],
+                fill=True,
+            )
 
 
         # Draw indentation

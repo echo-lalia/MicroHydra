@@ -397,7 +397,7 @@ class Editor:
 
         self.display.fill(self.display.palette[2])
         self.lines.update_display_lines(self.cursor, force_update=True)
-        self.lines.draw(self.display, self.cursor)
+        self.lines.draw(self.display, self.cursor, self.select_cursor)
         self.draw_statusbar()
 
         while True:
@@ -407,11 +407,13 @@ class Editor:
                 self.handle_input(keys)
                 self.lines.draw(
                     self.display,
-                    self.select_cursor if self.select_cursor is not None else self.cursor,
+                    self.cursor,
+                    self.select_cursor,
+                    # self.select_cursor if self.select_cursor is not None else self.cursor,
                 )
                 # Draw selection if it exists:
-                if self.select_cursor is not None:
-                    self.cursor.draw_selection_cursor(self.select_cursor, self.display, self.lines)
+                # if self.select_cursor is not None:
+                #     self.cursor.draw_selection_cursor(self.select_cursor, self.display, self.lines)
                 # Update statusbar
                 self.draw_statusbar()
 
