@@ -58,6 +58,9 @@ class FileLines:
         """Create a FileLines from the given lines."""
         for idx, line in enumerate(lines):
             lines[idx] = self._clean_line(line)
+        # Must have at least one string in file
+        if len(lines) == 0:
+            lines.append("")
 
         self.lines = lines
         self.display_lines = {}
