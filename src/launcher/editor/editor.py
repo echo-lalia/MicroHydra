@@ -85,6 +85,16 @@ class Editor:
         self.modified = False
 
 
+    def save(self):
+        """Save the file, display some status text."""
+        if not self.modified:
+            return
+        self.overlay.draw_textbox("Saving...")
+        self.display.show()
+        self.lines.save(self.filepath)
+        self.modified = False
+
+
     def open_file(self, filepath: str):
         """Open the given text file."""
         with open(filepath) as f:
@@ -118,8 +128,7 @@ class Editor:
         choice = self.overlay.popup_options(_OPTIONS, title="GO...")
 
         if choice == "Save":
-            self.lines.save(self.filepath)
-            self.modified = False
+            self.save()
         elif choice == "Run...":
             self.run_options()
         elif choice == "Exit...":
@@ -168,13 +177,13 @@ class Editor:
             if self.modified:
                 choice = self.overlay.popup_options(("Save", "Discard"), title="Save changes?")
                 if choice == "Save":
-                    self.lines.save(self.filepath)
+                    self.save()
             self.boot_into_file(_FILE_BROWSER)
 
         elif choice == "Exit to Launcher":
             choice = self.overlay.popup_options(("Save", "Discard"), title="Save changes?")
             if choice == "Save":
-                self.lines.save(self.filepath)
+                self.save()
             self.boot_into_file('')
 
 
@@ -187,7 +196,7 @@ class Editor:
 
     def run_file_here(self):
         """Try running the target file here."""
-        self.lines.save(self.filepath)
+        self.save()
         self.overlay.draw_textbox("Running...")
         self.display.show()
         try:
@@ -248,8 +257,7 @@ class Editor:
 
                 # Save file
                 elif key == "s":
-                    self.lines.save(self.filepath)
-                    self.modified = False
+                    self.save()
 
 
                 # Clipboard
