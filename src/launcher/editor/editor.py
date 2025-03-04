@@ -320,7 +320,7 @@ class Editor:
                     self.modified = True
 
 
-                elif key == self.inpt.aux_action:
+                elif key == "G0":
                     self.file_options()
 
 
