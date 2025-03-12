@@ -52,10 +52,12 @@ def del_from_str(string:str, delstrings:str) -> str:
 def _help(*args) -> str:
     """Get usage info."""
     global commands  # noqa: PLW0602
+    global usr_commands  # noqa: PLW0602
     if "commands" in args:
         return (
             ctext("Commands:\n", 'DIM')
             + ctext(del_from_str(list(commands.keys()), ('[',']',"'")), 'OKBLUE')
+            + (" " + ctext(del_from_str(usr_commands, ('{','}',"'")), 'OKGREEN') if usr_commands else '')
         )
     return (
         ctext("MicroHydra Terminal:\n", 'DIM')
@@ -88,3 +90,13 @@ def get_commands(term) -> dict:
     })
     return commands
 
+
+def get_usr_commands() -> set:
+    """Get a set of user-defined commands."""
+    global usr_commands  # noqa: PLW0603
+    usr_commands = set()
+    if 'usr' in os.listdir('/'):
+        for name in os.listdir('/usr'):
+            if name.endswith('.py'):
+                usr_commands.add(name[:-3])
+    return usr_commands
