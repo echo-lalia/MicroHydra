@@ -16,13 +16,13 @@ from lib.hydra import loader
 from lib.userinput import UserInput
 from lib.device import Device
 from launcher.terminal.terminal import Terminal
-from launcher.terminal.commands import get_commands, ctext
+from launcher.terminal.commands import get_commands, get_usr_commands, ctext
 
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-_TERMINAL_VERSION = const("2.0")
+_TERMINAL_VERSION = const("2.1")
 
 _MH_DISPLAY_HEIGHT = const(135)
 _MH_DISPLAY_WIDTH = const(240)
@@ -100,8 +100,22 @@ def find_py_path(name: str) -> str|None:
     return None
 
 
+def try_usr_cmd(cmd: str, argv) -> bool:
+    """Run user command if it exists.
+
+    Return True if a command was run, else False.
+    """
+    try:
+        execute_script(f'/usr/{cmd}.py', argv)
+    except Exception as e:
+        term.print(ctext(repr(e), "RED"))
+    else:
+        return True
+    return False
+
+
 def execute_script(path, argv):
-    """Import (or re-import) a given python module."""
+    """Load and execute a given python module."""
     # sys.argv can't be assigned, (no `=`) but it can be modified.
     sys.argv.clear()
     sys.argv.extend(argv)
@@ -195,6 +209,7 @@ Type \x1b[1mhelp\x1b[22m to print a help message.\x1b[0m
 
     redraw_counter = 0
     commands = get_commands(term)
+    usr_commands = get_usr_commands()
     user_globals = {}
     while True:
 
@@ -207,7 +222,11 @@ Type \x1b[1mhelp\x1b[22m to print a help message.\x1b[0m
                 inpt = term.submit_line()
                 if inpt and not inpt.isspace():
                     cmd, *args = inpt.split()
-                    if cmd in commands:
+
+                    if cmd in usr_commands and try_usr_cmd(cmd, args):
+                        pass  # user command was run
+
+                    elif cmd in commands:
                         try:
                             result = commands[cmd](*args)
                             if result is not None:
