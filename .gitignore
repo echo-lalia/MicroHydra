@@ -4,6 +4,7 @@
 # Local config files
 /.vscode
 /src/config.json
+/.idea
 
 # Temporary files
 *.bak
@@ -11,3 +12,6 @@
 # Python cache files
 __pycache__/
 tools/__pycache__/
+
+# macOS cache files
+.DS_Store
