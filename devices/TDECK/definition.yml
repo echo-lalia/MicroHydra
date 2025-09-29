@@ -38,5 +38,6 @@ features:
 - spi_ram
 - shared_sdcard_spi
 
+mpy_port: esp32
 mpy_arch: xtensawin
 source_board: MICROHYDRA_GENERIC_S3
