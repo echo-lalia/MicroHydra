@@ -25,5 +25,5 @@ if is_windows:
     print("Running in Windows, attempting to use WSL...")
     launch_wsl()
 else:
-    print("Building mpy_cross...")
+    print("Installing esp-idf...")
     setup_idf()
