@@ -50,6 +50,7 @@ import argparse
 import re
 import shutil
 import time
+import mh_build_config as mh
 
 
 # just used for printing the script time on completion:
@@ -101,28 +102,16 @@ DEFAULT_CONSTANTS = default['constants']
 DEFAULT_FEATURES = default['features']
 
 # Only include these files in the "frozen" MicroHydra firmware
-ONLY_INCLUDE_IF_FROZEN = [
-    os.path.join(SOURCE_PATH, 'font', 'utf8_8x8.py')
-]
+ONLY_INCLUDE_IF_FROZEN = [os.path.join(SOURCE_PATH, path) for path in mh.ONLY_INCLUDE_IF_FROZEN]
+
 # Only include these files in the non-frozen MicroHydra firmware
-DONT_INCLUDE_IF_FROZEN = [
-    os.path.join(SOURCE_PATH, 'font', 'utf8_8x8.bin')
-]
-
-
-
-# These file/dir names in `devices/` should not define new devices
-NON_DEVICE_FILES = ['default.yml', 'esp32_mpy_build', 'README.md']
+DONT_INCLUDE_IF_FROZEN = [os.path.join(SOURCE_PATH, path) for path in mh.DONT_INCLUDE_IF_FROZEN]
 
 
 # Designate unicode "noncharacter" as representation of completed mh conditional
 # 1-byte noncharacters = U+FDD0..U+FDEF, choosing from these arbitrarily.
 CONDITIONAL_PARSED_FLAG = chr(0xFDD1)
 CONDITIONAL_PARSED_ORIGINAL_DELIMITER = chr(0xFDD2)
-
-# TODO: This information, along with much of the information listed above,
-# should probably be moved into a separate config file.
-MICROHYDRA_VERSION = (2, 5, 0)
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -148,7 +137,7 @@ def main():
     # parse devices into list of Device objects
     devices = []
     for filepath in os.listdir(DEVICE_PATH):
-        if filepath not in NON_DEVICE_FILES:
+        if filepath not in mh.NON_DEVICE_FILES:
             devices.append(Device(filepath))
 
     # print status information
@@ -232,7 +221,7 @@ class Device:
     def create_device_module(self, dest_path):
         """Create lib.device.py file containing device-specific values."""
         # reformat device constants into plain 'snake case'
-        new_dict = {'name': self.name, 'mh_version': MICROHYDRA_VERSION}
+        new_dict = {'name': self.name, 'mh_version': mh.MICROHYDRA_VERSION}
         for key, val in self.constants.items():
             key = key.removeprefix('_MH_').lower()
 

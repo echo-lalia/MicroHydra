@@ -7,7 +7,7 @@ import yaml
 import argparse
 import subprocess
 import shutil
-from parse_files import NON_DEVICE_FILES
+from mh_build_config import NON_DEVICE_FILES
 
 
 # argparser stuff:

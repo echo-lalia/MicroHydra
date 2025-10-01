@@ -4,7 +4,7 @@ Clean MicroHydra build folders for a clean run.
 
 import os
 import shutil
-from parse_files import NON_DEVICE_FILES
+from mh_build_config import NON_DEVICE_FILES
 
 
 
