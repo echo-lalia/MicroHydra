@@ -20,6 +20,8 @@ _MH_DISPLAY_DC = const(34)
 _MH_DISPLAY_BACKLIGHT = const(38)
 _MH_DISPLAY_ROTATION = const(1)
 
+_MH_DISPLAY_TINY_BUF_DEFAULT = const(False)
+
 
 class Display(st7789.ST7789):
     """Main graphics class for MicroHydra.
@@ -41,7 +43,7 @@ class Display(st7789.ST7789):
     def __init__(
             self,
             *,
-            use_tiny_buf=False,
+            use_tiny_buf=_MH_DISPLAY_TINY_BUF_DEFAULT,
             **kwargs):
         """Initialize the Display."""
         # mh_if TDECK:

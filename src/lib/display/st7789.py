@@ -147,12 +147,19 @@ _DISPLAY_128x128 = const((
     (0xc0, 128, 128, 2, 1),
     (0xa0, 128, 128, 1, 2)))
 
+_DISPLAY_320x320 = const((
+    (0x40, 320, 320, 0, 0),
+    (0x60, 320, 320, 0, 0), # untested (madctl probably wrong)
+    (0xc0, 320, 320, 0, 0), # untested
+    (0xa0, 320, 320, 0, 0)))# untested
+
 # Supported displays (physical width, physical height, rotation table)
 _SUPPORTED_DISPLAYS = const((
     (240, 320, _DISPLAY_240x320),
     (240, 240, _DISPLAY_240x240),
     (135, 240, _DISPLAY_135x240),
-    (128, 128, _DISPLAY_128x128)))
+    (128, 128, _DISPLAY_128x128),
+    (320, 320, _DISPLAY_320x320)))
 
 # init tuple format (b'command', b'data', delay_ms)
 _ST7789_INIT_CMDS = const((

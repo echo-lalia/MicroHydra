@@ -13,6 +13,7 @@ constants:
   _MH_DISPLAY_ROTATION: '1'
   _MH_DISPLAY_SCK: '40'
   _MH_DISPLAY_SPI_ID: '1'
+  _MH_DISPLAY_TINY_BUF_DEFAULT: 'False'
 
   _MH_I2S_ID: '1'
   _MH_I2S_SCK: '7'
