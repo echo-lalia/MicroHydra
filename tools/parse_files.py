@@ -68,7 +68,7 @@ epilog='This program is designed to enable multi-platform support in MicroHydra.
 
 PARSER.add_argument('-s', '--source', help='Path to MicroHydra source to be parsed.')
 PARSER.add_argument('-D', '--devices', help='Path to device definition folder.')
-PARSER.add_argument('-d', '--dest', help='Destination path for parsed MicroHydra files.')
+# PARSER.add_argument('-d', '--dest', help='Destination path for parsed MicroHydra files.')
 PARSER.add_argument('-v', '--verbose', action='store_true')
 PARSER.add_argument('-z', '--zip', action='store_true', help='Put output device files into zip archives.')
 PARSER.add_argument('--frozen', action='store_true')
@@ -76,7 +76,7 @@ SCRIPT_ARGS = PARSER.parse_args()
 
 SOURCE_PATH = SCRIPT_ARGS.source
 DEVICE_PATH = SCRIPT_ARGS.devices
-DEST_PATH = SCRIPT_ARGS.dest
+# DEST_PATH = SCRIPT_ARGS.dest
 ZIP = SCRIPT_ARGS.zip
 FROZEN = SCRIPT_ARGS.frozen
 VERBOSE = SCRIPT_ARGS.verbose
@@ -89,11 +89,13 @@ if SOURCE_PATH is None:
     SOURCE_PATH = os.path.join(CWD, 'src')
 if DEVICE_PATH is None:
     DEVICE_PATH = os.path.join(CWD, 'devices')
-if DEST_PATH is None:
-    if FROZEN:
-        DEST_PATH = os.path.join(CWD, 'MicroPython', 'ports', 'esp32', 'boards')
-    else:
-        DEST_PATH = os.path.join(CWD, 'MicroHydra')
+MP_PATH = os.path.join(CWD, 'MicroPython')
+MH_OUT_PATH = os.path.join(CWD, 'MicroHydra')
+# if DEST_PATH is None:
+#     if FROZEN:
+#         DEST_PATH = os.path.join(CWD, 'MicroPython', 'ports', 'esp32', 'boards')
+#     else:
+#         DEST_PATH = os.path.join(CWD, 'MicroHydra')
 
 
 Device.load_defaults(DEVICE_PATH)
@@ -145,7 +147,7 @@ def main():
     print("\n")
     vprint(f"CWD: {bcolors.OKBLUE}{CWD}{bcolors.ENDC}")
     print(f"Parsing files in {bcolors.OKBLUE}{SOURCE_PATH}{bcolors.ENDC}")
-    print(f"Destination: {bcolors.OKBLUE}{DEST_PATH}{bcolors.ENDC}")
+    # print(f"Destination: {bcolors.OKBLUE}{DEST_PATH}{bcolors.ENDC}")
     vprint(f"Found devices: {bcolors.OKCYAN}{devices}{bcolors.ENDC}")
     print("")
 
@@ -156,27 +158,36 @@ def main():
 
         # initialize and parse this file for each device 
         for device in devices:
+            if FROZEN:
+                dest_path = device.get_unique_board_path(MP_PATH)
+            else:
+                dest_path = os.path.join(MH_OUT_PATH, device.name)
+
             if file_parser.can_parse_file():
                 vprint(f"    {bcolors.OKCYAN}{device}{bcolors.ENDC}")
                 file_parser.init_lines()
                 file_parser.parse_constants(device)
                 file_parser.parse_conditionals(device, frozen=FROZEN)
-                file_parser.save(DEST_PATH, device)
+                file_parser.save(dest_path, device)
             else:
                 # This script is only designed for .py files.
                 # unsupported files should just be copied instead.
                 vprint(f"    {bcolors.OKCYAN}copying directly...{bcolors.ENDC}")
-                file_parser.save_unparsable_file(DEST_PATH, device)
+                file_parser.save_unparsable_file(dest_path, device)
     
     # for each device, copy device-specific source files to output folder
     for device in devices:
+        if FROZEN:
+            dest_path = device.get_unique_board_path(MP_PATH)
+        else:
+            dest_path = os.path.join(MH_OUT_PATH, device.name)
         device_file_data = get_device_files(device)
         for dir_entry, file_path in device_file_data:
             # definition file does not need to be copied over
             if dir_entry.name != "definition.yml":
                 file_parser = FileParser(dir_entry, file_path)
-                file_parser.save_unparsable_file(DEST_PATH, device)
-        device.create_device_module(DEST_PATH, mh.MICROHYDRA_VERSION)
+                file_parser.save_unparsable_file(dest_path, device)
+        device.create_device_module(dest_path, mh.MICROHYDRA_VERSION)
 
     # when --zip is specified, also put device files into a zip archive.
     if ZIP:
@@ -643,7 +654,7 @@ class FileParser:
 
     def save_unparsable_file(self, dest_path, device):
         """For file types that shouldn't be modified, just copy instead."""
-        dest_path = os.path.join(dest_path, device.name, self.relative_path, self.name)
+        dest_path = os.path.join(dest_path, self.relative_path, self.name)
         # make target directory:
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         # write our original file data:
@@ -654,7 +665,7 @@ class FileParser:
 
     def save(self, dest_path, device):
         """Save modified contents to given destination."""
-        dest_path = os.path.join(dest_path, device.name, self.relative_path, self.name)
+        dest_path = os.path.join(dest_path, self.relative_path, self.name)
         # make target directory:
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         # write our modified lines:

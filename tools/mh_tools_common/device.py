@@ -67,7 +67,7 @@ class Device:
         new_feats.append(self.name)
 
         # find target path
-        destination = os.path.join(dest_path, self.name, 'lib', 'device.py')
+        destination = os.path.join(dest_path, 'lib', 'device.py')
 
         file_str = f'''\
 """This is an automatically generated module that contains the MH config for this specific device.
