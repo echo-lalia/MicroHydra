@@ -7,7 +7,7 @@ import yaml
 import argparse
 import subprocess
 import shutil
-from mh_tools_common import bcolors
+from mh_tools_common import bcolors, Device
 from mh_build_config import NON_DEVICE_FILES
 
 
@@ -36,12 +36,13 @@ OG_DIRECTORY = CWD
 
 print(CWD)
 
-if SOURCE_PATH is None:
-    SOURCE_PATH = os.path.join(CWD, 'MicroPython', 'ports', 'esp32')
+MP_PATH = os.path.join(CWD, 'MicroPython')
 if DEVICE_PATH is None:
     DEVICE_PATH = os.path.join(CWD, 'devices')
 if IDF_PATH is None:
     IDF_PATH = os.path.join(CWD, 'esp-idf')
+
+Device.load_defaults(DEVICE_PATH)
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -54,49 +55,50 @@ def main():
     """
 
     # parse devices into list of Device objects
-    devices = []
+    esp32_devices = []
+    rp2_devices = []
     for filepath in os.listdir(DEVICE_PATH):
         if filepath not in NON_DEVICE_FILES:
-            devices.append(Device(filepath))
+            device = Device(filepath)
+            if device.mpy_port == 'esp32':
+                esp32_devices.append(device)
+            elif device.mpy_port == 'rp2':
+                rp2_devices.append(device)
+            else:
+                raise ValueError(f"Unrecognized device.mpy_port: {device.mpy_port}")
 
-    # Run build script, passing each target device name.
-    print(f"{bcolors.OKBLUE}Running builds for {', '.join([device.name.title() for device in devices])}...{bcolors.ENDC}")
-    subprocess.call([os.path.join('tools', 'build_device_bin.sh')] + [device.name for device in devices])
+    # Run build for rp2 devices
+    print(f"{bcolors.OKBLUE}Running rp2 build for {', '.join([device.name.title() for device in rp2_devices])}...{bcolors.ENDC}")
+    subprocess.call([os.path.join('tools', 'build_rp2_device_bin.sh')] + [device.name for device in rp2_devices])
 
-    # Rename/move firmware bins for each device.
-    for device in devices:
+    # Run build for esp32 devices, passing each target device name.
+    print(f"{bcolors.OKBLUE}Running builds for {', '.join([device.name.title() for device in esp32_devices])}...{bcolors.ENDC}")
+    subprocess.call([os.path.join('tools', 'build_esp32_device_bin.sh')] + [device.name for device in esp32_devices])
+
+    # Rename/move firmware bins for each esp32 device.
+    source_path = os.path.join(MP_PATH, 'ports', 'esp32')
+    for device in esp32_devices:
         os.chdir(OG_DIRECTORY)
 
         print(f'{bcolors.OKBLUE}Extracting "{device.name}.bin"...{bcolors.ENDC}')
         os.rename(
-            os.path.join(SOURCE_PATH, f'build-{device.name}', 'firmware.bin'),
+            os.path.join(source_path, f'build-{device.name}', 'firmware.bin'),
             os.path.join(OG_DIRECTORY, 'MicroHydra', f'{device.name}.bin'),
         )
 
+    # Rename/move firmware uf2 for each rp2 device.
+    source_path = os.path.join(MP_PATH, 'ports', 'rp2')
+    for device in rp2_devices:
+        os.chdir(OG_DIRECTORY)
+
+        print(f'{bcolors.OKBLUE}Extracting "{device.name}.uf2"...{bcolors.ENDC}')
+        os.rename(
+            os.path.join(source_path, f'build-{device.name}', 'firmware.uf2'),
+            os.path.join(OG_DIRECTORY, 'MicroHydra', f'{device.name}.uf2'),
+        )
 
     print(f"{bcolors.OKGREEN}Finished making compiled bins.{bcolors.ENDC}")
     os.chdir(OG_DIRECTORY)
-
-
-
-        
-
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Classes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-class Device:
-    """Store/parse device/platform details."""
-    def __init__(self, name):
-        self.name = name
-
-    def __repr__(self):
-        return f"Device({self.name})"
-
-
-
-
-
 
 
 
