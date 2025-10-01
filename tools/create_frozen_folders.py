@@ -8,7 +8,7 @@ import argparse
 import subprocess
 import shutil
 from mh_tools_common import bcolors, Device
-from mh_build_config import NON_DEVICE_FILES
+from mh_build_config import NON_DEVICE_FILES, MPY_BUILD_COPY_FOLDERS
 
 
 # argparser stuff:
@@ -37,8 +37,6 @@ OG_DIRECTORY = CWD
 
 if MP_PATH is None:
     MP_PATH = os.path.join(CWD, 'MicroPython')
-if DEST_PATH is None:
-    DEST_PATH = os.path.join(MP_PATH, 'ports', 'esp32', 'boards')
 if DEVICE_PATH is None:
     DEVICE_PATH = os.path.join(CWD, 'devices')
 
@@ -55,10 +53,12 @@ def main():
     and all of the functions/classes used here are defined below.
     """
 
-    # start by copying over custom MicroHydra build files
-    custom_build_path = os.path.join(DEVICE_PATH, 'esp32_mpy_build')
-    mpy_esp32_path = os.path.join(MP_PATH, 'ports', 'esp32')
-    shutil.copytree(custom_build_path, mpy_esp32_path, dirs_exist_ok=True)
+    # start by copying over custom MicroHydra build files for each port
+    for source_path, dest_path in MPY_BUILD_COPY_FOLDERS:
+        print(f"Copying port files: {source_path} -> {dest_path}")
+        port_source_path = os.path.join(DEVICE_PATH, source_path)
+        port_dest_path = os.path.join(MP_PATH, dest_path)
+        shutil.copytree(port_source_path, port_dest_path, dirs_exist_ok=True)
 
     # parse devices into list of Device objects
     devices = []
@@ -70,18 +70,22 @@ def main():
     for device in devices:
         print(f"Copying board files for {device.name.title()}...")
 
-        device_source_path = os.path.join(DEVICE_PATH, device.name)
-        board_source_path = os.path.join(DEST_PATH, device.source_board)
-        dest_path = os.path.join(DEST_PATH, device.name)
-
         # copy 'source board' as a baseline
         source_files = []
-        for dir_entry in os.scandir(board_source_path):
+
+        device_source_path = device.get_source_path()
+        print(f"\t - {device_source_path=}")
+        source_board_path = device.get_source_board_path(MP_PATH)
+        print(f"\t - {source_board_path=}")
+        unique_board_path = device.get_unique_board_path(MP_PATH)
+        print(f"\t - {unique_board_path=}")
+
+        for dir_entry in os.scandir(source_board_path):
             source_files += extract_file_data(dir_entry, '')
         
         for dir_entry, file_path in source_files:
             file_copier = FileCopier(dir_entry, file_path)
-            file_copier.copy_to(dest_path)
+            file_copier.copy_to(unique_board_path)
 
         # copy device-specific board files
         source_files = []
@@ -90,7 +94,7 @@ def main():
         
         for dir_entry, file_path in source_files:
             file_copier = FileCopier(dir_entry, file_path)
-            file_copier.copy_to(dest_path)
+            file_copier.copy_to(unique_board_path)
 
     
     print("Finished copying MicroPython board files.")

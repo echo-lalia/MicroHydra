@@ -32,6 +32,18 @@ class Device:
     def __repr__(self):
         return f"Device({self.name})"
 
+    def get_source_path(self) -> str:
+        """Get the path the this device's definition source folder."""
+        return os.path.join(self.device_path, self.name)
+
+    def get_source_board_path(self, micropython_path: str) -> str:
+        """Return the path to this device's source/basis micropython board folder."""
+        return os.path.join(micropython_path, 'ports', self.mpy_port, 'boards', self.source_board)
+
+    def get_unique_board_path(self, micropython_path: str) -> str:
+        """Return the path to this device's unique/output board micropython folder."""
+        return os.path.join(micropython_path, 'ports', self.mpy_port, 'boards', self.name)
+
     def create_device_module(self, dest_path, mh_version: tuple[int, int, int]):
         """Create lib.device.py file containing device-specific values."""
         # reformat device constants into plain 'snake case'

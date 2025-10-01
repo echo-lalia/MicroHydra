@@ -16,7 +16,13 @@ DONT_INCLUDE_IF_FROZEN = [
 ]
 
 # These file/dir names in `devices/` should not define new devices
-NON_DEVICE_FILES = ['default.yml', 'esp32_mpy_build', 'README.md']
+NON_DEVICE_FILES = ['default.yml', 'esp32_mpy_build', 'rp2_mpy_build', 'README.md']
 
-# files that shouldn't be compiled
+# pairs of microhydra source folders (relative to devices/), and micropython paths to copy them to (relative to MicroPython/)
+MPY_BUILD_COPY_FOLDERS = [
+    ('esp32_mpy_build', os.path.join('ports', 'esp32')),
+    ('rp2_mpy_build', os.path.join('ports', 'rp2')),
+]
+
+# src files that shouldn't be compiled
 NO_COMPILE = ('main.py', 'apptemplate.py')
