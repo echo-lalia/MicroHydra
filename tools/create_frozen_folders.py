@@ -7,7 +7,7 @@ import yaml
 import argparse
 import subprocess
 import shutil
-from mh_tools_common import bcolors
+from mh_tools_common import bcolors, Device
 from mh_build_config import NON_DEVICE_FILES
 
 
@@ -41,6 +41,10 @@ if DEST_PATH is None:
     DEST_PATH = os.path.join(MP_PATH, 'ports', 'esp32', 'boards')
 if DEVICE_PATH is None:
     DEVICE_PATH = os.path.join(CWD, 'devices')
+
+
+Device.load_defaults(DEVICE_PATH)
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main():
@@ -96,18 +100,6 @@ def main():
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Classes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-class Device:
-    """Store/parse device/platform details."""
-    def __init__(self, name):
-        with open(os.path.join(DEVICE_PATH, name, "definition.yml"), 'r', encoding="utf-8") as device_file:
-            device_def = yaml.safe_load(device_file.read())
-            self.source_board = device_def['source_board']
-        self.name = name
-
-    def __repr__(self):
-        return f"Device({self.name})"
 
 
 

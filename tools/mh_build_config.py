@@ -18,3 +18,5 @@ DONT_INCLUDE_IF_FROZEN = [
 # These file/dir names in `devices/` should not define new devices
 NON_DEVICE_FILES = ['default.yml', 'esp32_mpy_build', 'README.md']
 
+# files that shouldn't be compiled
+NO_COMPILE = ('main.py', 'apptemplate.py')

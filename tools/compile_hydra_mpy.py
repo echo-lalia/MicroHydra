@@ -7,8 +7,8 @@ import yaml
 import argparse
 import subprocess
 import shutil
-from mh_tools_common import bcolors
-from mh_build_config import NON_DEVICE_FILES
+from mh_tools_common import bcolors, Device
+from mh_build_config import NON_DEVICE_FILES, NO_COMPILE
 
 
 # argparser stuff:
@@ -30,8 +30,6 @@ DEVICE_PATH = SCRIPT_ARGS.devices
 MPY_PATH = SCRIPT_ARGS.mpy
 VERBOSE = SCRIPT_ARGS.verbose
 
-# files that shouldn't be compiled
-NO_COMPILE = ('main.py', 'apptemplate.py')
 
 # set defaults for args not given:
 CWD = os.getcwd()
@@ -43,6 +41,10 @@ if DEVICE_PATH is None:
     DEVICE_PATH = os.path.join(CWD, 'devices')
 if MPY_PATH is None:
     MPY_PATH = os.path.join(CWD, 'MicroPython', 'mpy-cross', 'build')
+
+
+Device.load_defaults(DEVICE_PATH)
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main():
@@ -88,18 +90,6 @@ def main():
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Classes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-class Device:
-    """Store/parse device/platform details."""
-    def __init__(self, name):
-        with open(os.path.join(DEVICE_PATH, name, "definition.yml"), 'r', encoding="utf-8") as device_file:
-            device_def = yaml.safe_load(device_file.read())
-            self.march = device_def['mpy_arch']
-        self.name = name
-
-    def __repr__(self):
-        return f"Device({self.name})"
 
 
 

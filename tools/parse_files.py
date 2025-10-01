@@ -50,7 +50,7 @@ import argparse
 import re
 import shutil
 import time
-from mh_tools_common import bcolors
+from mh_tools_common import bcolors, Device
 import mh_build_config as mh
 
 
@@ -96,11 +96,11 @@ if DEST_PATH is None:
         DEST_PATH = os.path.join(CWD, 'MicroHydra')
 
 
-
-with open(os.path.join(DEVICE_PATH, 'default.yml'), 'r', encoding="utf-8") as default_file:
-    default = yaml.safe_load(default_file.read())
-DEFAULT_CONSTANTS = default['constants']
-DEFAULT_FEATURES = default['features']
+Device.load_defaults(DEVICE_PATH)
+# with open(os.path.join(DEVICE_PATH, 'default.yml'), 'r', encoding="utf-8") as default_file:
+#     default = yaml.safe_load(default_file.read())
+# DEFAULT_CONSTANTS = default['constants']
+# DEFAULT_FEATURES = default['features']
 
 # Only include these files in the "frozen" MicroHydra firmware
 ONLY_INCLUDE_IF_FROZEN = [os.path.join(SOURCE_PATH, path) for path in mh.ONLY_INCLUDE_IF_FROZEN]
@@ -176,7 +176,7 @@ def main():
             if dir_entry.name != "definition.yml":
                 file_parser = FileParser(dir_entry, file_path)
                 file_parser.save_unparsable_file(DEST_PATH, device)
-        device.create_device_module(DEST_PATH)
+        device.create_device_module(DEST_PATH, mh.MICROHYDRA_VERSION)
 
     # when --zip is specified, also put device files into a zip archive.
     if ZIP:
@@ -192,79 +192,6 @@ def main():
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Classes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-class Device:
-    """Store/parse device/platform details."""
-    def __init__(self, name):
-        self.constants = DEFAULT_CONSTANTS.copy()
-        with open(os.path.join(DEVICE_PATH, name, "definition.yml"), 'r', encoding="utf-8") as device_file:
-            device_def = yaml.safe_load(device_file.read())
-            self.constants.update(device_def['constants'])
-            self.features = device_def['features']
-        self.name = name
-
-    def __repr__(self):
-        return f"Device({self.name})"
-
-    def create_device_module(self, dest_path):
-        """Create lib.device.py file containing device-specific values."""
-        # reformat device constants into plain 'snake case'
-        new_dict = {'name': self.name, 'mh_version': mh.MICROHYDRA_VERSION}
-        for key, val in self.constants.items():
-            key = key.removeprefix('_MH_').lower()
-
-            # convert None's
-            if val == 'None':
-                val = None
-            else:
-                # attempt conversion to int:
-                try:
-                    val = int(val)
-                except:
-                    pass
-
-            new_dict[key] = val
-        
-        new_feats = self.features.copy()
-        new_feats.append(self.name)
-
-        # find target path
-        destination = os.path.join(dest_path, self.name, 'lib', 'device.py')
-
-        file_str = f'''\
-"""This is an automatically generated module that contains the MH config for this specific device.
-
-`Device.vals` contains a dictionary of constants for this device.
-`Device.feats` contains a tuple of features that this device has, with the final value being the device name.
-
-Usage examples:
-```
-width = Device.display_width
-height = Device.display_height
-
-if 'touchscreen' in Device:
-    get_touch()
-```
-"""
-
-class Device:
-    vals = {new_dict}
-    feats = {tuple(new_feats)}
-
-    @staticmethod
-    def __getattr__(name:str):
-        return Device.vals[name]
-
-    @staticmethod
-    def __contains__(val:str):
-        return val in Device.feats
-
-Device = Device()
-'''
-        with open(destination, 'w') as file:
-            file.write(file_str)
-
 
 
 class FileParser:

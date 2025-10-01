@@ -16,11 +16,11 @@ constants:
   _MH_I2S_SCK: 'None'
   _MH_I2S_SD: 'None'
   _MH_I2S_WS: 'None'
-  _MH_SDCARD_CS: '1 2'
-  _MH_SDCARD_MISO: '39'
-  _MH_SDCARD_MOSI: '14'
-  _MH_SDCARD_SCK: '40'
-  _MH_SDCARD_SLOT: '2'
+  _MH_SDCARD_CS: '17'
+  _MH_SDCARD_MISO: '16'
+  _MH_SDCARD_MOSI: '19'
+  _MH_SDCARD_SCK: '18'
+  _MH_SDCARD_SLOT: '0'
 
 features:
 - keyboard
