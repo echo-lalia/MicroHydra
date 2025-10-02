@@ -596,7 +596,7 @@ class FileParser:
 
         if (feature == "frozen" and frozen) \
         or feature in device.features \
-        or feature == device.name:
+        or feature in {device.name, device.mpy_port, device.march}:
             keep_section = True
         else:
             keep_section = False

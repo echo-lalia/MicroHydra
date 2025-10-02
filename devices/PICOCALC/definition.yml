@@ -30,6 +30,7 @@ features:
 - keyboard
 - display
 - pwm_speaker
+- shared_sdcard_spi
 
 mpy_port: rp2
 mpy_arch: armv6m
