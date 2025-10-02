@@ -1,6 +1,6 @@
 """This simple module configures and mounts an SDCard."""
 
-# mh_if shared_sdcard_spi:
+# mh_if shared_sdcard_spi or rp2:
 from .sdcard import _SDCard
 # mh_end_if
 
@@ -22,7 +22,7 @@ class SDCard:
 
     def __init__(self):
         """Initialize the SDCard."""
-        # mh_if shared_sdcard_spi:
+        # mh_if shared_sdcard_spi or rp2:
         self.sd = _SDCard(
             machine.SPI(
                 _MH_SDCARD_SLOT, # actually SPI id

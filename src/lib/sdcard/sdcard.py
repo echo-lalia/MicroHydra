@@ -1,4 +1,4 @@
-# mh_include_if shared_sdcard_spi:
+# mh_include_if shared_sdcard_spi or rp2:
 """MicroPython driver for SD cards using SPI bus.
 
 Sourced from:
