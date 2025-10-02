@@ -115,7 +115,8 @@ DONT_INCLUDE_IF_FROZEN = [os.path.join(SOURCE_PATH, path) for path in mh.DONT_IN
 # 1-byte noncharacters = U+FDD0..U+FDEF, choosing from these arbitrarily.
 CONDITIONAL_PARSED_FLAG = chr(0xFDD1)
 CONDITIONAL_PARSED_ORIGINAL_DELIMITER = chr(0xFDD2)
-
+# Designate for an if/else_if/... branch that all further else statements are false.
+CONDITIONAL_ELSE_DISABLED_FLAG = chr(0xFDD3)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main():
@@ -500,30 +501,111 @@ class FileParser:
         return output
 
 
-    def _handle_expand_else(self, index, feature, has_not, else_type):
+    def _handle_expand_else(self, index: int, previous_evaluation: bool|str, else_type: str):
         """
-        Given an index and the previously decoded "if" statement, 
+        Given an index for the mh_else statement, and the result of the previous mh_if statement,
         expand an else into a new if statement.
+        previous_evaluation should be a bool or CONDITIONAL_ELSE_DISABLED_FLAG.
         """
         target_line = self.lines[index]
 
-        if else_type == "mh_else":
-            # if it's a regular else statment, 
-            # all we have to do is invert the presence of "not"
-            has_not = not has_not
+        if previous_evaluation == CONDITIONAL_ELSE_DISABLED_FLAG:
+            # This flag marks this and all connected else statements as disabled.
+            new_statement = f"# mh_if {CONDITIONAL_ELSE_DISABLED_FLAG}:"
 
+        elif else_type == "mh_else":
+            # a regular else statement
+            # is true when the previous statment is false, and vice versa
+            if previous_evaluation:
+                # Disable all future connected else statements.
+                new_statement = f"# mh_if {CONDITIONAL_ELSE_DISABLED_FLAG}:"
+            else:
+                new_statement = "# mh_if True:"
+
+        elif else_type == "mh_else_if":
+            # an else if statement. 
+            # is False when the previous statement is True,
+            # otherwise it can be transformed into a normal if statement.
+            if previous_evaluation:
+                # Disable all future connected else statements.
+                new_statement = f"# mh_if {CONDITIONAL_ELSE_DISABLED_FLAG}:"
+            else:
+                new_statement = f"# mh_if {FileParser._extract_conditional_statement(target_line)}:"
         else:
-            # if it's an elif statement, we should extract the new conditional.
-            *conditional, feature = target_line.replace(":", "", 1).split()
-            has_not = conditional[-1] == "not"
+            raise ValueError(f"Unknown else type: {else_type}")
     
         # assemble new conditional
         new_line = self.slice_str_to_char(target_line, "#")
-        not_str = " not" if has_not else ""
-        new_line = f"{new_line}# mh_if{not_str} {feature}:\n"
+        # not_str = " not" if has_not else ""
+        new_line = f"{new_line}{new_statement}\n"
         # store original line alongside modified line for formatting preservation
         self.lines[index] = new_line + CONDITIONAL_PARSED_ORIGINAL_DELIMITER + self.lines[index]
 
+
+    @staticmethod
+    def _extract_conditional_statement(line: str) -> str:
+        """Extract just the conditional logic from the mh_if line."""
+        return line.strip().removeprefix("#").strip().removeprefix("mh_if").removesuffix(":").strip()
+
+
+    @staticmethod
+    def _evaluate_condition(device: Device, line: str, frozen: bool = False) -> bool:
+        """Evaluate a single mh_if conditional statement, return evaluation result."""
+        # Extract just the conditional part of the line
+        line = FileParser._extract_conditional_statement(line)
+        if line == "False" or CONDITIONAL_ELSE_DISABLED_FLAG in line:
+            return False
+        if line == "True":
+            return True
+
+        words = line.split()
+        class Condition:
+            def __init__(self):
+                # Whether or not the condition should be inverted
+                self.invert = False
+                # Inclusive (or) or exclusive (and)
+                self.inclusive = True
+                # The actual word to match against device attributes
+                self.word = ''
+
+        # Step through each word, modifying the current conditions with each step
+        conditions = []
+        current_condition = Condition()
+        for word in words:
+            if current_condition == None:
+                current_condition = Condition()
+            if word == 'not':
+                current_condition.invert = not current_condition.invert
+            elif word == "or":
+                current_condition.inclusive = True
+            elif word == 'and':
+                current_condition.inclusive = False
+            else:
+                current_condition.word = word
+                conditions.append(current_condition)
+                current_condition = None
+
+        if current_condition:
+            # There should not be any leftover words; this is a problem!
+            print(f"WARNING: conditional couldn't be evaluated: '{line}'")
+            return False
+
+        # Evaluate each condition in the step
+        evaluation = False
+        for condition in conditions:
+            cond_eval = (
+                (condition.word == "frozen" and frozen)
+                or condition.word in device.features
+                or condition.word in {device.name, device.mpy_port, device.march}
+            )
+            if condition.invert:
+                cond_eval = not cond_eval
+            if condition.inclusive:
+                evaluation = evaluation or cond_eval
+            else:
+                evaluation = evaluation and cond_eval
+
+        return evaluation
 
     
     def _process_one_conditional(self, device, frozen=False) -> bool:
@@ -585,24 +667,8 @@ class FileParser:
         cond_line, *og_line = cond_line.split(CONDITIONAL_PARSED_ORIGINAL_DELIMITER)
         og_line = ''.join(og_line)
 
-        # get feature string
-        *conditional, feature = cond_line.replace(":", "", 1).split()
-        # as in, has the "not" keyword
-        if conditional[-1] == "not":
-            has_not = True
-        else:
-            has_not = False
-
-
-        if (feature == "frozen" and frozen) \
-        or feature in device.features \
-        or feature in {device.name, device.mpy_port, device.march}:
-            keep_section = True
-        else:
-            keep_section = False
-        
-        if has_not:
-            keep_section = not keep_section
+        # Evaluate the conditional statement in this line
+        keep_section = self._evaluate_condition(device, cond_line, frozen)
 
         # mark this conditional completed
         self.lines[cond_start_idx] += CONDITIONAL_PARSED_FLAG
@@ -611,7 +677,10 @@ class FileParser:
             # expand else/elif statement, or just remove a normal "end if"
             conditional_else = self._is_conditional_else(self.lines[cond_end_idx])
             if conditional_else:
-                self._handle_expand_else(cond_end_idx, feature, has_not, conditional_else)
+                # This is a bit awkward, but we're passing either the result of the previous evaluation,
+                # or a flag marking the following else statements invalid.
+                evaluation_type = CONDITIONAL_ELSE_DISABLED_FLAG if CONDITIONAL_ELSE_DISABLED_FLAG in cond_line else keep_section
+                self._handle_expand_else(cond_end_idx, evaluation_type, conditional_else)
             else:
                 # mark normal mh_end_if as completed
                 self.lines[cond_end_idx] += CONDITIONAL_PARSED_FLAG
@@ -624,7 +693,10 @@ class FileParser:
             # but if the final line is an elif, just reformat it
             conditional_else = self._is_conditional_else(self.lines[cond_end_idx])
             if conditional_else:
-                self._handle_expand_else(cond_end_idx, feature, has_not, conditional_else)
+                # This is a bit awkward, but we're passing either the result of the previous evaluation,
+                # or a flag marking the following else statements invalid.
+                evaluation_type = CONDITIONAL_ELSE_DISABLED_FLAG if CONDITIONAL_ELSE_DISABLED_FLAG in cond_line else keep_section
+                self._handle_expand_else(cond_end_idx, evaluation_type, conditional_else)
             else:
                 self.lines[cond_end_idx] += CONDITIONAL_PARSED_FLAG
 
