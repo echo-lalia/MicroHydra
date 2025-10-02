@@ -1,5 +1,5 @@
 constants:
-  _MH_BATT_ADC: '10'
+  _MH_BATT_ADC: 'None'
 
   _MH_DISPLAY_BACKLIGHT: '12'
   _MH_DISPLAY_BAUDRATE: '80_000_000'

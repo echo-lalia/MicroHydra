@@ -35,6 +35,7 @@ constants:
   _MH_SDCARD_SLOT: '2'
 
 features:
+- batt_adc
 - display
 - wifi
 - trackball

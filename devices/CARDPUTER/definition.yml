@@ -27,6 +27,7 @@ constants:
   _MH_SDCARD_SLOT: '2'
 
 features:
+- batt_adc
 - keyboard
 - display
 - i2s_speaker
