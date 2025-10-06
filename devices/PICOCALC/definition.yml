@@ -30,6 +30,7 @@ features:
 - keyboard
 - display
 - pwm_speaker
+- stereo_uint16_audio
 - shared_sdcard_spi
 
 mpy_port: rp2

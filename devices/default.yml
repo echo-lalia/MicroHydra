@@ -43,6 +43,9 @@ features:
 - touchscreen
 - spi_ram
 - i2s_speaker
+- pwm_speaker
+- mono_int16_audio  # Audio playback requires 16bits per frame, representing one signed 16bit channel.
+- stereo_uint16_audio  # Audio playback requires 32bits per frame, representing two unsigned 16bit channels.
 - ir_blaster
 - bluetooth
 - kb_light
