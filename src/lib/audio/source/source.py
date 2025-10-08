@@ -18,6 +18,9 @@ PERIODS = const((
     b'\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00',
 ))
 
+# As a small optimization, we can use a special 'period' (and period repeat) for when the audio is real-time. 
+PERIOD_C4 = const(b'\x01\x01\x01\x01\x01\x01\x01\x01')
+
 
 
 def file_exists(path: str) -> bool:
@@ -52,8 +55,8 @@ class Source:
         The real length of data stored in the buffer (might be shorter than `mv` length in file mode).
     `frame_idx`:
         The current index of the audio frame in `mv`.
-    `note`:
-        The index of our 'period' in `PERIODS` - controls the speed at which the frame_idx advances.
+    `period`:
+        Controls the rate that frame_idx advances.
     `period_idx`:
         The current position we are reading from in our 'period'.
     `period_repeat`:
@@ -132,7 +135,7 @@ class Source:
             self.load_from_file()
 
 
-    def set_note(self, note: int, octave: int):
+    def set_note(self, note: int = 0, octave: int = 4):
         """Set the note and octave for this source.
         
         - note:
@@ -142,8 +145,14 @@ class Source:
             Octave to play the sample at.
             By default C-4 which corresponds to unalterated sample.
         """
-        self.note = note % 12
-        self.period_repeat = 2 ** ((octave-1 if octave > 0 else 0) + (note // 12))
+        # Special case for C-4 (no time stretching)
+        if note + octave*12 == 48:
+            self.period = PERIOD_C4
+            self.period_repeat = 1
+
+        else:
+            self.period = PERIODS[note % 12]
+            self.period_repeat = 2 ** ((octave-1 if octave > 0 else 0) + (note // 12))
 
 
     def stop(self):
@@ -180,5 +189,4 @@ class Source:
             return 16
         if volume >= 10:
             return 0
-        return 16 - volume * 16 // 10
-
+        return 10 - volume

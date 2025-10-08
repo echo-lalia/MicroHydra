@@ -29,8 +29,8 @@ class MonoInt16Source(Source):
         if bool(self.finished):
             return 0
         # period is a bytes object containing information about how many source frames to advance per output frame, for our given note.
-        period_ptr = ptr8(PERIODS[self.note])
-        period_len = int(len(PERIODS[self.note]))
+        period_ptr = ptr8(self.period)
+        period_len = int(len(self.period))
         period_idx = int(self.period_idx)
         period_repeat = int(self.period_repeat)
         
@@ -79,7 +79,7 @@ class MonoInt16Source(Source):
 
             # Apply the volume, if this device doesn't have hardware volume control.
             # mh_if not hardware_volume_control:
-            # source_frame >> vol_shift
+            # source_frame >>= vol_shift
             # mh_end_if
 
             
@@ -100,7 +100,7 @@ class MonoInt16Source(Source):
             target_buf_ptr[target_frame_idx] = int((target_frame_l << 16) | target_frame_r)
 
             # mh_else_if mono_int16_audio:
-            # clamp and write signed int16 audio to buffer
+            # # clamp and write signed int16 audio to buffer
             # target_frame = target_buf_ptr[target_frame_idx]
             # target_frame += source_frame
             # if target_frame < _INT16_MINVAL:
