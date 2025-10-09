@@ -18,13 +18,13 @@ PERIODS = const((
     b'\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00',
 ))
 
-# As a small optimization, we can use a special 'period' (and period repeat) for when the audio is real-time. 
+# As a small optimization, we can use a special 'period' (and period repeat) for when the audio is real-time.
 PERIOD_C4 = const(b'\x01\x01\x01\x01\x01\x01\x01\x01')
 
 
 
 def file_exists(path: str) -> bool:
-    """Returns whether or not the path points to an existing file."""
+    """Return whether or not the path points to an existing file."""
     _FILE_FLAG = const(0x8000)
     try:
         return os.stat(path)[0] == _FILE_FLAG
@@ -35,7 +35,7 @@ def file_exists(path: str) -> bool:
 
 class Source:
     """Base Source class.
-    
+
     Handles reading a specific type of data,
     and filling a buffer with converted samples on request.
 
@@ -68,9 +68,11 @@ class Source:
     `finished`:
         Whether or not the audio source has finished.
     """
+
     def __init__(
             self,
             data,  # A file, path to a file, or a memoryview
+            *,
             frame_idx: int = 0,
             note: int = 0,
             octave: int = 4,
@@ -80,6 +82,7 @@ class Source:
             buf_size: int = 512,
     ):
         """Initialize the audio source.
+
         `data`:
             a file, filepath, or memoryview to use as sample data.
         `frame_idx`:
@@ -107,7 +110,7 @@ class Source:
             self.mv_end = len(self.mv)
         # Use data as a file path
         elif isinstance(data, str) and file_exists(data):
-            self.file = open(data, 'rb')
+            self.file = open(data, 'rb')  # noqa: SIM115 # We need to keep this file open.
             self.file_mode = True
             self.file_start_position = 0
             self.buf = bytearray(buf_size)
@@ -123,7 +126,7 @@ class Source:
             self.mv_end = 0
         else:
             raise AttributeError(f"Source data {data} is not a recognized source.")
-        
+
         self.frame_idx = frame_idx
         self.period_idx = period_idx
         self.loop = loop
@@ -137,7 +140,7 @@ class Source:
 
     def set_note(self, note: int = 0, octave: int = 4):
         """Set the note and octave for this source.
-        
+
         - note:
             Numerical 0-12 mapping from C-0 to B-0.
             Numbers outside that range will affect octave as well.
@@ -172,8 +175,7 @@ class Source:
                 self.file.seek(self.file_start_position, 0)
                 self.load_from_file()
                 return
-            else:
-                self.stop()
+            self.stop()
         self.mv_end = bytes_read
 
 
@@ -183,7 +185,7 @@ class Source:
         """Convert volume from 0-10 into a bit shift from 16-0.
 
         This default implementation is designed for 16bit formats;
-        it may need to be modified for other formats. 
+        it may need to be modified for other formats.
         """
         if volume <= 0:
             return 16

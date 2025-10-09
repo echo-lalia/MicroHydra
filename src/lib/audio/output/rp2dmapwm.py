@@ -13,8 +13,8 @@ always write a 32-bit word (duplicating 8 or 16bit words to fit the space).
 
 """
 from machine import Pin, PWM, mem32, freq
+from rp2 import DMA
 from .output import Output
-
 
 
 
@@ -72,12 +72,12 @@ def mem_addr_top_for_pwm_slice(slc: int) -> int:
 @micropython.viper
 def timer_fraction_for_rate(rate: int) -> int:
     """Get a X/Y fraction for a pacing timer to match the given rate.
-    
+
     Returns pre-calculated fractions for common sample rates,
     otherwise returns a close fraction of 65535.
     """
     # timer rate is tied to CPU frequency
-    cpu_freq = int(rate())
+    cpu_freq = int(freq())
     if cpu_freq == 200_000_000:
         # Try a pre-calculated value
         if rate == 8_000:
@@ -98,6 +98,8 @@ def timer_fraction_for_rate(rate: int) -> int:
 
 
 class Rp2DmaPwm(Output):
+    """Play audio to the RP2's PWM using DMA."""
+
     def __init__(
             self,
             pin: int,
@@ -106,6 +108,19 @@ class Rp2DmaPwm(Output):
             rate: int = 11025,
             buf_size: int = 1024,
     ):
+        """Initialize the Rp2DmaPwm object.
+
+        pin:
+            The number of the GPIO pin to write to.
+            This pin is initialized for PWM output, and it determines the PWM slice we write to with the DMA.
+        pin2:
+            An optional second pin to initialize for PWM output.
+            This pin will only play audio if it's on the same PWM slice as `pin`.
+        channels:
+            the number of concurrent audio channels to allow.
+        rate:
+            The sample rate to use for output (should usually match the sample rate of the source).
+        """
         # Double-buffer the audio so we can write one while the other plays
         self._bufs = [bytearray(buf_size), bytearray(buf_size)]
         self.mvs = [memoryview(self._bufs[0]), memoryview(self._bufs[1])]
@@ -118,9 +133,9 @@ class Rp2DmaPwm(Output):
         for pwm in self.pwms:
             pwm.freq(800_000)
             pwm.duty_u16(0)
-        
+
         # Initialize timer 1 (arbitrary choice) to sample rate
-        mem32[_DMA_MEM_TIM1] = timer_fraction_for_rate(rate)
+        mem32[_DMA_MEM_TIM0] = timer_fraction_for_rate(rate)
 
         # Find PWM slice our pin is in
         pwm_slice = pin_2_pwm_slice(pin)
@@ -134,13 +149,14 @@ class Rp2DmaPwm(Output):
             size=2,                   # 32bit word
             inc_read=True,            # increment read addr
             inc_write=False,          # dont increment write addr
-            treq_sel=_DMA_FLAG_TIM1,  # use dma pacing timer 1 (arbitrarily)
-            bswap=True,               # swap the bytes when writing
+            treq_sel=_DMA_FLAG_TIM0,  # use dma pacing timer 1 (arbitrarily)
+            bswap=False,               # swap the bytes when writing
             irq_quiet=False,          # dont quiet the irq
         )
         self.dma.irq(self._handle_write)
 
         super().__init__(channels=channels, rate=rate)
+        self._handle_write(None)
 
 
     @staticmethod
@@ -167,31 +183,27 @@ class Rp2DmaPwm(Output):
             i += 1
 
 
-    @micropython.viper
-    def fill_buffer(self, buf):
-        """Fill buffer using each held sample."""
-        num_channels = int(self.num_channels)
-        i = 0
-        while i < num_channels:
-            chan = self.channels[i]
-            if chan:
-                chan.add_to_add_to_buffer(buf)
-            i += 1
-
-
     def _handle_write(self, _):
         """IRQ for DMA; write data with dma and ready the next data to write."""
-        self.dma.config(read=self.mvs[0], write=self.pwm_compare_addr, count=self.buf_size // 4, ctrl=self.dma_ctrl, trigger=True)
+        self.dma.config(
+            read=self.mvs[0],
+            write=self.pwm_compare_addr,
+            count=self.buf_size // 4,
+            ctrl=self.dma_ctrl,
+            trigger=True,
+        )
         self.mvs.reverse()
 
         mv = self.mvs[0]
         self.erase_buffer(mv)
-        self.fill_buffer(mv)
-        self.scale_samples(mv, self.pwm_top)
+        if self.fill_buffer(mv):
+            self.scale_samples(mv, self.pwm_top)
 
 
     def deinit(self):
+        """De-initialize the audio output."""
         self.dma.irq(None)
         for pwm in self.pwms:
             pwm.duty_u16(0)
         super().deinit()
+

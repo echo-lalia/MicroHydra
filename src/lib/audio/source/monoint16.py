@@ -23,17 +23,17 @@ class MonoInt16Source(Source):
     @micropython.viper
     def add_to_buffer(self, buffer) -> int:
         """Convert source data, add that data to the given buffer, and return bytes written.
-        
+
         Converts mono signed 16bit data to stereo unsigned 16bit data.
         """
         if bool(self.finished):
             return 0
-        # period is a bytes object containing information about how many source frames to advance per output frame, for our given note.
+        # period tells us how many source frames to advance per output frame, for our given note.
         period_ptr = ptr8(self.period)
         period_len = int(len(self.period))
         period_idx = int(self.period_idx)
         period_repeat = int(self.period_repeat)
-        
+
         # Our source data buffer, and our current position in that source buffer.
         source_buf_ptr = ptr16(self.mv)
         source_buf_len = int(len(self.mv)) // 2
@@ -42,7 +42,9 @@ class MonoInt16Source(Source):
 
         file_mode = bool(self.file_mode)
         loop = bool(self.loop)
-        vol_shift = int(self.vol_2_shift(self.volume))
+        # mh_if not hardware_volume_control:
+        # vol_shift = int(self.vol_2_shift(self.volume))
+        # mh_end_if
 
 
         # mh_if stereo_uint16_audio:
@@ -82,11 +84,12 @@ class MonoInt16Source(Source):
             # source_frame >>= vol_shift
             # mh_end_if
 
-            
+
             # mh_if stereo_uint16_audio:
             # Convert mono signed 16bit audio into stereo unsigned 16bit audio.
             source_frame += 32768
-            # Extract left/right channels from target, and add our source sample to each (l/r might actually be mislabelled here, but it doesn't matter)
+            # Extract left/right channels from target, and add our source sample to each
+            # (l/r might actually be mislabelled here, but it doesn't matter)
             target_frame_l = target_buf_ptr[target_frame_idx] >> 16
             target_frame_r = target_buf_ptr[target_frame_idx] & 0b1111_1111_1111_1111
             target_frame_l += source_frame
@@ -119,7 +122,7 @@ class MonoInt16Source(Source):
                 period_idx += 1
                 if period_idx >= period_len:
                     period_idx = 0
-            
+
                 # What happens when we reach the end of the source buffer?
                 if source_frame_idx >= source_buf_len:
                     # In file mode, `self.finished` is controlled by `self.load_from_file()`.
@@ -138,7 +141,7 @@ class MonoInt16Source(Source):
 
 
             target_frame_idx += 1
-        
+
         # Wrote a bunch of target frames
         self.period_idx = period_idx
         self.frame_idx = source_frame_idx

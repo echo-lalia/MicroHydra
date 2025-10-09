@@ -78,6 +78,11 @@ ignore = [
   "FBT001",   # A function taking a sinlge bool value is very common.
   "PYI",      # Mostly irrelivant for MicroPython
   "FURB",     # Mostly irrelivant for MicroPython
+  "RUF046",   # Casting to a viper `int` is mandatory.
+
+  # The error raising techniques preferred by these suggestions use more memory.
+  "TRY003", # Avoid specifying long messages outside the exception class
+  "EM102",  # Exception must not use an f-string literal
 
   # MH uses commented out code in the build process:
   "ERA",   # Found commented-out code
@@ -152,6 +157,11 @@ max-bool-expr = 20
 max-args = 10
 # The default value of 6 is too restrictive (It even flags CPython builtins!)
 max-returns = 10
+# For speed, viper functions often end up having more statements and branches than would normally be desireable.
+# Ideally, large viper functions should be broken up with comments to help
+# the reader logically break them into steps, without incurring extra function call overhead.
+max-statements = 100
+max-branches = 14
 
 [tool.ruff.lint.flake8-annotations]
 suppress-none-returning = true
