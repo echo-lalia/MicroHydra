@@ -5,7 +5,6 @@ from .source import Source, PERIODS
 _INT16_MINVAL = const(-32768)
 _INT16_MAXVAL = const(32767)
 
-_UINT16_MINVAL = const(0)
 _UINT16_MAXVAL = const(65535)
 
 _BYTES_PER_SOURCE_FRAME = const(2)
@@ -42,10 +41,7 @@ class MonoInt16Source(Source):
 
         file_mode = bool(self.file_mode)
         loop = bool(self.loop)
-        # mh_if not hardware_volume_control:
-        # vol_shift = int(self.vol_2_shift(self.volume))
-        # mh_end_if
-
+        vol_shift = int(self.vol_2_shift(self.volume))
 
         # mh_if stereo_uint16_audio:
         target_buf_ptr = ptr32(buffer)
@@ -79,28 +75,33 @@ class MonoInt16Source(Source):
             if source_frame > _INT16_MAXVAL:
                 source_frame -= 65536
 
-            # Apply the volume, if this device doesn't have hardware volume control.
-            # mh_if not hardware_volume_control:
-            # source_frame >>= vol_shift
-            # mh_end_if
+
+            # Apply the volume
+            source_frame >>= vol_shift
 
 
             # mh_if stereo_uint16_audio:
             # Convert mono signed 16bit audio into stereo unsigned 16bit audio.
-            source_frame += 32768
-            # Extract left/right channels from target, and add our source sample to each
-            # (l/r might actually be mislabelled here, but it doesn't matter)
-            target_frame_l = target_buf_ptr[target_frame_idx] >> 16
-            target_frame_r = target_buf_ptr[target_frame_idx] & 0b1111_1111_1111_1111
+            # Extract left/right channels from target (l/r might actually be mislabelled here)
+            target_frame_l = (target_buf_ptr[target_frame_idx] >> 16) & 0xffff
+            target_frame_r = (target_buf_ptr[target_frame_idx] & 0xffff)
+            # source_frame is signed; adding will either decrease or increase frame value
             target_frame_l += source_frame
             target_frame_r += source_frame
+
             # Enforce maximum value on both channels
-            if target_frame_l > _UINT16_MAXVAL:
+            if target_frame_l < 0:
+                target_frame_l = 0
+            elif target_frame_l > _UINT16_MAXVAL:
                 target_frame_l = _UINT16_MAXVAL
-            if target_frame_r > _UINT16_MAXVAL:
+            if target_frame_r < 0:
+                target_frame_r = 0
+            elif target_frame_r > _UINT16_MAXVAL:
                 target_frame_r = _UINT16_MAXVAL
+
+
             # Recombine l/r channels and set them in the target buffer
-            target_buf_ptr[target_frame_idx] = int((target_frame_l << 16) | target_frame_r)
+            target_buf_ptr[target_frame_idx] = int(int(target_frame_l << 16) | target_frame_r)
 
             # mh_else_if mono_int16_audio:
             # # clamp and write signed int16 audio to buffer

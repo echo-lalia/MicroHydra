@@ -27,20 +27,6 @@ class Output:
         self.channels = [None] * channels
 
 
-    @micropython.viper
-    def prune_buffers(self):
-        """Remove any finished sources from our channels."""
-        channels = self.channels
-        num_channels = int(self.num_channels)
-        i = 0
-        while i < num_channels:
-            chan = channels[i]
-            if chan and chan.finished:
-                chan.stop()
-                channels[i] = None
-            i += 1
-
-
     def deinit(self):
         """De-initialize the audio output."""
         for channel in self.channels:
@@ -60,8 +46,12 @@ class Output:
         while i < num_channels:
             chan = self.channels[i]
             if chan:
-                chan.add_to_buffer(buf)
-                wrote_any = True
+                if chan.finished:
+                    chan.stop()
+                    self.channels[i] = None
+                else:
+                    chan.add_to_buffer(buf)
+                    wrote_any = True
             i += 1
         return wrote_any
 
@@ -109,6 +99,6 @@ class Output:
             for i in range(self.num_channels):
                 self.stop(i)
             return
-        self.channels[channel].stop()
-        self.channels[channel] = None
-
+        if self.channels[channel] is not None:
+            self.channels[channel].stop()
+            self.channels[channel] = None

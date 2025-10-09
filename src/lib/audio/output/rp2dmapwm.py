@@ -131,7 +131,8 @@ class Rp2DmaPwm(Output):
         if pin2 is not None:
             self.pwms.append(PWM(Pin(pin2)))
         for pwm in self.pwms:
-            pwm.freq(800_000)
+            # Lower frequencies sound clearer, but can have a bit of a high pitched buzzing sometimes
+            pwm.freq(160_000)
             pwm.duty_u16(0)
 
         # Initialize timer 1 (arbitrary choice) to sample rate
@@ -141,6 +142,7 @@ class Rp2DmaPwm(Output):
         pwm_slice = pin_2_pwm_slice(pin)
         # Read the top (wrap around) value for our PWM slice
         self.pwm_top = mem32[mem_addr_top_for_pwm_slice(pwm_slice)]
+        print(f"{self.pwm_top=}")
         # Store the address for our PWM slice's compare value
         self.pwm_compare_addr = mem_addr_compare_for_pwm_slice(pwm_slice)
 
@@ -162,12 +164,13 @@ class Rp2DmaPwm(Output):
     @staticmethod
     @micropython.viper
     def erase_buffer(buf):
-        """Erase the given buffer."""
+        """Reset the given buffer to a neutral signal."""
+        _NEUTRAL = const((32767 << 16) | 32767)
         buf_len = int(len(buf)) // 4
         buf_ptr = ptr32(buf)
         i = 0
         while i < buf_len:
-            buf_ptr[i] = 0
+            buf_ptr[i] = int(_NEUTRAL)
             i += 1
 
 
@@ -206,4 +209,3 @@ class Rp2DmaPwm(Output):
         for pwm in self.pwms:
             pwm.duty_u16(0)
         super().deinit()
-

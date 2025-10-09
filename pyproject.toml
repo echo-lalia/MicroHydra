@@ -161,7 +161,7 @@ max-returns = 10
 # Ideally, large viper functions should be broken up with comments to help
 # the reader logically break them into steps, without incurring extra function call overhead.
 max-statements = 100
-max-branches = 14
+max-branches = 16
 
 [tool.ruff.lint.flake8-annotations]
 suppress-none-returning = true
