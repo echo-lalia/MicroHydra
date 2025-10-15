@@ -97,7 +97,7 @@ def timer_fraction_for_rate(rate: int) -> int:
 
 
 
-class Rp2DmaPwm(Output):
+class Rp2DmaPwmOutput(Output):
     """Play audio to the RP2's PWM using DMA."""
 
     def __init__(
@@ -199,8 +199,8 @@ class Rp2DmaPwm(Output):
 
         mv = self.mvs[0]
         self.erase_buffer(mv)
-        if self.fill_buffer(mv):
-            self.scale_samples(mv, self.pwm_top)
+        self.fill_buffer(mv)
+        self.scale_samples(mv, self.pwm_top)
 
 
     def deinit(self):
