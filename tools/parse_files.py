@@ -91,11 +91,6 @@ if DEVICE_PATH is None:
     DEVICE_PATH = os.path.join(CWD, 'devices')
 MP_PATH = os.path.join(CWD, 'MicroPython')
 MH_OUT_PATH = os.path.join(CWD, 'MicroHydra')
-# if DEST_PATH is None:
-#     if FROZEN:
-#         DEST_PATH = os.path.join(CWD, 'MicroPython', 'ports', 'esp32', 'boards')
-#     else:
-#         DEST_PATH = os.path.join(CWD, 'MicroHydra')
 
 
 Device.load_defaults(DEVICE_PATH)
@@ -165,11 +160,16 @@ def main():
                 dest_path = os.path.join(MH_OUT_PATH, device.name)
 
             if file_parser.can_parse_file():
-                vprint(f"    {bcolors.OKCYAN}{device}{bcolors.ENDC}")
                 file_parser.init_lines()
-                file_parser.parse_constants(device)
-                file_parser.parse_conditionals(device, frozen=FROZEN)
-                file_parser.save(dest_path, device)
+
+                include_file = file_parser.should_include(device, frozen=FROZEN)
+                if include_file:
+                    vprint(f"    {bcolors.OKCYAN}{device}{bcolors.ENDC}")
+                    file_parser.parse_constants(device)
+                    file_parser.parse_conditionals(device, frozen=FROZEN)
+                    file_parser.save(dest_path, device)
+                else:
+                    vprint(f"    {bcolors.OKCYAN}Skipping for {device}...{bcolors.ENDC}")
             else:
                 # This script is only designed for .py files.
                 # unsupported files should just be copied instead.
@@ -313,25 +313,45 @@ class FileParser:
         vprint(f"{bcolors.OKBLUE}        Parsed {count_constants} constants.{bcolors.ENDC}")
 
 
+    def should_include(self, device: Device, frozen: bool) -> bool:
+        """Check if this file has a mh_include_if statement, and if we should include it."""
+        if self.can_parse_file() and self._is_hydra_include(self.lines[0]):
+            return self._evaluate_condition(device=device, line=self.lines[0], frozen=frozen)
+        return True
+
+
+    @staticmethod
+    def _is_hydra_include(line: str) -> bool:
+        """Check if line contains a hydra conditional include statement."""
+        if "#" in line and "mh_include_if" in line:
+            match = re.match(r"#\s*mh_include_if\s.*:", line)
+            if match is not None:
+                return True
+            print(f"{bcolors.WARNING}WARNING: line '{line}' looks like it might be a broken `mh_include_if` statement.{bcolors.ENDC}")
+        return False
+
+
     @staticmethod
     def _is_hydra_conditional(line:str) -> bool:
         """Check if line contains a hydra conditional statement."""
         # early return for marked lines
         if CONDITIONAL_PARSED_FLAG in line:
             return False
-        
-        if "#" in line \
-        and "mh_if" in line \
-        and ":" in line:
-            found_comment = False
-            while line:
-                if line.startswith('#'):
-                    found_comment = True
-                elif found_comment and line.startswith('mh_if'):
-                    return True
-                elif found_comment and (not line[0].isspace()):
-                    return False
-                line = line[1:]
+
+        possible_conditional = "#" in line and "mh_if" in line
+
+        if possible_conditional:
+            if ":" in line:
+                found_comment = False
+                while line:
+                    if line.startswith('#'):
+                        found_comment = True
+                    elif found_comment and line.startswith('mh_if'):
+                        return True
+                    elif found_comment and (not line[0].isspace()):
+                        return False
+                    line = line[1:]
+            print(f"{bcolors.WARNING}WARNING: line '{line}' looks like it might be a broken `mh_if` statement.{bcolors.ENDC}")
         return False
 
 
@@ -545,7 +565,7 @@ class FileParser:
     @staticmethod
     def _extract_conditional_statement(line: str) -> str:
         """Extract just the conditional logic from the mh_if line."""
-        return line.strip().removeprefix("#").strip().removeprefix("mh_if").removesuffix(":").strip()
+        return line.strip().removeprefix("#").strip().removeprefix("mh_if").removeprefix("mh_include_if").removesuffix(":").strip()
 
 
     @staticmethod
