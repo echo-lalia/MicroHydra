@@ -73,7 +73,7 @@ class Output:
 
         - source:
             The audio source to play.
-            Expected to be of type lib.audio.source.Source
+            Expected to be of type `lib.audio.source.Source`
         - channel:
             Channel the sample should play on,
             by default, it will use the first free channel, or override channel 0.

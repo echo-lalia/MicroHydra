@@ -150,7 +150,6 @@ def main():
     print("\n")
     vprint(f"CWD: {bcolors.OKBLUE}{CWD}{bcolors.ENDC}")
     print(f"Parsing files in {bcolors.OKBLUE}{SOURCE_PATH}{bcolors.ENDC}")
-    # print(f"Destination: {bcolors.OKBLUE}{DEST_PATH}{bcolors.ENDC}")
     vprint(f"Found devices: {bcolors.OKCYAN}{devices}{bcolors.ENDC}")
     print("")
 

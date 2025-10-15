@@ -24,10 +24,15 @@ constants:
   _MH_DISPLAY_SPI_ID: '1'
   _MH_DISPLAY_WIDTH: '240'
   _MH_DISPLAY_TINY_BUF_DEFAULT: 'False'
+  
   _MH_I2S_ID: '1'
   _MH_I2S_SCK: '41'
   _MH_I2S_SD: '42'
   _MH_I2S_WS: '43'
+
+  _MH_PWM_OUT: 'None'
+  _MH_PWM_OUT_2: 'None'
+
   _MH_SDCARD_CS: '12'
   _MH_SDCARD_MISO: '39'
   _MH_SDCARD_MOSI: '14'

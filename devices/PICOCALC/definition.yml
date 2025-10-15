@@ -20,6 +20,9 @@ constants:
   _MH_I2S_SD: 'None'
   _MH_I2S_WS: 'None'
 
+  _MH_PWM_OUT: '26'
+  _MH_PWM_OUT_2: '27'
+
   _MH_SDCARD_CS: '17'
   _MH_SDCARD_MISO: '16'
   _MH_SDCARD_MOSI: '19'
