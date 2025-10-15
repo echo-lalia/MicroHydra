@@ -42,6 +42,13 @@ On CARDPUTER this becomes:
 print("this device has no touchscreen!")
 # mh_end_if
 ```
+
+Hydra Conditionals can also use `not`, `and`, and `or` keywords, with the limitation that conditions are evaluated in-order.
+(evaluated left to right, no order of operations, no grouping)
+(example: "# mh_if True or True and False" will evaluate to `False`)
+
+MicroHydra source files can also be conditionally included/excluded by adding a `# mh_include_if <>:` statement as the first line of a file.
+`mh_include_if` statements are evaluated the same way as `mh_if` statements.
 """
 
 import os
