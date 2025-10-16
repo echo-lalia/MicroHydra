@@ -77,13 +77,16 @@ class Beeper:
         self.audio = get_instance(Audio)
         self.config = get_instance(Config)
         self.note_buf = []
-        self.timer = Timer(3)
+        # mh_if esp32:
+        # self.timer = Timer(3)
+        # mh_else:
+        self.timer = Timer()
+        # mh_end_if
 
 
     def stop(self):
         """Stop all channels."""
-        for i in range(self.audio.channels):
-            self.audio.stop(channel=i)
+        self.audio.stop()
 
 
     def play_next(self, tim=None):  # noqa: ARG002
@@ -98,7 +101,7 @@ class Beeper:
 
         for idx, note in enumerate(notes):
             self.audio.play(
-                sample=SQUARE,
+                SQUARE,
                 note=note_to_int(note),
                 volume=volume,
                 channel=idx,
