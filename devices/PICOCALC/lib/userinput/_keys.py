@@ -78,7 +78,7 @@ KEYMAP_SHIFT = {
 
 
 MOD_KEYS = const(('ALT', 'CTL', 'SHIFT', 'OPT'))
-ALWAYS_NEW_KEYS = const(())
+ALWAYS_NEW_KEYS = const(('G0',))
 
 
 _I2C_ADDR = const(0x1f)
@@ -111,6 +111,8 @@ class Keys:
         
         # Track the amount of time that the keyboard has reported no new key information. (used for automatically fixing stuck keys)
         self.empty_read_start = 0
+        
+        self.caps = False
 
 
     @staticmethod
@@ -138,6 +140,12 @@ class Keys:
         # I have no idea why we need to take the right bits only;
         # I'm just copying the test_battery function from the official helloworld firmware.
         return (ptr8(self.i2c.readfrom_mem(_I2C_ADDR, _REG_BAT, 2))[1] & 0b0111_1111) 
+
+
+    def capitalize(self):
+        """Capitalize the pressed keys (if caps lock is on)."""
+        for i in range(len(self.key_state)):
+            self.key_state[i] = self.key_state[i].upper()
 
 
     def _get_num_keycodes(self) -> int:
@@ -183,6 +191,10 @@ class Keys:
             return self.key_state
 
         self.key_state.clear()
+        
+        if _KC_CAPS in self._key_list_buffer:
+            self.caps = not self.caps
+            self._key_list_buffer.remove(_KC_CAPS)
 
         # G0 key doesn't send `_STATE_RELEASED`, so it needs to be manually handled.
         if _KC_G0 in self._key_list_buffer:
@@ -197,5 +209,14 @@ class Keys:
         else:
             for code in self._key_list_buffer:
                 self.key_state.append(KEYMAP[code])
+        
+        # Shortcut for 'OPT' key
+        if _KC_SHIFT in self._key_list_buffer and _KC_LEFT_SHIFT in self._key_list_buffer:
+            self.key_state.append('OPT')
+            while "SHIFT" in self.key_state:
+                self.key_state.remove("SHIFT")
+        
+        if self.caps:
+            self.capitalize()
 
         return self.key_state
