@@ -40,7 +40,8 @@ constants:
   _MH_SDCARD_SLOT: '2'
 
 features:
-- batt_adc
+- batt_adc  # Has an ADC pin connected for reading battery voltage.
+- batt_from_kb  # Must ask the keyboard for battery information.
 - display
 - wifi
 - trackball
