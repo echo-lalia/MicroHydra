@@ -2,7 +2,7 @@
 if __name__ == '__main__': from launcher import editor  # relative import for testing
 from .displayline import DisplayLine
 
-from esp32 import NVS
+from lib.hydra.preferences import Preferences
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Constants: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -103,15 +103,8 @@ class FileLines:
                 return True
 
         # If no indentation exists in the file, set based on user preference.
-        nvs = NVS("editor")
-        try:
-            # Use the set value if it exists
-            return bool(nvs.get_i32("use_tabs"))
-        except OSError:
-            # (Otherwise, set to False as a default, and return
-            nvs.set_i32("use_tabs", False)
-            nvs.commit()
-        return False
+        prefs = Preferences("editor")
+        return prefs.get("use_tabs", False)
 
 
     def _clean_line(self, line) -> str:

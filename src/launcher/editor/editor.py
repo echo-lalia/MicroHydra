@@ -10,7 +10,7 @@ from .displayline import DisplayLine
 from .cursor import Cursor
 from .undomanager import UndoManager
 
-from esp32 import NVS
+from lib.hydra.preferences import Preferences
 from lib.sdcard import SDCard
 from lib.display import Display
 from lib.hydra.config import Config
@@ -143,17 +143,17 @@ class Editor:
         _TAB_OPTIONS = const(("Back", "Use tabs", "Use spaces"))
 
         choice = self.overlay.popup_options(_TAB_OPTIONS, title=title, depth=1)
-        nvs = NVS("editor")
+        prefs = Preferences("editor")
 
         if choice == "Use tabs":
             self.lines.use_tabs = True
-            nvs.set_i32("use_tabs", True)
-            nvs.commit()
+            prefs["use_tabs"] = True
+            prefs.save()
 
         elif choice == "Use spaces":
             self.lines.use_tabs = False
-            nvs.set_i32("use_tabs", False)
-            nvs.commit()
+            prefs["use_tabs"] = False
+            prefs.save()
 
 
     def run_options(self):
@@ -443,9 +443,7 @@ class Editor:
 # Start editor:
 filepath = loader.get_args()[0]
 if not filepath:
-    filepath = "/testeasing.py" # JUSTFORTESTING
-#     filepath = "/apps/gameoflifemodified.py" # JUSTFORTESTING
-#     filepath = "/testfile.py"
+    filepath = "/log.txt" # JUSTFORTESTING
 
 # Import a specific tokenizer depending on the file extension
 if filepath.endswith(".py"):
