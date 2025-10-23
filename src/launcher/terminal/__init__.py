@@ -22,7 +22,7 @@ from launcher.terminal.commands import get_commands, get_usr_commands, ctext
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-_TERMINAL_VERSION = const("2.1")
+_TERMINAL_VERSION = const("2.2")
 
 _MH_DISPLAY_HEIGHT = const(135)
 _MH_DISPLAY_WIDTH = const(240)
@@ -88,15 +88,17 @@ def find_py_path(name: str) -> str|None:
     # look in current dir, then apps.
     for search_dir in (os.getcwd(), "/apps"):
         full_path = path_join(search_dir, name)
-
-        if name in os.listdir(search_dir):
-            if os.stat(full_path)[0] == 0x4000:  # is dir
-                dir_files = os.listdir(full_path)
-                if "__init__.py" in dir_files or "__init__.mpy" in dir_files:
-                    # this is a module that can be imported!
+        try:
+            if name in os.listdir(search_dir):
+                if os.stat(full_path)[0] == 0x4000:  # is dir
+                    dir_files = os.listdir(full_path)
+                    if "__init__.py" in dir_files or "__init__.mpy" in dir_files:
+                        # this is a module that can be imported!
+                        return full_path
+                elif name.endswith(".py") or name.endswith(".mpy"):
                     return full_path
-            elif name.endswith(".py") or name.endswith(".mpy"):
-                return full_path
+        except OSError:
+            pass
     return None
 
 

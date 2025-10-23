@@ -38,8 +38,11 @@ import time
 
 import framebuf
 import machine
-import network
-import ntptime
+
+# mh_if wifi:
+# import network
+# import ntptime
+# mh_end_if
 
 from font import vga2_16x32 as font
 from launcher.icons import appicons
@@ -108,23 +111,25 @@ _TRANS = const("""[
 
 
 
-
-# bump up our clock speed so the UI feels smoother
-# (240mhz is the max officially supported, but the default is 160mhz)
-machine.freq(240_000_000)
-
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ GLOBALS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # wifi loves to give unknown runtime errors, just try it twice:
-try:
-    NIC = network.WLAN(network.STA_IF)
-except RuntimeError as e:
-    print(e)
-    try:
-        NIC = network.WLAN(network.STA_IF)
-    except RuntimeError as e:
-        NIC = None
-        print("Wifi WLAN object couldnt be created. Gave this error:", e)
+# mh_if wifi:
+# try:
+#     NIC = network.WLAN(network.STA_IF)
+# except RuntimeError as e:
+#     print(e)
+#     try:
+#         NIC = network.WLAN(network.STA_IF)
+#     except RuntimeError as e:
+#         NIC = None
+#         print("Wifi WLAN object couldnt be created. Gave this error:", e)
+# 
+# SYNC_NTP_ATTEMPTS = 0
+# CONNECT_WIFI_ATTEMPTS = 0
+# SYNCING_CLOCK = None
+# mh_end_if
+
 
 DISPLAY = display.Display(
     # mh_if spi_ram:
@@ -143,10 +148,6 @@ SD = sdcard.SDCard()
 RTC = machine.RTC()
 
 I18N = I18n(_TRANS)
-
-SYNC_NTP_ATTEMPTS = 0
-CONNECT_WIFI_ATTEMPTS = 0
-SYNCING_CLOCK = None
 
 APP_NAMES = None
 APP_PATHS = None
@@ -609,44 +610,64 @@ _MAX_WIFI_ATTEMPTS = const(1000)
 _MAX_NTP_ATTEMPTS = const(10)
 
 
-def try_sync_clock():
-    """Try syncing the RTC using ntptime."""
-    global SYNCING_CLOCK, SYNC_NTP_ATTEMPTS, CONNECT_WIFI_ATTEMPTS  # noqa: PLW0603
-
-    if NIC.isconnected():
-        try:
-            ntptime.settime()
-        except OSError:
-            SYNC_NTP_ATTEMPTS += 1
-
-        if RTC.datetime()[0] != 2000:
-            NIC.disconnect()
-            NIC.active(False)  # shut off wifi
-            SYNCING_CLOCK = False
-            # apply our timezone offset
-            time_list = list(RTC.datetime())
-            time_list[4] += CONFIG["timezone"]
-            RTC.datetime(tuple(time_list))
-            print(
-                f'RTC successfully synced to {RTC.datetime()} with {SYNC_NTP_ATTEMPTS} attempts.')
-            # Redraw statusbar
-            display.Display.draw_overlays = True
-
-        elif SYNC_NTP_ATTEMPTS >= _MAX_NTP_ATTEMPTS:
-            NIC.disconnect()
-            NIC.active(False)  # shut off wifi
-            SYNCING_CLOCK = False
-            print(f"Syncing RTC aborted after {SYNC_NTP_ATTEMPTS} attemps")
-
-    elif CONNECT_WIFI_ATTEMPTS >= _MAX_WIFI_ATTEMPTS:
-        NIC.disconnect()
-        NIC.active(False)  # shut off wifi
-        SYNCING_CLOCK = False
-        print(
-            f"Connecting to wifi aborted after {CONNECT_WIFI_ATTEMPTS} loops")
-    else:
-        CONNECT_WIFI_ATTEMPTS += 1
-
+# mh_if wifi:
+# def init_sync_clock():
+#     global SYNCING_CLOCK  # noqa: PLW0603
+#     # sync our RTC on boot, if set in settings
+#     SYNCING_CLOCK = CONFIG['sync_clock']
+# 
+#     if (CONFIG['wifi_ssid'] == ''
+#     or RTC.datetime()[0] != 2000
+#     or NIC is None):
+#         SYNCING_CLOCK = False
+# 
+#     if SYNCING_CLOCK:  # enable wifi if we are syncing the clock
+#         if not NIC.active():  # turn on wifi if it isn't already
+#             NIC.active(True)
+#         if not NIC.isconnected():  # try connecting
+#             try:
+#                 NIC.connect(CONFIG['wifi_ssid'], CONFIG['wifi_pass'])
+#             except OSError as e:
+#                 print("wifi_sync_rtc had this error when connecting:", e)
+# 
+# def try_sync_clock():
+#     """Try syncing the RTC using ntptime."""
+#     global SYNCING_CLOCK, SYNC_NTP_ATTEMPTS, CONNECT_WIFI_ATTEMPTS  # noqa: PLW0603
+# 
+#     if NIC.isconnected():
+#         try:
+#             ntptime.settime()
+#         except OSError:
+#             SYNC_NTP_ATTEMPTS += 1
+# 
+#         if RTC.datetime()[0] != 2000:
+#             NIC.disconnect()
+#             NIC.active(False)  # shut off wifi
+#             SYNCING_CLOCK = False
+#             # apply our timezone offset
+#             time_list = list(RTC.datetime())
+#             time_list[4] += CONFIG["timezone"]
+#             RTC.datetime(tuple(time_list))
+#             print(
+#                 f'RTC successfully synced to {RTC.datetime()} with {SYNC_NTP_ATTEMPTS} attempts.')
+#             # Redraw statusbar
+#             display.Display.draw_overlays = True
+# 
+#         elif SYNC_NTP_ATTEMPTS >= _MAX_NTP_ATTEMPTS:
+#             NIC.disconnect()
+#             NIC.active(False)  # shut off wifi
+#             SYNCING_CLOCK = False
+#             print(f"Syncing RTC aborted after {SYNC_NTP_ATTEMPTS} attemps")
+# 
+#     elif CONNECT_WIFI_ATTEMPTS >= _MAX_WIFI_ATTEMPTS:
+#         NIC.disconnect()
+#         NIC.active(False)  # shut off wifi
+#         SYNCING_CLOCK = False
+#         print(
+#             f"Connecting to wifi aborted after {CONNECT_WIFI_ATTEMPTS} loops")
+#     else:
+#         CONNECT_WIFI_ATTEMPTS += 1
+# mh_end_if
 
 
 # --------------------------------------------------------------------------------------------------
@@ -656,26 +677,17 @@ def try_sync_clock():
 # --------------------------------------------------------------------------------------------------
 def main_loop():
     """Run the main loop."""
-    global APP_SELECTOR_INDEX, PREV_SELECTOR_INDEX, SYNCING_CLOCK  # noqa: PLW0603
+    global APP_SELECTOR_INDEX, PREV_SELECTOR_INDEX  # noqa: PLW0603
+    # mh_if wifi:
+    global SYNCING_CLOCK  # noqa: PLW0603
+    # mh_end_if
+
     # scan apps asap to populate app names/paths and SD
     scan_apps()
 
-    # sync our RTC on boot, if set in settings
-    SYNCING_CLOCK = CONFIG['sync_clock']
-
-    if (CONFIG['wifi_ssid'] == ''
-    or RTC.datetime()[0] != 2000
-    or NIC is None):
-        SYNCING_CLOCK = False
-
-    if SYNCING_CLOCK:  # enable wifi if we are syncing the clock
-        if not NIC.active():  # turn on wifi if it isn't already
-            NIC.active(True)
-        if not NIC.isconnected():  # try connecting
-            try:
-                NIC.connect(CONFIG['wifi_ssid'], CONFIG['wifi_pass'])
-            except OSError as e:
-                print("wifi_sync_rtc had this error when connecting:", e)
+    # mh_if wifi:
+    # init_sync_clock()
+    # mh_end_if
 
     new_keys = []
 
@@ -699,8 +711,8 @@ def main_loop():
         new_keys = KB.get_new_keys()
 
         # mh_if CARDPUTER:
-        # Cardputer should use extended movement keys in the launcher
-        KB.ext_dir_keys(new_keys)
+        # # Cardputer should use extended movement keys in the launcher
+        # KB.ext_dir_keys(new_keys)
         # mh_end_if
 
         # mh_if touchscreen:
@@ -813,9 +825,11 @@ def main_loop():
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ WIFI and RTC: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-        if SYNCING_CLOCK:
-            try_sync_clock()
+        
+        # mh_if wifi:
+        # if SYNCING_CLOCK:
+        #     try_sync_clock()
+        # mh_end_if
 
         # short sleep makes the animation look a little less flickery
         time.sleep_ms(5)
