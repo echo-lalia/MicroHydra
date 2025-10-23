@@ -558,6 +558,8 @@ def main_loop(tft, kb, config, overlay):
     file_list, dir_dict = parse_files()
 
     view = ListView(tft, config, file_list, dir_dict)
+    view.draw()
+    tft.show()
 
     while True:
         new_keys = kb.get_new_keys()
@@ -572,8 +574,9 @@ def main_loop(tft, kb, config, overlay):
             overlay.error(repr(e))
             view, file_list, dir_dict = panic_recover()
 
-        view.draw()
-        tft.show()
+        if new_keys:
+            view.draw()
+            tft.show()
 
         time.sleep_ms(10)
 
