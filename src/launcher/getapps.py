@@ -1,3 +1,4 @@
+# mh_include_if wifi:
 """This app lets you download new apps from the MicroHydra apps repo.
 
 This built-in app was partially inspired by RealClearwave's "AppStore.py",

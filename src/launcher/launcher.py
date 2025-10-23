@@ -54,9 +54,9 @@ from lib.hydra.i18n import I18n
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ _CONSTANTS: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-_MH_DISPLAY_WIDTH = const(240)
-_MH_DISPLAY_HEIGHT = const(135)
-_MH_DISPLAY_BACKLIGHT = const(38)
+_MH_DISPLAY_WIDTH = const(320)
+_MH_DISPLAY_HEIGHT = const(320)
+_MH_DISPLAY_BACKLIGHT = const(12)
 
 _DISPLAY_WIDTH_HALF = const(_MH_DISPLAY_WIDTH//2)
 
@@ -226,7 +226,9 @@ def scan_apps():
         "Reload Apps",
         "UI Sound",
         "Settings",
-        "Get Apps",
+        # mh_if wifi:
+        # "Get Apps",
+        # mh_end_if
         ]
 
     # add paths for built-in apps
@@ -235,14 +237,18 @@ def scan_apps():
     #     "Files": ".frozen/launcher/files",
     #     "Terminal": ".frozen/launcher/terminal",
     #     "Settings": ".frozen/launcher/settings",
-    #     "Get Apps": ".frozen/launcher/getapps",
+    #     # mh_if wifi:
+    #     # "Get Apps": ".frozen/launcher/getapps",
+    #     # mh_end_if
     #     })
     # mh_else:
     app_paths.update({
         "Files": "/launcher/files",
         "Terminal": "/launcher/terminal",
         "Settings": "/launcher/settings",
-        "Get Apps": "/launcher/getapps",
+        # mh_if wifi:
+        # "Get Apps": "/launcher/getapps",
+        # mh_end_if
         })
     # mh_end_if
 
@@ -679,7 +685,7 @@ def main_loop():
     """Run the main loop."""
     global APP_SELECTOR_INDEX, PREV_SELECTOR_INDEX  # noqa: PLW0603
     # mh_if wifi:
-    global SYNCING_CLOCK  # noqa: PLW0603
+    # global SYNCING_CLOCK  # noqa: PLW0603
     # mh_end_if
 
     # scan apps asap to populate app names/paths and SD
