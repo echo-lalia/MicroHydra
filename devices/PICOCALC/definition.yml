@@ -36,6 +36,7 @@ features:
 - pwm_speaker
 - stereo_uint16_audio
 - shared_sdcard_spi
+- short_sleeps
 
 mpy_port: rp2
 mpy_arch: armv6m

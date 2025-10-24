@@ -258,7 +258,11 @@ Type \x1b[1mhelp\x1b[22m to print a help message.\x1b[0m
             tft.show()
         else:
             redraw_counter += 1
+            # mh_if short_sleeps:
+            # time.sleep_ms(1)
+            # mh_else:
             time.sleep_ms(10)
+            # mh_end_if
 
 
 # start the main loop

@@ -838,7 +838,9 @@ def main_loop():
         # mh_end_if
 
         # short sleep makes the animation look a little less flickery
+        # mh_if not short_sleeps:
         time.sleep_ms(5)
+        # mh_end_if
 
 
 # run the main loop!

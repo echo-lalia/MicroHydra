@@ -389,8 +389,12 @@ def main_loop():
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ HOUSEKEEPING: ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # do nothing for 10 milliseconds
+        # do nothing for a moment
+        # mh_if short_sleeps:
+        # time.sleep_ms(1)
+        # mh_else:
         time.sleep_ms(10)
+        # mh_end_if
 
 
 

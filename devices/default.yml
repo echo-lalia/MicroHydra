@@ -42,6 +42,9 @@ constants:
 features:
 - batt_adc  # Has an ADC pin connected for reading battery voltage.
 - batt_from_kb  # Must ask the keyboard for battery information.
+
+- short_sleeps  # For low powered devices, shorten duration of `sleep`s in the main loop for builtin apps.
+
 - display
 - wifi
 - trackball

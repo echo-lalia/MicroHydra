@@ -578,7 +578,11 @@ def main_loop(tft, kb, config, overlay):
             view.draw()
             tft.show()
 
+        # mh_if short_sleeps:
+        # time.sleep_ms(1)
+        # mh_else:
         time.sleep_ms(10)
+        # mh_end_if
 
 
 main_loop(tft, kb, config, overlay)

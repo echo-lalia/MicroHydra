@@ -257,8 +257,10 @@ class Menu:
                 updating_display = self.draw()
                 DISPLAY.show()
 
+            # mh_if not short_sleeps:
             if not keys and not updating_display:
                 time.sleep_ms(1)
+            # mh_end_if
 
 
 

@@ -430,7 +430,11 @@ class Editor:
                     # If the keyboard overlay is being drawn, we should probably redraw our statusbar.
                     self.draw_statusbar()
                 # To smooth things out, we'll only insert a delay if we aren't redrawing the lines
+                # mh_if short_sleeps:
+                # time.sleep_ms(1)
+                # mh_else:
                 time.sleep_ms(50)
+                # mh_end_if
 
             if self.select_cursor is not None:
                 self.select_cursor.draw(self.display, self.lines)
