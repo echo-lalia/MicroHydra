@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="e55fce06-f892-43fe-9cca-a42dd6bb8002" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/apps/apptemplate.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/font/NotoSansMono_32.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/font/utf8_8x8.bin" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/font/vga1_8x16.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/font/vga2_16x32.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/launcher/editor/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/launcher/editor/cursor.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/launcher/editor/displayline.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/launcher/editor/editor.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/launcher/editor/filelines.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/launcher/editor/tokenizers/common.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/launcher/editor/tokenizers/plaintext.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/launcher/editor/tokenizers/python.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/launcher/editor/undomanager.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/launcher/files.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/launcher/getapps.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/launcher/icons/appicons.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/launcher/icons/battery.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/launcher/launcher.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/launcher/settings.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/launcher/terminal/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/launcher/terminal/commands.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/launcher/terminal/terminal.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/launcher/terminal/termline.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/audio/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/audio/i2ssound.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/battlevel.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/device.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/display/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/display/display.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/display/displaycore.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/display/fancydisplay.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/display/namedpalette.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/display/palette.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/display/rawbitmap.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/display/st7789.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/easing/back.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/easing/circ.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/easing/cubic.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/easing/quad.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/easing/sine.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/hydra/beeper.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/hydra/color.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/hydra/config.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/hydra/i18n.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/hydra/loader.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/hydra/menu.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/hydra/popup.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/hydra/simpleterminal.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/hydra/statusbar.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/hydra/utils.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/sdcard/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/sdcard/mhsdcard.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/sdcard/sdcard.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/userinput/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/userinput/_keys.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/userinput/userinput.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/zipextractor.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 1
+}]]></component>
+  <component name="ProjectId" id="34WaVNXuHdZ6nzWy7J4aIazlXDr" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "master",
+    "last_opened_file_path": "/home/andrii/Downloads/t"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-4f4e415b4190-aa17d162503b-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-243.26053.29" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="e55fce06-f892-43fe-9cca-a42dd6bb8002" name="Changes" comment="" />
+      <created>1761331804264</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1761331804264</updated>
+    </task>
+    <servers />
+  </component>
+</project>

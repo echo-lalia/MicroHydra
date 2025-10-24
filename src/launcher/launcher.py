@@ -506,7 +506,7 @@ class IconWidget:
             self.drawn_icon = self.next_icon
 
             # if this is a custom icon, it needs to be loaded
-            if isinstance(self.drawn_icon, str) and self.drawn_icon.endswith(".raw"):
+            if isinstance(self.drawn_icon, str) and self.drawn_icon.endswith(".wbmp"):
                 with open(self.drawn_icon, 'rb') as f:
                     f.readinto(self.buf)
 
@@ -545,8 +545,8 @@ class IconWidget:
         if not (current_app_path.endswith('.py') or current_app_path.endswith('.mpy')):
             # too many ways for `os.listdir` to fail here, so just capture the error:
             try:
-                if 'icon.raw' in os.listdir(current_app_path):
-                    return RawBitmap(f"{current_app_path}/icon.raw", 32, 32, (CONFIG.palette[2], CONFIG.palette[8]))
+                if 'icon.wbmp' in os.listdir(current_app_path):
+                    return RawBitmap(f"{current_app_path}/icon.wbmp", (CONFIG.palette[2], CONFIG.palette[8]))
             except OSError:
                 pass
 
