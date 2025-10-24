@@ -26,6 +26,9 @@ constants:
   _MH_SDCARD_SCK: '40'
   _MH_SDCARD_SLOT: '2'
 
+  _MH_CPU_FREQ: '240_000_000'
+
+
 features:
 - batt_adc
 - keyboard

@@ -4,6 +4,9 @@ from lib.hydra import loader
 from lib import sdcard
 import sys
 
+# Set clock speed
+_MH_CPU_FREQ = const(240_000_000)
+machine.freq(_MH_CPU_FREQ)
 
 # mh_if frozen:
 # _LAUNCHER = const(".frozen/launcher/launcher")
@@ -20,14 +23,6 @@ app = _LAUNCHER
 # # T-Deck must manually power on its peripherals
 # machine.Pin(10, machine.Pin.OUT, value=True)
 # mh_end_if
-
-# Set clock speed to max official speed.
-# mh_if esp32:
-# machine.freq(240_000_000)  # (default is 160mhz, 240mhz is full)
-# mh_else_if rp2:
-machine.freq(200_000_000)  # (default is 125mhz, 200mhz is full)
-# mh_end_if
-
 
 # if this was not a power reset, we are probably launching an app:
 if machine.reset_cause() != machine.PWRON_RESET:
