@@ -28,31 +28,38 @@ class RawBitmap:
         else:
             # Load and cache a new buffer
             self.size = os.stat(file_path)[6]
-            if file_path.endswith(".wbmp"):
-                self.load_wbmp(file_path)
+            with open(file_path, 'rb') as f:
+                buf = bytearray(self.size)
+                f.readinto(buf)
+            if file_path.endswith('.wbmp'):
+                self.wbmp2bitmap(buf)
             else:
-                self.load_raw(file_path)
+                self.BITMAP = memoryview(buf)
+                self.WIDTH = 32
+                self.HEIGHT = 32
 
             RawBitmap.cached_path = file_path
             RawBitmap.cache = self.BITMAP
             RawBitmap.cached_w = self.WIDTH
             RawBitmap.cached_h = self.HEIGHT
-
-    def load_raw(self, file_path: str):
-        with open(file_path, 'rb') as f:
-            buf = bytearray(self.size)
-            f.readinto(buf)
-            self.BITMAP = memoryview(buf)
-            self.WIDTH = 32
-            self.HEIGHT = 32
-
-    def load_wbmp(self, file_path: str):
-        with open(file_path, 'rb') as f:
-            buf = bytearray(self.size)
-            f.readinto(buf)
-            self.BITMAP = memoryview(buf)[4:]
-            self.WIDTH = memoryview(buf)[2]
-            self.HEIGHT = memoryview(buf)[3]
+    
+    def wbmp2bitmap(self, buf):
+        idx = 2
+        self.WIDTH, idx = self.read_mbi(buf, idx)
+        self.HEIGHT, idx = self.read_mbi(buf, idx)
+        self.BITMAP = memoryview(buf[idx:])
+        
+    @staticmethod
+    def read_mbi(data, index):
+        """Reads multi-byte integer starting at index."""
+        value = 0
+        while True:
+            byte = data[index]
+            index += 1
+            value = (value << 7) | (byte & 0x7F)
+            if not (byte & 0x80):  # if high bit is 0, stop reading
+                break
+        return value, index
 
     @classmethod
     def clean(cls):
@@ -61,3 +68,4 @@ class RawBitmap:
         cls.cached_w = None
         cls.cached_h = None
         cls.cache = None
+
