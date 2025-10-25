@@ -1,12 +1,14 @@
 """A class for reading, storing, and writing device information."""
 import os
 import yaml
+from .bcolors import bcolors
 
 
 class Device:
     device_path = None
     defaults = None
     default_constants = None
+    all_features = None
 
     @classmethod
     def load_defaults(cls, device_path: str):
@@ -14,6 +16,7 @@ class Device:
         with open(os.path.join(device_path, 'default.yml'), 'r', encoding="utf-8") as default_file:
             cls.defaults = yaml.safe_load(default_file.read())
         cls.default_constants = cls.defaults['constants']
+        cls.all_features = cls.defaults['features']
 
     def __init__(self, name):
         if Device.device_path is None or Device.default_constants is None:
@@ -28,6 +31,18 @@ class Device:
             self.mpy_port = device_def['mpy_port']
             self.features = device_def['features']
         self.name = name
+        self.validate_def()
+
+    def validate_def(self):
+        """Check to ensure device/defaults make sense."""
+        for const in self.constants:
+            if const not in Device.default_constants:
+                print(f"{bcolors.WARNING}WARNING: the constant '{const}' from device '{self.name}' does not appear in 'default.yml'!{bcolors.ENDC}")
+            if not str(const).startswith("_MH_"):
+                print(f"{bcolors.WARNING}WARNING: the constant '{const}' from device '{self.name}' doesn't start with '_MH_' (will not work with 'parse_files.py')!{bcolors.ENDC}")
+        for feat in self.features:
+            if feat not in Device.all_features:
+                print(f"{bcolors.WARNING}WARNING: the feature '{feat}' from device '{self.name}' does not appear in 'default.yml'!{bcolors.ENDC}")
 
     def __repr__(self):
         return f"Device({self.name})"

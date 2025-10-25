@@ -4,16 +4,19 @@ This module provides a simple API for accessing audio features in MicroHydra.
 """
 from .source import Source, get_source
 
+# i2s constants
+_MH_I2S_SCK = const(7)
+_MH_I2S_WS = const(5)
+_MH_I2S_SD = const(6)
+# pwm constants
+_MH_PWM_OUT = const(26)
+_MH_PWM_OUT_2 = const(27)
+
 # mh_if i2s_speaker:
 # from .output.i2s import I2SOutput as Output
-# _MH_I2S_SCK = const(7)
-# _MH_I2S_WS = const(5)
-# _MH_I2S_SD = const(6)
 
 # mh_else_if pwm_speaker and rp2:
 from .output.rp2dmapwm import Rp2DmaPwmOutput as Output
-_MH_PWM_OUT = const(26)
-_MH_PWM_OUT_2 = const(27)
 
 # mh_end_if
 

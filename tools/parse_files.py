@@ -101,10 +101,6 @@ MH_OUT_PATH = os.path.join(CWD, 'MicroHydra')
 
 
 Device.load_defaults(DEVICE_PATH)
-# with open(os.path.join(DEVICE_PATH, 'default.yml'), 'r', encoding="utf-8") as default_file:
-#     default = yaml.safe_load(default_file.read())
-# DEFAULT_CONSTANTS = default['constants']
-# DEFAULT_FEATURES = default['features']
 
 # Only include these files in the "frozen" MicroHydra firmware
 ONLY_INCLUDE_IF_FROZEN = [os.path.join(SOURCE_PATH, path) for path in mh.ONLY_INCLUDE_IF_FROZEN]
@@ -119,6 +115,10 @@ CONDITIONAL_PARSED_FLAG = chr(0xFDD1)
 CONDITIONAL_PARSED_ORIGINAL_DELIMITER = chr(0xFDD2)
 # Designate for an if/else_if/... branch that all further else statements are false.
 CONDITIONAL_ELSE_DISABLED_FLAG = chr(0xFDD3)
+
+
+ALL_MH_STATEMENTS = {"mh_if", "mh_else", "mh_else_if", "mh_end_if", "mh_include_if"}
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main():
@@ -223,7 +223,32 @@ class FileParser:
         if self.can_parse_file():
             with open(self.path, 'r', encoding='utf-8') as src_file:
                 self.src_lines = src_file.readlines()
+                self.verify_mh_lines(self.src_lines)
+        
         self.lines = []
+
+
+    def verify_mh_lines(self, lines):
+        """Scan lines and attempt to catch possible parsing issues."""
+        wide_if_pattern = r"(#\s?mh_[\w\d \t]*[:\n])"  # Pattern for matching anything vaguely '# mh_if' like
+        comment_const_pattern = r"#[ \t#]*_MH_[\d_\w]+\s?=\s?const\s?\(.+\)"  # Pattern matching a commented out _MH_ constant
+
+        for i, line in enumerate(lines):
+            # Check for malformed conditional statement
+            casefolded = line.casefold()
+            match = re.match(wide_if_pattern, casefolded)
+            if match:
+                is_valid = any((statement in line) for statement in ALL_MH_STATEMENTS) and (line.count(":") == (0 if "mh_end_if" in line else 1))
+                if not is_valid:
+                    print(f"{bcolors.WARNING}WARNING: Line {i+1} from '{self.name}' looks like it may contain a malformed `mh_...` conditional statement:\n{line}\n{bcolors.ENDC}")
+            
+            # Check for commented out _MH_IF conditional
+            match = re.match(comment_const_pattern, line)
+            if match:
+                print(
+                    f"{bcolors.WARNING}WARNING: Line {i+1} from '{self.name}' looks like it may contain a commented out `_MH_... = const()` constant.\n"
+                    f"This might cause the constant to not be replaced correctly for all devices.\n\t{line}\n{bcolors.ENDC}"
+                )
 
 
     def can_parse_file(self) -> bool:
@@ -763,6 +788,9 @@ class FileParser:
 
     def save(self, dest_path, device):
         """Save modified contents to given destination."""
+        # Check modified lines for possible issues
+        self.verify_mh_lines(self.lines)
+
         dest_path = os.path.join(dest_path, self.relative_path, self.name)
         # make target directory:
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
