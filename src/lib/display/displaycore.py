@@ -3,6 +3,7 @@
 
 import framebuf
 from .palette import Palette
+from .char_util import square_char, ascii_char
 import lib.hydra.config
 from lib.hydra.utils import get_instance
 from machine import PWM
@@ -412,11 +413,13 @@ class DisplayCore:
     @micropython.viper
     def _utf8_putc(self, char:int, x:int, y:int, color:int, scale:int) -> int:
         """Render a single UTF8 character on the screen."""
-        width = 4 if char < 128 else 8
+        width = 4 if ascii_char(char) else 8
         height = 8
+        if not square_char(char):
+            scale = scale >> 1
 
-        if not 0x0000 <= char <= 0xFFFF:
-            return width * scale
+        if scale > 1 and not square_char(char):
+            scale = scale >> 1
 
         # set up viper variables
         use_tiny_fbuf = bool(self.use_tiny_buf)
@@ -494,7 +497,7 @@ class DisplayCore:
         while idx < str_len:
             char = text[idx]
             ch_ord = int(ord(char))
-            if ch_ord >= 128:
+            if not ascii_char(ch_ord):
                 x += int(self._utf8_putc(ch_ord, x, y, color, 1))
             else:
                 self.fbuf.text(char, x, y, color)
@@ -637,7 +640,7 @@ class DisplayCore:
                 btmp_x = (x_idx - x)*btmp_width // draw_width
 
                 # Find the start bit for the pixel we want
-                btmp_bit_idx = starting_bit + (btmp_y*btmp_width + btmp_x) * bpp
+                btmp_bit_idx = starting_bit + (btmp_y * ((btmp_width * bpp + 7) & ~7)) + btmp_x * bpp
                 # calculate the byte, and byte shift needed to read that bit
                 btmp_byte_idx = btmp_bit_idx // 8
                 byte_shift = 7 - (btmp_bit_idx % 8)
@@ -669,3 +672,4 @@ class DisplayCore:
 
                 x_idx += 1
             y_idx+=1
+
