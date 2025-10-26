@@ -106,6 +106,8 @@ class MonoInt16Source(Source):
             # mh_else_if mono_int16_audio:
             # # clamp and write signed int16 audio to buffer
             # target_frame = target_buf_ptr[target_frame_idx]
+            # if target_frame > _INT16_MAXVAL:
+            #     target_frame -= 65536
             # target_frame += source_frame
             # if target_frame < _INT16_MINVAL:
             #     target_frame = _INT16_MINVAL
