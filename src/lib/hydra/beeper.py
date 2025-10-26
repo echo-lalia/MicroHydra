@@ -132,7 +132,7 @@ class Beeper:
         if not self.config['ui_sound']:
             return
         if volume is None:
-            volume = self.config['volume'] + 5
+            volume = self.config['volume']
 
         if isinstance(notes, str):
             notes = [notes]
