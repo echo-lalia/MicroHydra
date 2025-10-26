@@ -45,6 +45,7 @@ from font import vga2_16x32 as font
 from launcher.icons import appicons
 from lib import battlevel, display, sdcard, userinput
 from lib.display.rawbitmap import RawBitmap
+from lib.display.char_util import square_char
 from lib.hydra import beeper, loader, statusbar
 from lib.hydra.config import Config
 from lib.hydra.i18n import I18n
@@ -91,19 +92,16 @@ _SCROLL_ANIMATION_TIME = const(350)
 _SCROLL_ANIMATION_QUICK = const(150)
 
 
-_ASCII_MAX = const(128)
-
-
 _TRANS = const("""[
-    {"en": "Loading...", "zh": "加载中...", "ja": "読み込み中..."},
-    {"en": "Files", "zh": "文件", "ja": "ファイル"},
-    {"en": "Terminal", "zh": "终端", "ja": "端末"},
-    {"en": "Get Apps", "zh": "应用商店", "ja": "アプリストア"},
-    {"en": "Reload Apps", "zh": "重新加载应用", "ja": "アプリ再読"},
-    {"en": "UI Sound", "zh": "界面声音", "ja": "UIサウンド"},
-    {"en": "Settings", "zh": "设置", "ja": "設定"},
-    {"en": "On", "zh": "开", "ja": "オン"},
-    {"en": "Off", "zh": "关", "ja": "オフ"}
+    {"en": "Loading...", "zh": "加载中...", "ja": "読み込み中...", "ua": "Завантаження..."},
+    {"en": "Files", "zh": "文件", "ja": "ファイル", "ua": "Файли"},
+    {"en": "Terminal", "zh": "终端", "ja": "端末", "ua": "Термінал"},
+    {"en": "Get Apps", "zh": "应用商店", "ja": "アプリストア", "ua": "Отримати ПЗ"},
+    {"en": "Reload Apps", "zh": "重新加载应用", "ja": "アプリ再読", "ua": "Оновити список"},
+    {"en": "UI Sound", "zh": "界面声音", "ja": "UIサウンド", "ua": "Звуки меню"},
+    {"en": "Settings", "zh": "设置", "ja": "設定", "ua": "Налаштування"},
+    {"en": "On", "zh": "开", "ja": "オン", "ua": "Ввімк"},
+    {"en": "Off", "zh": "关", "ja": "オフ", "ua": "Вимк"}
 ]""")
 
 
@@ -288,7 +286,7 @@ def launch_app(app_path):
     if app_path.endswith(".cli.py"):
         loader.launch_app(APP_PATHS['Terminal'], f"${app_path}")
     loader.launch_app(app_path)
-
+    
 
 def center_text_x(text: str) -> int:
     """Calculate the x coordinate to draw a text string, to make it horizontally centered.
@@ -298,7 +296,7 @@ def center_text_x(text: str) -> int:
     # calculate length
     x = _DISPLAY_WIDTH_HALF
     for char in text:
-        if ord(char) > _ASCII_MAX:
+        if square_char(ord(char)):
             x -= _FONT_WIDTH
         else:
             x -= _FONT_WIDTH_HALF
@@ -506,7 +504,8 @@ class IconWidget:
             self.drawn_icon = self.next_icon
 
             # if this is a custom icon, it needs to be loaded
-            if isinstance(self.drawn_icon, str) and self.drawn_icon.endswith(".raw"):
+            if isinstance(self.drawn_icon, str) and \
+			(self.drawn_icon.endswith(".wbmp") or self.drawn_icon.endswith(".raw")):
                 with open(self.drawn_icon, 'rb') as f:
                     f.readinto(self.buf)
 
@@ -545,8 +544,10 @@ class IconWidget:
         if not (current_app_path.endswith('.py') or current_app_path.endswith('.mpy')):
             # too many ways for `os.listdir` to fail here, so just capture the error:
             try:
-                if 'icon.raw' in os.listdir(current_app_path):
-                    return RawBitmap(f"{current_app_path}/icon.raw", 32, 32, (CONFIG.palette[2], CONFIG.palette[8]))
+                if 'icon.wbmp' in os.listdir(current_app_path):
+                    return RawBitmap(f"{current_app_path}/icon.wbmp", (CONFIG.palette[2], CONFIG.palette[8]))
+                elif 'icon.raw' in os.listdir(current_app_path):
+                    return RawBitmap(f"{current_app_path}/icon.raw", (CONFIG.palette[2], CONFIG.palette[8]))
             except OSError:
                 pass
 
@@ -823,3 +824,4 @@ def main_loop():
 
 # run the main loop!
 main_loop()
+

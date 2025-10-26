@@ -23,16 +23,16 @@ machine.freq(240_000_000)
 
 # this defines the translations passed to hydra.menu and hydra.popup
 _TRANS = const("""[
-  {"en": "language", "zh": "语言/Lang", "ja": "言語/Lang"},
-  {"en": "volume", "zh": "音量", "ja": "音量"},
-  {"en": "ui_color", "zh": "UI颜色", "ja": "UIの色"},
-  {"en": "bg_color", "zh": "背景颜色", "ja": "背景色"},
-  {"en": "wifi_ssid", "zh": "WiFi名称", "ja": "WiFi名前"},
-  {"en": "wifi_pass", "zh": "WiFi密码", "ja": "WiFiパスワード"},
-  {"en": "sync_clock", "zh": "同步时钟", "ja": "時計同期"},
-  {"en": "24h_clock", "zh": "24小时制", "ja": "24時間制"},
-  {"en": "timezone", "zh": "时区", "ja": "タイムゾーン"},
-  {"en": "Confirm", "zh": "确认", "ja": "確認"}
+  {"en": "language", "zh": "语言/Lang", "ja": "言語/Lang", "ua": "Мова/Lang"},
+  {"en": "volume", "zh": "音量", "ja": "音量", "ua": "Гучність"},
+  {"en": "ui_color", "zh": "UI颜色", "ja": "UIの色", "ua": "Колір меню"},
+  {"en": "bg_color", "zh": "背景颜色", "ja": "背景色", "ua": "Колір фону"},
+  {"en": "wifi_ssid", "zh": "WiFi名称", "ja": "WiFi名前", "ua": "Мережа WiFi"},
+  {"en": "wifi_pass", "zh": "WiFi密码", "ja": "WiFiパスワード", "ua": "Пароль WiFi"},
+  {"en": "sync_clock", "zh": "同步时钟", "ja": "時計同期", "ua": "Синхр. часу"},
+  {"en": "24h_clock", "zh": "24小时制", "ja": "24時間制", "ua": "24 год. час"},
+  {"en": "timezone", "zh": "时区", "ja": "タイムゾーン", "ua": "Часовий пояс"},
+  {"en": "Confirm", "zh": "确认", "ja": "確認", "ua": "Зберегти"}
 ]""")
 
 
@@ -44,7 +44,7 @@ config = config.Config()
 I18N = I18n(_TRANS)
 overlay = UIOverlay(i18n=I18N)
 
-LANGS = ['en', 'zh', 'ja']
+LANGS = ['en', 'zh', 'ja', 'ua']
 LANGS.sort()
 
 # try mounting SDCard for settings import/export
@@ -189,3 +189,5 @@ menu = build_menu()
 # this loop lets us restart the new menu if it is stopped/recreated by the callbacks above
 while True:
     menu.main()
+
+
