@@ -74,7 +74,7 @@ class Beeper:
 
     def __init__(self):
         """Initialize the Beeper (and I2SSound)."""
-        self.audio = get_instance(Audio)
+        self.audio = get_instance(Audio, buf_size=256)
         self.config = get_instance(Config)
         self.note_buf = []
         # mh_if esp32:

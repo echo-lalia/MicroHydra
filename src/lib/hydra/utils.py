@@ -14,7 +14,7 @@ def clamp(x: float, minimum: float, maximum: float) -> int|float:
     return x
 
 
-def get_instance(cls, *, allow_init: bool = True) -> object:
+def get_instance(cls, *, allow_init: bool = True, **kwargs) -> object:
     """Get the active instance of the given class.
 
     If an instance doesn't exist and `allow_init` is `True`, one will be created and returned.
@@ -23,6 +23,6 @@ def get_instance(cls, *, allow_init: bool = True) -> object:
     if hasattr(cls, 'instance'):
         return cls.instance
     if allow_init:
-        return cls()
+        return cls(**kwargs)
     msg = f"{cls.__name__} has no instance. (You must initialize it first)"
     raise AttributeError(msg)

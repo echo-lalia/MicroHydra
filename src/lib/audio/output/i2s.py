@@ -22,12 +22,12 @@ class I2SOutput(Output):
             1,
             sck=Pin(sck),
             ws=Pin(ws),
-			sd=Pin(sd),
-			mode=I2S.TX,
-			bits=16,
-			format=I2S.MONO,
-			rate=rate,
-			ibuf=buf_size,
+            sd=Pin(sd),
+            mode=I2S.TX,
+            bits=16,
+            format=I2S.MONO,
+            rate=rate,
+            ibuf=max(buf_size, 1024),
         )
         self.buf = bytearray(buf_size)
         self.mv = memoryview(self.buf)
