@@ -415,11 +415,11 @@ class DisplayCore:
         """Render a single UTF8 character on the screen."""
         width = 4 if ascii_char(char) else 8
         height = 8
-        if not square_char(char):
-            scale = scale >> 1
-
         if scale > 1 and not square_char(char):
             scale = scale >> 1
+
+        if not 0x0000 <= char <= 0xFFFF:
+            return width * scale
 
         # set up viper variables
         use_tiny_fbuf = bool(self.use_tiny_buf)
