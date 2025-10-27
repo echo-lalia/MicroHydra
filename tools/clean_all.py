@@ -4,7 +4,7 @@ Clean MicroHydra build folders for a clean run.
 
 import os
 import shutil
-from mh_tools_common import bcolors
+from mh_tools_common import bcolors, Device
 from mh_build_config import NON_DEVICE_FILES
 
 
@@ -14,7 +14,10 @@ OG_DIRECTORY = CWD
 
 PARSE_PATH = os.path.join(CWD, 'MicroHydra')
 DEVICE_PATH = os.path.join(CWD, 'devices')
-ESP32_PATH = os.path.join(CWD, 'MicroPython', 'ports', 'esp32')
+MPY_PATH = os.path.join(CWD, 'MicroPython')
+
+Device.load_defaults(DEVICE_PATH)
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main():
@@ -34,18 +37,26 @@ def main():
 
     # remove everything in ./MicroHydra
     print(f"{bcolors.OKBLUE}Cleaning ./MicroHydra...{bcolors.ENDC}")
-    shutil.rmtree(PARSE_PATH)
+    try:
+        shutil.rmtree(PARSE_PATH)
+    except OSError as e:
+        print(f"\t{bcolors.WARNING}Failed to remove ./MicroHydra: {e}{bcolors.ENDC}")
 
     # remove each device build folder, and board folder
     for device in devices:
         print(f"{bcolors.OKBLUE}Cleaning files for {device.name.title()}...{bcolors.ENDC}")
-        device_build_path = os.path.join(ESP32_PATH, f"build-{device.name}")
-        shutil.rmtree(device_build_path)
+        device_build_path = device.get_build_path(MPY_PATH)
+        try:
+            shutil.rmtree(device_build_path)
+        except OSError as e:
+            print(f"\t{bcolors.WARNING}Failed to remove {device_build_path}: {e}{bcolors.ENDC}")
 
-        device_board_path = os.path.join(ESP32_PATH, 'boards', device.name)
-        shutil.rmtree(device_board_path)
-        
-    
+        device_board_path = device.get_unique_board_path(MPY_PATH)
+        try:
+            shutil.rmtree(device_board_path)
+        except OSError as e:
+            print(f"\t{bcolors.WARNING}Failed to remove {device_board_path}: {e}{bcolors.ENDC}")
+
     print(f"{bcolors.OKGREEN}Finished cleaning MicroPython build files.{bcolors.ENDC}")
     os.chdir(OG_DIRECTORY)
 
@@ -53,14 +64,6 @@ def main():
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Classes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-class Device:
-    """Store/parse device/platform details."""
-    def __init__(self, name):
-        self.name = name
-
-    def __repr__(self):
-        return f"Device({self.name})"
 
 
 

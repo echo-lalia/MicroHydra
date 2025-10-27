@@ -59,6 +59,10 @@ class Device:
         """Return the path to this device's unique/output board micropython folder."""
         return os.path.join(micropython_path, 'ports', self.mpy_port, 'boards', self.name)
 
+    def get_build_path(self, micropython_path: str) -> str:
+        """Return the path to this device's board's micropython build folder."""
+        return os.path.join(micropython_path, 'ports', self.mpy_port, f"build-{self.name}")
+
     def create_device_module(self, dest_path, mh_version: tuple[int, int, int]):
         """Create lib.device.py file containing device-specific values."""
         # reformat device constants into plain 'snake case'
