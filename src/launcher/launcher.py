@@ -237,21 +237,22 @@ def scan_apps():
     #     "Files": ".frozen/launcher/files",
     #     "Terminal": ".frozen/launcher/terminal",
     #     "Settings": ".frozen/launcher/settings",
-    #     # mh_if wifi:
-    #     # "Get Apps": ".frozen/launcher/getapps",
-    #     # mh_end_if
     #     })
     # mh_else:
     app_paths.update({
         "Files": "/launcher/files",
         "Terminal": "/launcher/terminal",
         "Settings": "/launcher/settings",
-        # mh_if wifi:
-        # "Get Apps": "/launcher/getapps",
-        # mh_end_if
         })
     # mh_end_if
 
+    # Conditionally also add "Get Apps"
+    # (Ideally this should be handled more gracefully, but the MicroHydra preprocessor needs a bit of work.)
+    # mh_if wifi and frozen:
+    # app_paths["Get Apps"] = ".frozen/launcher/getapps"
+    # mh_else_if wifi:
+    app_paths["Get Apps"] = "/launcher/getapps"
+    # mh_end_if
 
     APP_NAMES = app_names
     APP_PATHS = app_paths
