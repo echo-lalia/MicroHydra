@@ -83,6 +83,7 @@ ignore = [
   # The error raising techniques preferred by these suggestions use more memory.
   "TRY003", # Avoid specifying long messages outside the exception class
   "EM102",  # Exception must not use an f-string literal
+  "EM101",  # Exception must not use a string literal
 
   # MH uses commented out code in the build process:
   "ERA",   # Found commented-out code

@@ -1,6 +1,4 @@
-"""
-Compile .mpy version of MicroHydra for each device.
-"""
+"""Compile .mpy version of MicroHydra for each device."""
 
 import os
 import yaml
@@ -48,20 +46,15 @@ Device.load_defaults(DEVICE_PATH)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main():
-    """
-    Main script body.
-    
+    """Run main script.
+
     This file is organized such that the "main" logic lives near the top,
     and all of the functions/classes used here are defined below.
     """
     os.chdir(MPY_PATH)
 
     # parse devices into list of Device objects
-    devices = []
-    for filepath in os.listdir(DEVICE_PATH):
-        if filepath not in NON_DEVICE_FILES:
-            devices.append(Device(filepath))
-
+    devices = [Device(filepath) for filepath in os.listdir(DEVICE_PATH) if filepath not in NON_DEVICE_FILES]
 
     for device in devices:
         print(f"{bcolors.OKBLUE}Compiling .mpy files for {device.name.title()}...{bcolors.ENDC}")
@@ -72,7 +65,7 @@ def main():
         source_files = []
         for dir_entry in os.scandir(source_path):
             source_files += extract_file_data(dir_entry, '')
-        
+
         for dir_entry, file_path in source_files:
             file_compiler = FileCompiler(dir_entry, file_path)
 
@@ -82,11 +75,11 @@ def main():
                 file_compiler.copy_to(dest_path)
 
         shutil.make_archive(dest_path, 'zip', dest_path)
-    
+
     print(f"{bcolors.OKGREEN}Finished making compiled archives.{bcolors.ENDC}")
     os.chdir(OG_DIRECTORY)
 
-        
+
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Classes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -95,7 +88,9 @@ def main():
 
 class FileCompiler:
     """Class contains methods for reading and parsing a given file."""
+
     def __init__(self, dir_entry, file_path):
+        """Construct a FileCompiler."""
         self.relative_path = file_path.removeprefix('/')
         self.dir_entry = dir_entry
         self.name = dir_entry.name
@@ -103,10 +98,8 @@ class FileCompiler:
 
 
     def can_compile(self) -> bool:
-        """Check if we can actually parse this file (don't parse non-python data files.)"""
-        if self.name.endswith('.py') and self.name not in NO_COMPILE:
-            return True
-        return False
+        """Check if we can actually parse this file (don't parse non-python data files)."""
+        return (self.name.endswith('.py') and self.name not in NO_COMPILE)
 
 
     def __repr__(self):
@@ -119,9 +112,8 @@ class FileCompiler:
         # make target directory:
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         # write our original file data:
-        with open(self.path, 'rb') as source_file:
-            with open(dest_path, 'wb') as new_file:
-                new_file.write(source_file.read())
+        with open(self.path, 'rb') as source_file, open(dest_path, 'wb') as new_file:
+            new_file.write(source_file.read())
 
 
     def compile(self, dest_path, mpy_arch):
@@ -131,26 +123,26 @@ class FileCompiler:
         # make target directory:
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         # compile with mpy-cross
-        os.system(f'./mpy-cross "{self.path}" -o "{dest_path}" -march={mpy_arch}')
+        os.system(f'./mpy-cross "{self.path}" -o "{dest_path}" -march={mpy_arch}')  # noqa: S605
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def extract_file_data(dir_entry, path_dir):
+def extract_file_data(dir_entry, path_dir) -> list[tuple]:
     """Recursively extract DirEntry objects and relative paths for each file in directory."""
     if dir_entry.is_dir():
         output = []
         for r_entry in os.scandir(dir_entry):
             output += extract_file_data(r_entry, f"{path_dir}/{dir_entry.name}")
         return output
-    else:
-        return [(dir_entry, path_dir)]
+    return [(dir_entry, path_dir)]
 
 
 
 def launch_wsl():
-    """Attempt to use WSL if run from Windows"""
-    subprocess.call('wsl -e sh -c "python3 tools/compile_hydra_mpy.py"')
+    """Attempt to use WSL if run from Windows."""
+    subprocess.call(f'wsl -e sh -c "python3 {__file__}"')  # noqa: S603
+
 
 # build process is convoluted on Windows (and not supported by this script)
 # so if we are on Windows, try launching WSL instead:

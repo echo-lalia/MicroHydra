@@ -1,6 +1,4 @@
-"""
-Clean MicroHydra build folders for a clean run.
-"""
+"""Clean MicroHydra build folders for a clean run."""
 
 import os
 import shutil
@@ -21,19 +19,14 @@ Device.load_defaults(DEVICE_PATH)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def main():
-    """
-    Main script body.
-    
+    """Run main script.
+
     This file is organized such that the "main" logic lives near the top,
     and all of the functions/classes used here are defined below.
     """
 
     # parse devices into list of Device objects
-    devices = []
-    for filepath in os.listdir(DEVICE_PATH):
-        if filepath not in NON_DEVICE_FILES:
-            devices.append(Device(filepath))
-
+    devices = [Device(filepath) for filepath in os.listdir(DEVICE_PATH) if filepath not in NON_DEVICE_FILES]
 
     # remove everything in ./MicroHydra
     print(f"{bcolors.OKBLUE}Cleaning ./MicroHydra...{bcolors.ENDC}")
@@ -60,7 +53,6 @@ def main():
     print(f"{bcolors.OKGREEN}Finished cleaning MicroPython build files.{bcolors.ENDC}")
     os.chdir(OG_DIRECTORY)
 
-        
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Classes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -69,7 +61,9 @@ def main():
 
 class FileCopier:
     """Class contains methods for reading and parsing a given file."""
+
     def __init__(self, dir_entry, file_path):
+        """Construct the FileCopier."""
         self.relative_path = file_path.removeprefix('/')
         self.dir_entry = dir_entry
         self.name = dir_entry.name
@@ -86,22 +80,20 @@ class FileCopier:
         # make target directory:
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         # write our original file data:
-        with open(self.path, 'rb') as source_file:
-            with open(dest_path, 'wb') as new_file:
-                new_file.write(source_file.read())
+        with open(self.path, 'rb') as source_file, open(dest_path, 'wb') as new_file:
+            new_file.write(source_file.read())
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def extract_file_data(dir_entry, path_dir):
+def extract_file_data(dir_entry, path_dir) -> list[tuple]:
     """Recursively extract DirEntry objects and relative paths for each file in directory."""
     if dir_entry.is_dir():
         output = []
         for r_entry in os.scandir(dir_entry):
             output += extract_file_data(r_entry, f"{path_dir}/{dir_entry.name}")
         return output
-    else:
-        return [(dir_entry, path_dir)]
+    return [(dir_entry, path_dir)]
 
 
 

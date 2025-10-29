@@ -5,25 +5,31 @@ from .bcolors import bcolors
 
 
 class Device:
+    """Read and process data relating to a specific device."""
+
     device_path = None
     defaults = None
     default_constants = None
     all_features = None
 
+
     @classmethod
     def load_defaults(cls, device_path: str):
+        """Load data from 'default.yml' to initialize the Device class."""
         cls.device_path = device_path
-        with open(os.path.join(device_path, 'default.yml'), 'r', encoding="utf-8") as default_file:
+        with open(os.path.join(device_path, 'default.yml'), encoding="utf-8") as default_file:
             cls.defaults = yaml.safe_load(default_file.read())
         cls.default_constants = cls.defaults['constants']
         cls.all_features = cls.defaults['features']
 
-    def __init__(self, name):
+
+    def __init__(self, name: str):
+        """Load device data for the given device name."""
         if Device.device_path is None or Device.default_constants is None:
             raise ValueError("Device.load_defaults must be called before loading any individual devices.")
 
         self.constants = self.default_constants.copy()
-        with open(os.path.join(self.device_path, name, "definition.yml"), 'r', encoding="utf-8") as device_file:
+        with open(os.path.join(self.device_path, name, "definition.yml"), encoding="utf-8") as device_file:
             device_def = yaml.safe_load(device_file.read())
             self.constants.update(device_def['constants'])
             self.source_board = device_def['source_board']
@@ -33,35 +39,52 @@ class Device:
         self.name = name
         self.validate_def()
 
+
     def validate_def(self):
         """Check to ensure device/defaults make sense."""
         for const in self.constants:
             if const not in Device.default_constants:
-                print(f"{bcolors.WARNING}WARNING: the constant '{const}' from device '{self.name}' does not appear in 'default.yml'!{bcolors.ENDC}")
+                print(bcolors.WARNING
+                    + f"WARNING: the constant '{const}' from device '{self.name}' does not appear in 'default.yml'!"
+                    + bcolors.ENDC
+                )
             if not str(const).startswith("_MH_"):
-                print(f"{bcolors.WARNING}WARNING: the constant '{const}' from device '{self.name}' doesn't start with '_MH_' (will not work with 'parse_files.py')!{bcolors.ENDC}")
+                print(bcolors.WARNING
+                    + f"WARNING: the constant '{const}' from device '{self.name}' doesn't start with '_MH_'"
+                    " (will not work with 'parse_files.py')!"
+                    + bcolors.ENDC
+                )
         for feat in self.features:
             if feat not in Device.all_features:
-                print(f"{bcolors.WARNING}WARNING: the feature '{feat}' from device '{self.name}' does not appear in 'default.yml'!{bcolors.ENDC}")
+                print(bcolors.WARNING
+                    + f"WARNING: the feature '{feat}' from device '{self.name}' does not appear in 'default.yml'!"
+                    + bcolors.ENDC
+                )
+
 
     def __repr__(self):
         return f"Device({self.name})"
+
 
     def get_source_path(self) -> str:
         """Get the path the this device's definition source folder."""
         return os.path.join(self.device_path, self.name)
 
+
     def get_source_board_path(self, micropython_path: str) -> str:
         """Return the path to this device's source/basis micropython board folder."""
         return os.path.join(micropython_path, 'ports', self.mpy_port, 'boards', self.source_board)
+
 
     def get_unique_board_path(self, micropython_path: str) -> str:
         """Return the path to this device's unique/output board micropython folder."""
         return os.path.join(micropython_path, 'ports', self.mpy_port, 'boards', self.name)
 
+
     def get_build_path(self, micropython_path: str) -> str:
         """Return the path to this device's board's micropython build folder."""
         return os.path.join(micropython_path, 'ports', self.mpy_port, f"build-{self.name}")
+
 
     def create_device_module(self, dest_path, mh_version: tuple[int, int, int]):
         """Create lib.device.py file containing device-specific values."""
@@ -77,11 +100,11 @@ class Device:
                 # attempt conversion to int:
                 try:
                     val = int(val)
-                except:
+                except:  # noqa: S110
                     pass
 
             new_dict[key] = val
-        
+
         new_feats = self.features.copy()
         new_feats.append(self.name)
 
