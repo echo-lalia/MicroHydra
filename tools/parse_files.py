@@ -372,31 +372,17 @@ class FileParser:
         possible_conditional = "#" in line and "mh_if" in line
 
         if possible_conditional:
-            # TODO: mh_else is broken! must either revert or rework!
-            if "mh_else" in line:
-                print(f"{bcolors.WARNING}WARNING: line '{line}' looks like it might be a broken `mh_if` statement.{bcolors.ENDC}")
-            # Pattern to strictly match a `# mh_if...:` in line (with no leading non-space characters)
-            _CONDITIONAL_PATTERN = r"^[ \t]*#[ \t]?mh_if[ \t]*[\w\d \t_]+:"
-            if re.match(_CONDITIONAL_PATTERN, line):
-                return True
-
-            # if ":" in line:
-            #     found_comment = False
-            #     while line:
-            #         if line.startswith('#'):
-            #             found_comment = True
-            #         elif found_comment and line.startswith('mh_if'):
-            #             return True
-            #         elif found_comment and (not line[0].isspace()):
-            #             return False
-            #         line = line[1:]
-
-            # Pattern to match a commented out conditional (Ex `# # mh_if...:`)
-            _COMMENTED_CONDITIONAL_PATTERN = r"^(?:[ \t]*#)+[ \t]?mh_if[ \t]*[\w\d \t_]+:"
-            # A commented out mh_if shouldnt match, and that's fine. Otherwise, not matching a line with "mh_if" is suspicious
-            if (CONDITIONAL_PARSED_ORIGINAL_DELIMITER not in line) and (not re.match(_COMMENTED_CONDITIONAL_PATTERN, line)):
-                print(f"{bcolors.WARNING}WARNING: line '{line}' looks like it might be a broken `mh_if` statement.{bcolors.ENDC}")
-
+            if ":" in line:
+                found_comment = False
+                while line:
+                    if line.startswith('#'):
+                        found_comment = True
+                    elif found_comment and line.startswith('mh_if'):
+                        return True
+                    elif found_comment and (not line[0].isspace()):
+                        return False
+                    line = line[1:]
+            print(f"{bcolors.WARNING}WARNING: line '{line}' looks like it might be a broken `mh_if` statement.{bcolors.ENDC}")
         return False
 
 
@@ -408,36 +394,17 @@ class FileParser:
             return False
 
         if "#" in line and "mh_else" in line:
-            
-            # Strictly match a `# mh_else:` pattern
-            _STRICT_MATCH_ELSE_PATTERN = r"^[ \t]*#[ \t]?mh_else[ \n]*[ \t]*:"
-            if re.match(_STRICT_MATCH_ELSE_PATTERN, line):
-                # print(f"is mh_else: '{line}'")
-                return "mh_else"
-            
-            # Strictly match a `# mh_else_if ... :` pattern
-            _STRICT_MATCH_ELIF_PATTERN = r"^[ \t]*#[ \t]?mh_else_if[ \n]*[\w_\d \t]+:"
-            if re.match(_STRICT_MATCH_ELIF_PATTERN, line):
-                # print(f"is mh_else_if: '{line}'")
-                return "mh_else_if"
-
-            # Match a mh_else/mh_else_if with two or more comments in front
-            _COMMENTED_ELSE_PATTERN = r"^(?:[ \t]*#)+[ \t]*#[ \t]?mh_else(_if)?(?(1)(?:[\w_\d \t]*)|[ \t]*):"
-            # Check if this was a commented out mh_else pattern, or warn if it may be malformed.
-            if not re.match(_COMMENTED_ELSE_PATTERN, line):
-                print(f"{bcolors.WARNING}WARNING: line '{line}' looks like it might contain a broken `# mh_else/mh_else_if ... :` statement.{bcolors.ENDC}")
-
-            # found_comment = False
-            # while line:
-            #     if line.startswith('#'):
-            #         found_comment = True
-            #     elif found_comment and line.startswith('mh_else_if'):
-            #         return "mh_else_if"
-            #     elif found_comment and line.startswith('mh_else'):
-            #         return "mh_else"
-            #     elif found_comment and (not line[0].isspace()):
-            #         return False
-            #     line = line[1:]
+            found_comment = False
+            while line:
+                if line.startswith('#'):
+                    found_comment = True
+                elif found_comment and line.startswith('mh_else_if'):
+                    return "mh_else_if"
+                elif found_comment and line.startswith('mh_else'):
+                    return "mh_else"
+                elif found_comment and (not line[0].isspace()):
+                    return False
+                line = line[1:]
         return False
 
 
@@ -451,31 +418,15 @@ class FileParser:
             return False
 
         if "#" in line and ("mh_end_if" in line or ("mh_else" in line and includes_else)):
-            # Stricly match a `# mh_end_if` pattern
-            _STRICT_MATCH_END_PATTERN = r"^[ \t]*#[ \t]?mh_end_if"
-            if re.match(_STRICT_MATCH_END_PATTERN, line):
-                return True
-
-            # Strictly match a `# mh_else:` OR `# mh_else_if...:` pattern
-            _STRICT_MATCH_ELSE_PATTERN = r"^[ \t]*#[ \t]?mh_else(_if)?[ \n]*(?(1)[\w_\d \t]+|[ \t]*):"
-            if includes_else and re.match(_STRICT_MATCH_ELSE_PATTERN, line):
-                return True
-            
-            # Match a commented out mh_else, mh_end_if, or mh_else_if pattern
-            _COMMENTED_END_ELSE_PATTERN = r"^(?:[ \t]*#)+[ \t]*#[ \t]?(?:mh_end_if|(mh_else(?:_if)?))(?(1)(?:[\w_\d \t]*:)|)"
-            # If neither of the above matched, check if this is just commented out, or potentially malformed in some way
-            if not re.match(_COMMENTED_END_ELSE_PATTERN, line):
-                print(f"{bcolors.WARNING}The following line looks like it may contain a malformed mh_end_if/mh_else/mh_else_if pattern:\n\t{line}{bcolors.ENDC}")
-
-            # found_comment = False
-            # while line:
-            #     if line.startswith('#'):
-            #         found_comment = True
-            #     elif found_comment and includes_else and line.startswith(('mh_end_if', 'mh_else')):
-            #         return True
-            #     elif found_comment and (not line[0].isspace()):
-            #         return False
-            #     line = line[1:]
+            found_comment = False
+            while line:
+                if line.startswith('#'):
+                    found_comment = True
+                elif found_comment and includes_else and line.startswith(('mh_end_if', 'mh_else')):
+                    return True
+                elif found_comment and (not line[0].isspace()):
+                    return False
+                line = line[1:]
         return False
 
 
