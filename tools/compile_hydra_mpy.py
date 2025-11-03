@@ -141,7 +141,8 @@ def extract_file_data(dir_entry, path_dir) -> list[tuple]:
 
 def launch_wsl():
     """Attempt to use WSL if run from Windows."""
-    subprocess.call(f'wsl -e sh -c "python3 {__file__}"')  # noqa: S603
+    this_file_path = os.path.relpath(__file__, os.getcwd()).replace("\\", "/")
+    subprocess.call(f'wsl -e sh -c "python3 {this_file_path}"')  # noqa: S603
 
 
 # build process is convoluted on Windows (and not supported by this script)
