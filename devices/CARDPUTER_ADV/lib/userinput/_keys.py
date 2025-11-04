@@ -45,60 +45,59 @@ class Keys:
 
     def __init__(self, **kwargs):  # noqa: ARG002
         self._key_list_buffer = []
+        # Initialize I2C for TCA8418
+        self.i2c = I2C(
+            0,          # I2C bus ID
+            scl=Pin(9),
+            sda=Pin(8),
+            freq=400000
+        )
 
+        # INT pin
+        self.int_pin = Pin(11, Pin.IN)
+
+        # TCA8418 I2C address (check your board, usually 0x34)
+        self.addr = 0x34
+        
         # setup the "G0" button!
         self.G0 = Pin(0, Pin.IN, Pin.PULL_UP)
 
-        # setup column pins. These are read as inputs.
-        c0 = Pin(13, Pin.IN, Pin.PULL_UP)
-        c1 = Pin(15, Pin.IN, Pin.PULL_UP)
-        c2 = Pin(3, Pin.IN, Pin.PULL_UP)
-        c3 = Pin(4, Pin.IN, Pin.PULL_UP)
-        c4 = Pin(5, Pin.IN, Pin.PULL_UP)
-        c5 = Pin(6, Pin.IN, Pin.PULL_UP)
-        c6 = Pin(7, Pin.IN, Pin.PULL_UP)
-        self.columns = (c6, c5, c4, c3, c2, c1, c0)
-
-        # setup row pins.
-        # These are given to a 74hc138 "demultiplexer", which lets us turn 3 output pins into 8 outputs (8 rows)
-        self.a0 = Pin(8, Pin.OUT)
-        self.a1 = Pin(9, Pin.OUT)
-        self.a2 = Pin(11, Pin.OUT)
-
         self.key_state = []
 
-    @micropython.viper
-    def scan(self):  # noqa: ANN202
-        """Scan through the matrix to see what keys are pressed."""
+    def scan(self):
+        """Scan the keypad using TCA8418 over I2C."""
         key_list_buffer = []
         self._key_list_buffer = key_list_buffer
 
-        columns = self.columns
+        # TCA8418 registers (from datasheet)
+        KEY_LSB_REG = 0x03  # First key pressed LSB
+        KEY_MSB_REG = 0x04  # First key pressed MSB
+        # Alternatively, you can read 2 bytes from KEY_LSB_REG to get all keys
 
-        a0 = self.a0
-        a1 = self.a1
-        a2 = self.a2
+        # Read 2 bytes of key data
+        try:
+            data = self.i2c.readfrom_mem(self.addr, KEY_LSB_REG, 2)
+            key_lsb = data[0]
+            key_msb = data[1]
 
-        #this for loop iterates through the 8 rows of our matrix
-        row_idx = 0
-        while row_idx < 8:
-            a0.value(row_idx & 0b001)
-            a1.value(( row_idx & 0b010 ) >> 1)
-            a2.value(( row_idx & 0b100 ) >> 2)
+            # Each bit represents a key in the matrix (0 = pressed)
+            for row in range(8):
+                for col in range(7):
+                    key_idx = row * 7 + col
+                    if key_idx < 8:
+                        pressed = not (key_lsb & (1 << key_idx))
+                    else:
+                        pressed = not (key_msb & (1 << (key_idx - 8)))
 
-            # iterate through each column
-            col_idx = 0
-            while col_idx < 7:
-                if not columns[col_idx].value(): # button pressed
-                    # pack column/row into one integer
-                    key_address = (col_idx * 10) + row_idx
-                    key_list_buffer.append(key_address)
+                    if pressed:
+                        key_address = (col * 10) + row  # keep old format
+                        key_list_buffer.append(key_address)
 
-                col_idx += 1
-
-            row_idx += 1
+        except Exception as e:
+            print("I2C read failed:", e)
 
         return key_list_buffer
+
 
 
     @staticmethod
