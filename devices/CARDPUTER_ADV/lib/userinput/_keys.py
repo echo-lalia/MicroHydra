@@ -1,92 +1,148 @@
-"""Read and return keyboard data for the M5Stack Cardputer Advanced"""
-
+"""Read and return keyboard data for the M5Stack Cardputer Advanced."""
 from machine import Pin, I2C
 import time
 
-# Lookup constants for modifier keys
 KC_SHIFT = const(61)
 KC_FN = const(65)
-
-# Regular keymap
 KEYMAP = {
-    1:'SPC', 2:'`', 3:'1', 4:'2', 5:'3', 6:'4', 7:'5', 8:'6',
-    11:'7', 12:'8', 13:'9', 14:'0', 15:'-', 16:'=', 17:'BSPC',
-    21:'TAB', 22:'q', 23:'w', 24:'e', 25:'r', 26:'t', 27:'y', 28:'u',
-    31:'i', 32:'o', 33:'p', 34:'[', 35:'{', 36:']', 37:'\\',
-    41:'FN', 42:'SHIFT', 43:'a', 44:'s', 45:'d', 46:'f', 47:'g', 48:'h',
-    51:'j', 52:'k', 53:'l', 54:';', 55:':', 56:"'", 57:'ENT',
-    61:'CTL', 62:'OPT', 63:'ALT', 64:'z', 65:'x', 66:'c', 67:'v', 68:'b',
-    71:'n', 72:'m', 73:',', 74:'.', 75:'/', 76:'UP', 77:'LEFT', 78:'DOWN', 79:'RIGHT'
-}
+    0:'`',   4:'1',     8:'2',    12:'3', 16:'4', 20:'5', 24:'6', 28:'7', 32:'8', 36:'9', 40:'0', 44:'-', 48:'=', 52:'BSPC',
+    1:'TAB', 5:'q',     9:'w',    13:'e', 17:'r', 21:'t', 25:'y', 29:'u', 33:'i', 37:'o', 41:'p', 45:'[', 49:']', 53:'\\',
+    2:"FN",  6:"SHIFT", 10:'a',   14:'s', 18:'d', 22:'f', 26:'g', 30:'h', 34:'j', 38:'k', 42:'l', 46:';', 50:"'", 54:'ENT',
+    3:'CTL', 7:'OPT',   11:'ALT', 15:'z', 19:'x', 23:'c', 27:'v', 31:'b', 35:'n', 39:'m', 43:',', 47:'.', 51:'/', 55:'SPC',
+    }
 
-# Shifted keymap
 KEYMAP_SHIFT = {
-    1:'SPC', 2:'~', 3:'!', 4:'@', 5:'#', 6:'$', 7:'%', 8:'^',
-    11:'&', 12:'*', 13:'(', 14:')', 15:'_', 16:'+', 17:'BSPC',
-    21:'TAB', 22:'Q', 23:'W', 24:'E', 25:'R', 26:'T', 27:'Y', 28:'U',
-    31:'I', 32:'O', 33:'P', 34:'{', 35:'}', 36:'|', 37:'\\',
-    41:'FN', 42:'SHIFT', 43:'A', 44:'S', 45:'D', 46:'F', 47:'G', 48:'H',
-    51:'J', 52:'K', 53:'L', 54:':', 55:'"', 56:"'", 57:'ENT',
-    61:'CTL', 62:'OPT', 63:'ALT', 64:'Z', 65:'X', 66:'C', 67:'V', 68:'B',
-    71:'N', 72:'M', 73:'<', 74:'>', 75:'?', 76:'UP', 77:'LEFT', 78:'DOWN', 79:'RIGHT'
-}
+    0:'~',   4:'!',     8:'@',    12:'#', 16:'$', 20:'%', 24:'^', 28:'&', 32:'*', 36:'(', 40:')', 44:'_', 48:'+', 52:'BSPC',
+    1:'TAB', 5:'Q',     9:'W',    13:'E', 17:'R', 21:'T', 25:'Y', 29:'U', 33:'I', 37:'O', 41:'P', 45:'{', 49:'}', 53:'|',
+    2:"FN",  6:"SHIFT", 10:'A',   14:'S', 18:'D', 22:'F', 26:'G', 30:'H', 34:'J', 38:'K', 42:'L', 46:':', 50:'"', 54:'ENT',
+    3:'CTL', 7:'OPT',   11:'ALT', 15:'Z', 19:'X', 23:'C', 27:'V', 31:'B', 35:'N', 39:'M', 43:'<', 47:'>', 51:'/', 55:'SPC',
+    }
 
-# FN keymap (special functions, arrows, F1–F10, etc.)
 KEYMAP_FN = {
-    1:'SPC', 2:'ESC', 3:'F1', 4:'F2', 5:'F3', 6:'F4', 7:'F5', 8:'F6',
-    11:'F7', 12:'F8', 13:'F9', 14:'F10', 15:'_', 16:'=', 17:'DEL',
-    21:'TAB', 22:'q', 23:'w', 24:'e', 25:'r', 26:'t', 27:'y', 28:'u',
-    31:'i', 32:'o', 33:'p', 34:'[', 35:']', 36:'\\', 37:'\\',
-    41:'FN', 42:'SHIFT', 43:'a', 44:'s', 45:'d', 46:'f', 47:'g', 48:'h',
-    51:'j', 52:'k', 53:'l', 54:'UP', 55:"'", 56:"'", 57:'ENT',
-    61:'CTL', 62:'OPT', 63:'ALT', 64:'z', 65:'x', 66:'c', 67:'v', 68:'b',
-    71:'n', 72:'m', 73:'LEFT', 74:'RIGHT', 75:'DOWN', 76:'UP', 77:'LEFT', 78:'DOWN', 79:'RIGHT'
-}
+    0:'ESC', 4:'F1',    8:'F2',   12:'F3', 16:'F4', 20:'F5', 24:'F6', 28:'F7', 32:'F8', 36:'F9', 40:'F10',    44:'-',    48:'=', 52:'DEL',
+    1:'TAB', 5:'q',     9:'w',    13:'e',  17:'r',  21:'t',  25:'y',  29:'u',  33:'i',  37:'o',  41:'p',      45:'[',    49:']', 53:'\\',
+    2:"FN",  6:"SHIFT", 10:'a',   14:'s',  18:'d',  22:'f',  26:'g',  30:'h',  34:'j',  38:'k',  42:'l',      46:'UP',   50:"'", 54:'ENT',
+    3:'CTL', 7:'OPT',   11:'ALT', 15:'z',  19:'x',  23:'c',  27:'v',  31:'b',  35:'n',  39:'m',  43:'LEFT',   47:'DOWN', 51:'RIGHT', 55:'SPC', # noqa: E501
+    }
+
 
 MOD_KEYS = const(('ALT', 'CTL', 'FN', 'SHIFT', 'OPT'))
 ALWAYS_NEW_KEYS = const(())
 
-TCA8418_ADDR = 0x34
 
 class Keys:
-    """I2C-based keyboard reader for M5Stack Cardputer."""
+    """Keys class is responsible for reading and returning currently pressed keys.
 
+    It is intented to be used by the Input module.
+    """
+
+    # optional values set preferred main/secondary action keys:
     main_action = "ENT"
     secondary_action = "SPC"
     aux_action = "G0"
 
-    def __init__(self, i2c_bus=1, scl_pin=9, sda_pin=8, int_pin=11):
-        self.i2c = I2C(i2c_bus, scl=Pin(scl_pin), sda=Pin(sda_pin))
-        self.int_pin = Pin(int_pin, Pin.IN, Pin.PULL_UP)
-        self._key_state = []
+    ext_dir_dict = {';':'UP', ',':'LEFT', '.':'DOWN', '/':'RIGHT', '`':'ESC'}
 
-    def scan(self):
-        """Read all available key events from TCA8418."""
+    def __init__(self, **kwargs):  # noqa: ARG002
+        self._key_list_buffer = []
+
+        # setup the "G0" button!
+        self.G0 = Pin(0, Pin.IN, Pin.PULL_UP)
+
+        # setup column pins. These are read as inputs.
+        c0 = Pin(13, Pin.IN, Pin.PULL_UP)
+        c1 = Pin(15, Pin.IN, Pin.PULL_UP)
+        c2 = Pin(3, Pin.IN, Pin.PULL_UP)
+        c3 = Pin(4, Pin.IN, Pin.PULL_UP)
+        c4 = Pin(5, Pin.IN, Pin.PULL_UP)
+        c5 = Pin(6, Pin.IN, Pin.PULL_UP)
+        c6 = Pin(7, Pin.IN, Pin.PULL_UP)
+        self.columns = (c6, c5, c4, c3, c2, c1, c0)
+
+        # setup row pins.
+        # These are given to a 74hc138 "demultiplexer", which lets us turn 3 output pins into 8 outputs (8 rows)
+        self.a0 = Pin(8, Pin.OUT)
+        self.a1 = Pin(9, Pin.OUT)
+        self.a2 = Pin(11, Pin.OUT)
+
+        self.key_state = []
+
+    @micropython.viper
+    def scan(self):  # noqa: ANN202
+        """Scan through the matrix to see what keys are pressed."""
         key_list_buffer = []
-        while not self.int_pin.value():  # While INT pin is low
-            try:
-                data = self.i2c.readfrom_mem(TCA8418_ADDR, 0x04, 1)[0]  # KEY_EVENT_A
-                key_num = data & 0x7F
-                key_pressed = bool(data & 0x80)
-                if key_pressed:
-                    key_list_buffer.append(key_num)
-            except OSError:
-                break  # No data
-        self._key_state = key_list_buffer
+        self._key_list_buffer = key_list_buffer
+
+        columns = self.columns
+
+        a0 = self.a0
+        a1 = self.a1
+        a2 = self.a2
+
+        #this for loop iterates through the 8 rows of our matrix
+        row_idx = 0
+        while row_idx < 8:
+            a0.value(row_idx & 0b001)
+            a1.value(( row_idx & 0b010 ) >> 1)
+            a2.value(( row_idx & 0b100 ) >> 2)
+
+            # iterate through each column
+            col_idx = 0
+            while col_idx < 7:
+                if not columns[col_idx].value(): # button pressed
+                    # pack column/row into one integer
+                    key_address = (col_idx * 10) + row_idx
+                    key_list_buffer.append(key_address)
+
+                col_idx += 1
+
+            row_idx += 1
+
         return key_list_buffer
 
-    def get_pressed_keys(self, *, force_fn=False, force_shift=False):
-        """Return human-readable key names."""
+
+    @staticmethod
+    def ext_dir_keys(keylist) -> list:
+        """Convert typical (aphanumeric) keys into extended movement-specific keys."""
+        for idx, key in enumerate(keylist):
+            if key in Keys.ext_dir_dict:
+                keylist[idx] = Keys.ext_dir_dict[key]
+        return keylist
+
+
+    def get_pressed_keys(self, *, force_fn=False, force_shift=False) -> list:
+        """Get a readable list of currently held keys.
+
+        Also, populate self.key_state with current vals.
+
+        Args:
+        force_fn: (bool)
+            If true, forces the use of 'FN' key layer
+        force_shift: (bool)
+            If True, forces the use of 'SHIFT' key layer
+        """
+
+        #update our scan results
         self.scan()
-        if not self._key_state:
-            return []
+        self.key_state = []
 
-        # Determine which mapping to use
-        if KC_FN in self._key_state or force_fn:
-            mapper = KEYMAP_FN
-        elif KC_SHIFT in self._key_state or force_shift:
-            mapper = KEYMAP_SHIFT
+        if self.G0.value() == 0:
+            self.key_state.append("G0")
+
+        if not self._key_list_buffer and not self.key_state: # if nothing is pressed, we can return an empty list
+            return self.key_state
+
+        if KC_FN in self._key_list_buffer or force_fn:
+            for keycode in self._key_list_buffer:
+                self.key_state.append(KEYMAP_FN[keycode])
+
+        elif KC_SHIFT in self._key_list_buffer or force_shift:
+            for keycode in self._key_list_buffer:
+                self.key_state.append(KEYMAP_SHIFT[keycode])
+
         else:
-            mapper = KEYMAP
+            for keycode in self._key_list_buffer:
+                self.key_state.append(KEYMAP[keycode])
 
-        return [mapper.get(k, str(k)) for k in self._key_state]
+        return self.key_state
+
