@@ -45,6 +45,7 @@ from font import vga2_16x32 as font
 from launcher.icons import appicons
 from lib import battlevel, display, sdcard, userinput
 from lib.display.rawbitmap import RawBitmap
+from lib.display.wbmpbitmap import WBMPBitmap
 from lib.hydra import beeper, loader, statusbar
 from lib.hydra.config import Config
 from lib.hydra.i18n import I18n
@@ -506,11 +507,12 @@ class IconWidget:
             self.drawn_icon = self.next_icon
 
             # if this is a custom icon, it needs to be loaded
-            if isinstance(self.drawn_icon, str) and self.drawn_icon.endswith(".raw"):
+            if isinstance(self.drawn_icon, str) and \
+			(self.drawn_icon.endswith(".wbmp") or self.drawn_icon.endswith(".raw")):
                 with open(self.drawn_icon, 'rb') as f:
                     f.readinto(self.buf)
 
-        if isinstance(self.drawn_icon, RawBitmap):
+        if isinstance(self.drawn_icon, RawBitmap) or isinstance(self.drawn_icon, WBMPBitmap):
             self._draw_bitmap_icon(self.drawn_icon)
 
         if isinstance(self.drawn_icon, int):
@@ -545,7 +547,9 @@ class IconWidget:
         if not (current_app_path.endswith('.py') or current_app_path.endswith('.mpy')):
             # too many ways for `os.listdir` to fail here, so just capture the error:
             try:
-                if 'icon.raw' in os.listdir(current_app_path):
+                if 'icon.wbmp' in os.listdir(current_app_path):
+                    return RawBitmap(f"{current_app_path}/icon.wbmp", 32, 32, (CONFIG.palette[2], CONFIG.palette[8]))
+                elif 'icon.raw' in os.listdir(current_app_path):
                     return RawBitmap(f"{current_app_path}/icon.raw", 32, 32, (CONFIG.palette[2], CONFIG.palette[8]))
             except OSError:
                 pass
