@@ -548,7 +548,7 @@ class IconWidget:
             # too many ways for `os.listdir` to fail here, so just capture the error:
             try:
                 if 'icon.wbmp' in os.listdir(current_app_path):
-                    return RawBitmap(f"{current_app_path}/icon.wbmp", 32, 32, (CONFIG.palette[2], CONFIG.palette[8]))
+                    return WBMPBitmap(f"{current_app_path}/icon.wbmp", (CONFIG.palette[2], CONFIG.palette[8]))
                 elif 'icon.raw' in os.listdir(current_app_path):
                     return RawBitmap(f"{current_app_path}/icon.raw", 32, 32, (CONFIG.palette[2], CONFIG.palette[8]))
             except OSError:
