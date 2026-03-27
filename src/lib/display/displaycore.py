@@ -612,7 +612,7 @@ class DisplayCore:
         fbuf16 = ptr16(self.fbuf)
 
         # The mask needed to select the requested number of bits:
-        bitmask = 0xffff >> (16 - bpp)
+        bitmask = ((1 << bpp) - 1)
 
         # Find starting x/y indices to draw, clamping to display bounds
         x_idx_start = 0 if x < 0 else display_width-1 if x >= display_width else x
@@ -638,15 +638,26 @@ class DisplayCore:
 
                 # Find the start bit for the pixel we want
                 btmp_bit_idx = starting_bit + (btmp_y*btmp_width + btmp_x) * bpp
-                # calculate the byte, and byte shift needed to read that bit
+                # Calculate the byte our bit starts in, and the bit offset in that byte
                 btmp_byte_idx = btmp_bit_idx // 8
-                byte_shift = 7 - (btmp_bit_idx % 8)
+                bit_offset = btmp_bit_idx % 8
 
-                # Find pixel color from bitmap value
-                clr = palette_ptr[
-                    # Read bitmap value
-                    (bitmap_ptr[btmp_byte_idx] >> byte_shift) & bitmask
-                ]
+                # Number of bits that must be read for this pixel
+                bits_needed = bit_offset + bpp
+                # Number of bytes we need to read to get those bits
+                bytes_needed = 2 if bits_needed > 8 else 1
+
+                # Read 1 or 2 bytes to get our data
+                chunk = bitmap_ptr[btmp_byte_idx]
+                if bytes_needed == 2:
+                    chunk = (chunk << 8) | bitmap_ptr[btmp_byte_idx + 1]
+
+                # Shift and mask our data chunk to get just our pixel bits
+                shift = (bytes_needed * 8) - bits_needed
+                clr_idx = (chunk >> shift) & bitmask
+
+                # Finally, use the color palette to look up the color this pixel represents.
+                clr = palette_ptr[clr_idx]
 
                 # Don't draw the keyed-out value
                 if clr != key:
