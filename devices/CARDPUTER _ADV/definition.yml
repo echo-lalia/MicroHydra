@@ -1,0 +1,35 @@
+constants:
+  _MH_BATT_ADC: '10'
+  _MH_DISPLAY_BACKLIGHT: '38'
+  _MH_DISPLAY_BAUDRATE: '40_000_000'
+  _MH_DISPLAY_CS: '37'
+  _MH_DISPLAY_DC: '34'
+  _MH_DISPLAY_HEIGHT: '135'
+  _MH_DISPLAY_MISO: None
+  _MH_DISPLAY_MOSI: '35'
+  _MH_DISPLAY_RESET: '33'
+  _MH_DISPLAY_ROTATION: '1'
+  _MH_DISPLAY_SCK: '36'
+  _MH_DISPLAY_SPI_ID: '1'
+  _MH_DISPLAY_WIDTH: '240'
+  _MH_I2S_ID: '1'
+  _MH_I2S_SCK: '41'
+  _MH_I2S_SD: '42'
+  _MH_I2S_WS: '43'
+  _MH_SDCARD_CS: '12'
+  _MH_SDCARD_MISO: '39'
+  _MH_SDCARD_MOSI: '14'
+  _MH_SDCARD_SCK: '40'
+  _MH_SDCARD_SLOT: '2'
+
+features:
+- keyboard
+- display
+- i2s_speaker
+- pdm_microphone
+- ir_blaster
+- wifi
+- bluetooth
+
+mpy_arch: xtensawin
+source_board: MICROHYDRA_GENERIC_S3
