@@ -698,7 +698,7 @@ def main_loop():
         # ----------------------- check for key presses on the keyboard. Only if they weren't already pressed. ---------
         new_keys = KB.get_new_keys()
 
-        # mh_if CARDPUTER:
+        # mh_if launcher_ext_dir_keys:
         # Cardputer should use extended movement keys in the launcher
         KB.ext_dir_keys(new_keys)
         # mh_end_if

@@ -45,6 +45,8 @@ features:
 - bluetooth
 - kb_light
 - keyboard
+# Whether the launcher must apply the `ext_dir_keys` for kb navigation to feel right.
+- launcher_ext_dir_keys
 - shared_sdcard_spi
 
 mpy_arch: xtensawin

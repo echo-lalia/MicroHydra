@@ -1,3 +1,14 @@
+# This file contains MicroHydra defaults that are dynamically generated from 
+# each DEVICE/definition.yml file.
+# This is mainly provided for reference, but also, any values missing from a 
+# device definition will be loaded from here instead.
+#
+# 'constants' contains all the existing hydra constants from device definitions,
+# plus the most common value.
+#
+# 'features' contains every single feature that exists in a device definition.
+
+
 constants:
   _MH_BATT_ADC: '10'
   _MH_DISPLAY_BACKLIGHT: '38'
@@ -24,6 +35,8 @@ constants:
 
 features:
 - keyboard
+# Whether the launcher must apply the `ext_dir_keys` for kb navigation to feel right.
+- launcher_ext_dir_keys
 - display
 - i2s_speaker
 - pdm_microphone
