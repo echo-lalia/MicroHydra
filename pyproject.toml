@@ -98,6 +98,11 @@ ignore = [
   "D206",  # Docstring should be indented with spaces, not tabs
   "W191",  # Indentation contains tabs
 
+  # Adds unnecessary complexity for our poor microcontroller
+  "TRY003",
+  "EM102",
+  "EM101",
+
   # This can sometimes harm performance in MP:
   "FURB136",  # Replace if expression with {min_max} call
   "PLR1730",  # ^

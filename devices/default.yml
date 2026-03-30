@@ -39,12 +39,15 @@ features:
 - trackball
 - pdm_microphone
 - touchscreen
+- imu
 - spi_ram
 - i2s_speaker
 - ir_blaster
 - bluetooth
 - kb_light
 - keyboard
+# Whether the launcher must apply the `ext_dir_keys` for kb navigation to feel right.
+- launcher_ext_dir_keys
 - shared_sdcard_spi
 
 mpy_arch: xtensawin
