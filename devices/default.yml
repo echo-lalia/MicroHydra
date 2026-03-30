@@ -39,6 +39,7 @@ features:
 - trackball
 - pdm_microphone
 - touchscreen
+- imu
 - spi_ram
 - i2s_speaker
 - ir_blaster

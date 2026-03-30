@@ -37,6 +37,7 @@ features:
 - keyboard
 # Whether the launcher must apply the `ext_dir_keys` for kb navigation to feel right.
 - launcher_ext_dir_keys
+- imu
 - display
 - i2s_speaker
 - pdm_microphone

@@ -15,7 +15,7 @@ import machine
 from . import _keys
 
 # mh_if touchscreen:
-from . import _touch
+# from . import _touch
 # mh_end_if
 
 
@@ -60,6 +60,9 @@ class UserInput(_keys.Keys):
         repeat_ms=80,
         use_sys_commands=True,
         allow_locking_keys=False,
+        # mh_if imu:
+        enable_imu=False,
+        # mh_end_if
         **kwargs):
         """Initialize the input drivers with the given settings."""
         self.config = get_instance(Config)
@@ -82,20 +85,30 @@ class UserInput(_keys.Keys):
         super().__init__(**kwargs)
 
         # mh_if kb_light:
-        # keyboard backlight control!
-        self.set_backlight(self.config["kb_light"])
+        # # keyboard backlight control!
+        # self.set_backlight(self.config["kb_light"])
         # mh_end_if
 
         # mh_if touchscreen:
-        # setup touch control!
-        self.touch = _touch.Touch(i2c=self.i2c)
-        self.get_touch_events = self.touch.get_touch_events
-        self.get_current_points = self.touch.get_current_points
+        # # setup touch control!
+        # self.touch = _touch.Touch(i2c=self.i2c)
+        # self.get_touch_events = self.touch.get_touch_events
+        # self.get_current_points = self.touch.get_current_points
+        # mh_end_if
+
+        # mh_if imu:
+        # Dynamically import IMU and set it up, if requested.
+        if enable_imu:
+            # We're dynamically importing the IMU module because the bmi270 includes a huge config_file constant.
+            from ._imu import IMU  # noqa: PLC0415
+            self.imu = IMU(self.i2c)
+        else:
+            self.imu = None
         # mh_end_if
 
 
 
-    def __new__(cls, **kwargs):  # noqa: ARG003, D102
+    def __new__(cls, **kwargs):  # noqa: ARG004, D102
         if not hasattr(cls, 'instance'):
           cls.instance = super().__new__(cls)
         return cls.instance
@@ -264,10 +277,10 @@ class UserInput(_keys.Keys):
                 machine.reset()
 
             # mh_if kb_light:
-            if "b" in keylist:
-                self.config["kb_light"] = not self.config["kb_light"]
-                self.set_backlight(self.config["kb_light"])
-                keylist.remove('b')
+            # if "b" in keylist:
+            #     self.config["kb_light"] = not self.config["kb_light"]
+            #     self.set_backlight(self.config["kb_light"])
+            #     keylist.remove('b')
             # mh_end_if
 
 

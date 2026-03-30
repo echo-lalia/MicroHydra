@@ -65,10 +65,10 @@ class Keys:
         self.G0 = Pin(0, Pin.IN, Pin.PULL_UP)
 
         # Initialize I2C bus
-        i2c = I2C()
+        self.i2c = I2C()
 
         try:
-            self.keypad = TCA8418(i2c)
+            self.keypad = TCA8418(self.i2c)
         except OSError as e:
             print(f"I2C communication error: {e}")
 

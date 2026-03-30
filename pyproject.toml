@@ -101,6 +101,7 @@ ignore = [
   # Adds unnecessary complexity for our poor microcontroller
   "TRY003",
   "EM102",
+  "EM101",
 
   # This can sometimes harm performance in MP:
   "FURB136",  # Replace if expression with {min_max} call
