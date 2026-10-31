@@ -38,6 +38,7 @@ constants:
 
 features:
 - keyboard
+- launcher_ext_dir_keys
 - display
 - i2s_speaker
 - pdm_microphone
